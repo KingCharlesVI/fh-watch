@@ -8,6 +8,8 @@ import { randomToken, sha256 } from "../lib/crypto.js";
 
 export const ACCESS_TOKEN_TTL_SEC = 15 * 60;
 export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+/** A just-rotated refresh token still works this long, so parallel requests from one client don't look like theft. */
+export const REFRESH_REUSE_GRACE_MS = 30 * 1000;
 export const EMAIL_TOKEN_TTL_MS = { verify_email: 24 * 60 * 60 * 1000, reset_password: 60 * 60 * 1000 } as const;
 
 const ISSUER = "fh-api";

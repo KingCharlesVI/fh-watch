@@ -169,6 +169,8 @@ export const refreshTokens = pgTable(
     tokenHash: text().notNull().unique(),
     expiresAt: tstz().notNull(),
     revokedAt: tstz(),
+    /** Set when the token was spent on a refresh (rather than revoked by logout or reuse). */
+    rotatedAt: tstz(),
     createdAt: createdAt(),
   },
   (t) => [index().on(t.userId), index().on(t.familyId)],

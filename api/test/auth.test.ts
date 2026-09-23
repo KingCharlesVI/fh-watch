@@ -96,6 +96,7 @@ describe("sign-in and sessions", () => {
     const me = await t.app.inject({ method: "GET", url: "/v1/me", headers: { authorization: `Bearer ${accessToken}` } });
     expect(me.json().email).toBe("sam@example.com");
 
+    t.advance(31 * 1000);
     const reuse = await t.app.inject({ method: "POST", url: "/v1/auth/refresh", payload: { refreshToken: first.refreshToken } });
     expect(reuse.statusCode).toBe(401);
     expect(reuse.json().type).toBe("/problems/refresh_token_reused");
@@ -105,7 +106,20 @@ describe("sign-in and sessions", () => {
     expect(after.statusCode).toBe(401);
   });
 
-  it("logs out by revoking the session", async () => {
+  it("lets a just-spent refresh token work again for 30 seconds, for parallel requests", async () => {
+    await t.createUser({ email: "sam@example.com" });
+    const { refreshToken } = (await login("sam@example.com")).json();
+    const refresh = () => t.app.inject({ method: "POST", url: "/v1/auth/refresh", payload: { refreshToken } });
+    const [a, b] = [await refresh(), await refresh()];
+    expect([a.statusCode, b.statusCode]).toEqual([200, 200]);
+    // Both descendants stay valid.
+    for (const next of [a.json().refreshToken, b.json().refreshToken]) {
+      const res = await t.app.inject({ method: "POST", url: "/v1/auth/refresh", payload: { refreshToken: next } });
+      expect(res.statusCode).toBe(200);
+    }
+  });
+
+  it("logs out by revoking the session, with no reuse grace", async () => {
     await t.createUser({ email: "sam@example.com" });
     const { refreshToken } = (await login("sam@example.com")).json();
     expect((await t.app.inject({ method: "POST", url: "/v1/auth/logout", payload: { refreshToken } })).statusCode).toBe(204);

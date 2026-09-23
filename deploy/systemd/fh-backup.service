@@ -1,0 +1,10 @@
+[Unit]
+Description=FH Match Centre database backup
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=postgres
+Group=postgres
+EnvironmentFile=-/etc/fh/backup.env
+ExecStart=/opt/fh/bin/backup.sh

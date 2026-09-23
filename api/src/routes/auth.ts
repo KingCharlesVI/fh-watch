@@ -12,6 +12,7 @@ import { RateLimiter } from "../lib/rate-limit.js";
 import { audit } from "../services/audit.js";
 import {
   ACCESS_TOKEN_TTL_SEC,
+  REFRESH_REUSE_GRACE_MS,
   hashPassword,
   issueEmailToken,
   issueRefreshToken,
@@ -183,7 +184,7 @@ export const authRoutes =
       {
         schema: {
           tags: ["auth"],
-          summary: "Swap a refresh token for a new pair. Reusing a spent token signs out that whole session.",
+          summary: "Swap a refresh token for a new pair. Reusing a spent token after 30 seconds signs out that whole session.",
           body: z.strictObject({ refreshToken: z.string().min(1).max(200) }),
         },
       },
@@ -197,10 +198,13 @@ export const authRoutes =
 
         const [spent] = await db
           .update(refreshTokens)
-          .set({ revokedAt: now })
+          .set({ revokedAt: now, rotatedAt: now })
           .where(and(eq(refreshTokens.id, row.id), isNull(refreshTokens.revokedAt)))
           .returning({ id: refreshTokens.id });
-        if (!spent) {
+        const [latest] = spent ? [row] : await db.select().from(refreshTokens).where(eq(refreshTokens.id, row.id));
+        const withinGrace =
+          !spent && latest?.rotatedAt != null && now.getTime() - latest.rotatedAt.getTime() <= REFRESH_REUSE_GRACE_MS;
+        if (!spent && !withinGrace) {
           // Already used: someone may have stolen it. End the whole session.
           await db
             .update(refreshTokens)

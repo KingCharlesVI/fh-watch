@@ -52,7 +52,7 @@ Pairing is platform-bound: an Apple Watch pairs only with an iPhone, and a Wear 
 | `mobile/` | Phone app, with native modules for watch sync | React Native (Expo dev build) |
 | `mobile/ios/…Watch App/` | watchOS umpire app, built inside the iOS Xcode project | Swift, SwiftUI |
 | `api/` | REST API and database migrations | Node.js, Fastify, Drizzle ORM, PostgreSQL |
-| `web/` | Public site and admin area | Next.js (App Router) |
+| `web/` | Public site and admin area | Next.js (App Router), shadcn/ui, Tailwind CSS |
 | `deploy/` | systemd units, nginx config, backup scripts | shell |
 
 The watchOS app has to ship inside the iOS app bundle, so it lives in the Expo project's `ios/` folder. It's added as an Xcode target, using an Expo config plugin so it survives rebuilds.
@@ -241,7 +241,7 @@ The phone app is an inbox for matches from the watch. The umpire reviews a match
 
 **Share link and QR code**
 
-- On first publish the API creates a short code, for example `https://hockey.example.org/m/K7P2QX`, using 6 characters that don't include 0/O or 1/I.
+- On first publish the API creates a short code, for example `https://fhmatchcentre.com/m/K7P2QX`, using 6 characters that don't include 0/O or 1/I.
 - The QR code is drawn on the phone (`react-native-qrcode-svg`), so it still works offline once the code exists.
 - The link always shows the latest revision.
 
@@ -327,6 +327,15 @@ Deleting an account keeps its published matches, which become "Umpire: deleted u
 
 The website is a Next.js app. Public pages are rendered on the server, so shared links open fast and show previews in chat apps. Signed-in users get a dashboard that changes with their roles.
 
+**How it talks to the API**
+
+- All API calls happen on the website's server; the browser never holds an API token. Sign-in stores the access and refresh tokens in httpOnly, SameSite=Lax cookies (Secure in production).
+- A Next.js proxy (middleware) runs before each page. When the access token is missing or within 60 seconds of expiring, it swaps the refresh token for a new pair first. Parallel requests share one refresh, and the API gives a just-used refresh token 30 seconds' grace, so a page with several requests can't sign the user out.
+- Forms are server actions. The API's problem responses become the error shown under the form.
+- The website passes the visitor's `X-Forwarded-For` on to the API, so sign-in rate limits apply per visitor rather than to the web server.
+- Downloads go through the website (`/matches/{id}/export/{format}`, `/dashboard/export`), which adds the visitor's token, so signed-in users can download drafts too.
+- The match editor checks the document with the shared validator as you type and saves with `If-Match`; a conflicting save asks the umpire to reload.
+
 **Public pages**
 
 | Route | Contents |
@@ -349,36 +358,38 @@ The website is a Next.js app. Public pages are rendered on the server, so shared
 | --- | --- | --- |
 | JSON | The full match document (latest revision) plus the worked-out summary | Served directly |
 | CSV | One row per event: period, clock, team, type, player, detail. Bulk export gives one row per match with the score and totals. | Shared CSV builder in `packages/shared` |
-| PDF | A one-page match report: header, score, periods, event table, cards, umpires | HTML template rendered to PDF with Playwright's Chromium on the server. Cached per revision. |
+| PDF | A one-page A4 match report: header, score, periods, statistics, event table, umpires, share link | Built by the API: an HTML template printed to PDF by headless Chromium (Playwright). Cached on disk per match version, i.e. every revision, publish or umpire change makes a new one. 503 if Chromium isn't available. |
 
 Unpublished matches are never shown to the public. Their URLs return 404, so visitors can't tell whether a hidden match exists.
 
 ## Deployment
 
-Everything runs directly on one Linux server (Ubuntu 24.04 LTS or Debian 12), managed by systemd, with nginx in front. There are no containers. 2 vCPU, 4 GB RAM and 40 GB of disk is enough for thousands of matches, and PDF rendering is the heaviest job.
+Everything runs directly on one Ubuntu 24.04 server, managed by systemd, with nginx in front. There are no containers. 2 vCPU, 4 GB RAM and 40 GB of disk is enough for thousands of matches, and PDF rendering is the heaviest job. The step-by-step runbook is [deployment.md](deployment.md); the files are in `deploy/`.
 
 ```mermaid
 flowchart LR
     C[Clients] -->|443 TLS| N[nginx]
     N -->|/v1/*| A[fh-api.service<br/>Node 22, :3001]
     N -->|everything else| W[fh-web.service<br/>Next.js, :3000]
-    A --> P[(PostgreSQL 16<br/>local socket)]
+    A --> P[(PostgreSQL 16<br/>127.0.0.1:5432)]
     W --> A
 ```
 
 | Concern | Approach |
 | --- | --- |
-| Processes | `fh-api.service` and `fh-web.service` systemd units, each running as its own unprivileged user, with `Restart=always` and `EnvironmentFile=/etc/fh/*.env` |
-| Node runtime | Node 22 LTS from NodeSource. Dependencies installed with `pnpm install --frozen-lockfile --prod`. |
-| TLS | Let's Encrypt via certbot's nginx plugin, which renews automatically |
-| Database | PostgreSQL 16 from the PGDG apt repo, connected over a Unix socket with peer or scram auth. Migrations run with `drizzle-kit migrate` on each deploy. |
-| Deploys | `deploy/deploy.sh`: git pull a tagged release, install, build, migrate, then `systemctl restart`. Rollback means checking out the previous tag. Releases live in `/opt/fh/releases/<tag>`, with a `current` symlink switched atomically. |
-| Backups | Nightly `pg_dump -Fc` from a systemd timer, keeping 14 days locally, with an off-site copy via `rclone` to S3-compatible storage. A restore is tested monthly. |
-| Firewall | `ufw` allows 22, 80 and 443 only. SSH is key-only. `unattended-upgrades` is on. |
-| Logs and monitoring | journald for app logs. The `/v1/health` endpoint is checked by an external uptime monitor. |
-| PDF | Playwright Chromium installed with `npx playwright install --with-deps chromium` |
-| Email | SMTP relay (e.g. Postmark, Mailgun or your own provider), with credentials in `/etc/fh/api.env` |
-| Push | Expo Push Service over HTTPS, with the access token in `/etc/fh/api.env` |
+| Setup | `deploy/provision.sh`, run once as root: packages, users, database, secrets, firewall, SSH, TLS and services. Safe to run again. |
+| Processes | `fh-api.service` and `fh-web.service`, running as the unprivileged `fh-api` and `fh-web` users with `Restart=always`, settings from `/etc/fh/*.env` and systemd sandboxing (read-only system, private /tmp). |
+| Node runtime | Node 22 LTS from NodeSource; pnpm through corepack. |
+| TLS | Let's Encrypt via `certbot certonly --webroot`; certbot's timer renews and a hook reloads nginx. HSTS and standard security headers. |
+| Database | PostgreSQL 16 from Ubuntu's own packages. The API connects over 127.0.0.1 as the `fh` role with a generated password (scram). |
+| Deploys | `/opt/fh/bin/deploy.sh <tag>`: clone into `/opt/fh/releases/<time>-<tag>`, install and build as `fh-deploy`, migrate, switch the `/opt/fh/current` symlink atomically, restart, health-check. An unhealthy release is rolled back automatically. `rollback.sh` switches back by hand. The last 5 releases are kept. |
+| First admin | `/opt/fh/bin/fh-admin <email> [--verify]` promotes a registered user. |
+| Backups | Nightly `pg_dump -Fc` from `fh-backup.timer`, 14 days kept locally, copied off-site with `rclone` once a remote is configured. `fh-restore-test.timer` restores the latest backup into a scratch database monthly. `restore.sh` restores for real. |
+| Firewall and SSH | `ufw` allows SSH, 80 and 443 only. SSH is key-only once a key is installed. `unattended-upgrades` is on. |
+| Logs and monitoring | journald for app logs. `/v1/health` for an external uptime monitor. |
+| PDF | Chromium's headless shell, installed by each deploy into `/opt/fh/ms-playwright`; its system libraries by `provision.sh`. |
+| Email | SMTP relay (e.g. Postmark, Resend, Mailgun, SES) set as `SMTP_URL` in `/etc/fh/api.env`. Until then emails go to the log and the API warns at startup. |
+| Push | Expo Push Service over HTTPS, with the access token in `/etc/fh/api.env`. |
 
 ## Build plan
 
@@ -401,7 +412,8 @@ Milestones 6 and 7 don't depend on each other and can run side by side. Releasin
 
 **Open questions**
 
-- [ ] What is the domain name, and which SMTP provider?
+- [ ] Which SMTP provider? (Until one is set, emails are written to the API log.)
+- [ ] Which server to deploy to? (Milestone 4 needs a Linux VPS.)
 
 **Decided**
 
@@ -414,6 +426,8 @@ Milestones 6 and 7 don't depend on each other and can run side by side. Releasin
 - Accounts hold a set of roles.
 - Live scoring is out of scope until v3 at the earliest.
 - The watch screen layout follows MatchGear's; screenshots will be supplied before the watch milestones.
+- The site is FH Match Centre at https://fhmatchcentre.com. Email goes out as no-reply@fhmatchcentre.com.
+- The website's UI uses shadcn/ui (Radix + Tailwind CSS v4), with light and dark themes.
 
 **Risks**
 

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Makes a registered user an admin, using the live configuration.
+#   sudo /opt/fh/bin/fh-admin someone@example.com [--verify]
+# --verify also confirms their email address, for when email isn't set up yet.
+set -euo pipefail
+
+[[ $EUID -eq 0 ]] || { echo "Run with sudo." >&2; exit 1; }
+[[ $# -ge 1 ]] || { echo "Usage: fh-admin <email> [--verify]" >&2; exit 2; }
+
+exec systemd-run --quiet --wait --pipe --collect --uid=fh-api --gid=fh-api \
+  -p EnvironmentFile=/etc/fh/api.env --working-directory=/opt/fh/current/api \
+  /usr/bin/node dist/cli/grant-admin.js "$@"

@@ -10,7 +10,10 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx --conditions=source src/db/migrate.ts"
+    "db:migrate": "tsx --conditions=source src/db/migrate.ts",
+    "db:seed": "tsx --conditions=source src/db/seed.ts",
+    "db:migrate:prod": "node dist/db/migrate.js",
+    "admin:grant": "tsx --conditions=source src/cli/grant-admin.ts"
   },
   "dependencies": {
     "@fastify/swagger": "^9.9.0",
@@ -23,6 +26,7 @@
     "jose": "^6.2.12",
     "nodemailer": "^10.0.10",
     "pino": "^10.3.1",
+    "playwright-core": "^1.63.0",
     "postgres": "^3.4.9",
     "zod": "^4.6.5"
   },

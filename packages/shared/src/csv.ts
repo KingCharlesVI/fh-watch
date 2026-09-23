@@ -1,4 +1,5 @@
 import type { MatchDocument, MatchEvent } from "./schema.js";
+import { formatDuration } from "./describe.js";
 import { formatClock, summarizeMatch } from "./summary.js";
 
 /** A cell: numbers are written as-is, text is escaped and formula-guarded. */
@@ -63,10 +64,6 @@ function eventDetail(e: MatchEvent): string | null {
     default:
       return null;
   }
-}
-
-function formatDuration(sec: number): string {
-  return sec % 60 === 0 ? `${sec / 60} min` : `${sec} s`;
 }
 
 export const MATCH_LIST_CSV_HEADER = [

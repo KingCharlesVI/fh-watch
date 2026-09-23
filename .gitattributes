@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Deployment files run on Linux: always LF, even from a Windows checkout.
+*.sh text eol=lf
+deploy/** text eol=lf

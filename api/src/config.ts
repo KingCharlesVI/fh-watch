@@ -1,4 +1,6 @@
 import { randomBytes } from "node:crypto";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { z } from "zod";
 
 const Env = z.object({
@@ -10,11 +12,13 @@ const Env = z.object({
   JWT_SECRET: z.string().min(32).optional(),
   /** Public website origin, used in email links and share URLs. */
   WEB_URL: z.url().default("http://localhost:3000"),
-  MAIL_FROM: z.string().default("Hockey Match <no-reply@localhost>"),
+  MAIL_FROM: z.string().default("FH Match Centre <no-reply@fhmatchcentre.com>"),
   /** nodemailer SMTP URL, e.g. smtps://user:pass@smtp.example.com. Unset: emails are logged. */
   SMTP_URL: z.string().optional(),
   /** Expo push access token. Unset: pushes are logged. */
   EXPO_ACCESS_TOKEN: z.string().optional(),
+  /** Where rendered match PDFs are cached. */
+  PDF_CACHE_DIR: z.string().default(join(tmpdir(), "fh-pdf-cache")),
   JOBS_ENABLED: z
     .enum(["true", "false"])
     .default("true")
@@ -32,6 +36,7 @@ export interface Config {
   smtpUrl: string | undefined;
   expoAccessToken: string | undefined;
   jobsEnabled: boolean;
+  pdfCacheDir: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -51,5 +56,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     smtpUrl: e.SMTP_URL,
     expoAccessToken: e.EXPO_ACCESS_TOKEN,
     jobsEnabled: e.JOBS_ENABLED,
+    pdfCacheDir: e.PDF_CACHE_DIR,
   };
 }

@@ -1,4 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { MatchDocument, Role } from "@fh/shared";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeEach } from "vitest";
@@ -9,6 +12,7 @@ import { clubs, teams, users } from "../src/db/schema.js";
 import type { AppDeps } from "../src/deps.js";
 import { hashPassword, signAccessToken } from "../src/services/auth-tokens.js";
 import { memoryMailer } from "../src/services/mailer.js";
+import { fakePdfRenderer } from "../src/services/pdf.js";
 import { memoryPushSender } from "../src/services/push.js";
 import { testDatabaseUrl } from "./env.js";
 
@@ -24,16 +28,19 @@ export async function setupTestApp(options: { authRateLimitMax?: number } = {}) 
     DATABASE_URL: testDatabaseUrl(),
     JWT_SECRET: "test-secret-that-is-at-least-32-characters-long",
     WEB_URL: "https://hockey.test",
+    PDF_CACHE_DIR: mkdtempSync(join(tmpdir(), "fh-pdf-test-")),
   });
   const { db, close } = createDb(config.databaseUrl, { max: 5 });
   const clock = { now: new Date("2026-09-19T12:00:00Z") };
   const mailer = memoryMailer();
   const push = memoryPushSender();
+  const pdf = fakePdfRenderer();
   const deps: AppDeps = {
     config,
     db,
     mailer,
     push,
+    pdf,
     now: () => clock.now,
     authRateLimit: { max: options.authRateLimitMax ?? 1000, windowMs: 15 * 60 * 1000 },
   };
@@ -46,6 +53,7 @@ export async function setupTestApp(options: { authRateLimitMax?: number } = {}) 
     mailer.sent.length = 0;
     push.sent.length = 0;
     push.invalid.clear();
+    pdf.rendered.length = 0;
     clock.now = new Date("2026-09-19T12:00:00Z");
   });
 
@@ -90,7 +98,7 @@ export async function setupTestApp(options: { authRateLimitMax?: number } = {}) 
     return { club: club!, teams: clubTeams };
   }
 
-  return { app, deps, db, mailer, push, clock, advance, createUser, createClub };
+  return { app, deps, db, mailer, push, pdf, clock, advance, createUser, createClub };
 }
 
 /** Pulls the token out of the link in the last email sent to `to`. */

@@ -337,7 +337,53 @@ describe("exports", () => {
     const json = await get(`/v1/matches/${doc.id}/export.json`);
     expect(JSON.parse(json.body).summary.score).toEqual({ home: 2, away: 1 });
 
-    expect((await get(`/v1/matches/${doc.id}/export.pdf`)).statusCode).toBe(400);
+    expect((await get(`/v1/matches/${doc.id}/export.xml`)).statusCode).toBe(400);
+  });
+
+  it("renders a PDF report once per match version and escapes what umpires typed", async () => {
+    const { headers } = await t.createUser({ name: "Sam" });
+    const doc = matchDoc();
+    doc.teams.home.name = "<b>Hawks</b> & Co";
+    await put(doc, headers);
+
+    const first = await get(`/v1/matches/${doc.id}/export.pdf`, headers);
+    expect(first.statusCode).toBe(200);
+    expect(first.headers["content-type"]).toBe("application/pdf");
+    expect(first.headers["content-disposition"]).toBe(`attachment; filename="match-${doc.id}.pdf"`);
+    expect(first.rawPayload.subarray(0, 5).toString()).toBe("%PDF-");
+    expect(t.pdf.rendered).toHaveLength(1);
+    const html = t.pdf.rendered[0]!;
+    expect(html).toContain("&lt;b&gt;Hawks&lt;/b&gt; &amp; Co");
+    expect(html).not.toContain("<b>Hawks</b>");
+    expect(html).toContain(">2–1<");
+    expect(html).toContain("Sam");
+
+    await get(`/v1/matches/${doc.id}/export.pdf`, headers);
+    expect(t.pdf.rendered).toHaveLength(1);
+
+    // Publishing changes the report (it now shows the share link), so it's rendered again.
+    t.advance(1000);
+    const { shareUrl } = (await post(`/v1/matches/${doc.id}/publish`, headers)).json().match;
+    await get(`/v1/matches/${doc.id}/export.pdf`);
+    expect(t.pdf.rendered).toHaveLength(2);
+    expect(t.pdf.rendered[1]).toContain(shareUrl);
+  });
+
+  it("answers 503 when the PDF can't be rendered", async () => {
+    const { headers } = await t.createUser();
+    const doc = matchDoc();
+    await put(doc, headers);
+    const render = t.pdf.render;
+    t.pdf.render = async () => {
+      throw new Error("no browser");
+    };
+    try {
+      const res = await get(`/v1/matches/${doc.id}/export.pdf`, headers);
+      expect(res.statusCode).toBe(503);
+      expect(res.json().type).toBe("/problems/pdf_unavailable");
+    } finally {
+      t.pdf.render = render;
+    }
   });
 
   it("bulk-exports what the caller is responsible for", async () => {

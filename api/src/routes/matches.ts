@@ -10,6 +10,8 @@ import {
   matchListToCsv,
   summarizeMatch,
 } from "@fh/shared";
+import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { type SQL, and, desc, eq, exists, gte, ilike, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import type { FastifyReply } from "fastify";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
@@ -23,6 +25,7 @@ import { HttpError, badRequest, forbidden, notFound } from "../lib/errors.js";
 import { parseIfMatch, revisionEtag } from "../lib/etag.js";
 import { Limit, containsPattern } from "../lib/sql.js";
 import { audit } from "../services/audit.js";
+import { renderMatchReport } from "../services/report.js";
 import {
   AUTO_PUBLISH_DELAY_MS,
   type MatchRow,
@@ -140,6 +143,37 @@ export const matchRoutes =
       const [match] = await db.select().from(matches).where(eq(matches.id, id));
       const umpires = (await umpiresFor(db, [id])).get(id) ?? [];
       return matchDto(match!, umpires, config.webUrl);
+    }
+
+    /**
+     * PDFs are cached per match and `updatedAt`, which changes with every
+     * revision, publish and umpire change. Older files for the match are removed.
+     */
+    async function cachedPdf(match: MatchRow, umpires: UmpireRow[], document: MatchDoc): Promise<Buffer> {
+      const dir = config.pdfCacheDir;
+      const file = `${match.id}-${match.updatedAt.getTime()}.pdf`;
+      const cached = await readFile(join(dir, file)).catch(() => null);
+      if (cached) return cached;
+
+      const html = renderMatchReport({
+        document,
+        umpires,
+        revision: match.currentRevision,
+        shareUrl: match.status === "published" && match.shareCode ? `${config.webUrl}/m/${match.shareCode}` : null,
+        generatedAt: deps.now(),
+      });
+      let pdf: Buffer;
+      try {
+        pdf = await deps.pdf.render(html);
+      } catch (err) {
+        app.log.error({ err }, "PDF rendering failed");
+        throw new HttpError(503, "pdf_unavailable", "The PDF couldn't be generated. Try again shortly.");
+      }
+      await mkdir(dir, { recursive: true });
+      await writeFile(join(dir, file), pdf);
+      const stale = (await readdir(dir)).filter((f) => f.startsWith(`${match.id}-`) && f !== file);
+      await Promise.all(stale.map((f) => rm(join(dir, f), { force: true })));
+      return pdf;
     }
 
     async function fullMatch(match: MatchRow, umpires: UmpireRow[], reply: FastifyReply) {
@@ -438,11 +472,22 @@ export const matchRoutes =
 
     app.get(
       "/matches/:id/export.:format",
-      { schema: { tags: ["matches"], params: IdParams.extend({ format: z.enum(["json", "csv"]) }) } },
+      {
+        schema: {
+          tags: ["matches"],
+          summary: "Download a match as JSON (document + summary), CSV (one row per event) or a one-page PDF report.",
+          params: IdParams.extend({ format: z.enum(["json", "csv", "pdf"]) }),
+        },
+      },
       async (request, reply) => {
-        const { match } = await loadForAction(eq(matches.id, request.params.id), request.actor, "view");
+        const { match, umpires } = await loadForAction(eq(matches.id, request.params.id), request.actor, "view");
         const document = await currentDocument(match);
         const name = `match-${match.shareCode ?? match.id}`;
+        if (request.params.format === "pdf") {
+          const pdf = await cachedPdf(match, umpires, document);
+          attachment(reply, `${name}.pdf`, "application/pdf");
+          return pdf;
+        }
         if (request.params.format === "csv") {
           attachment(reply, `${name}.csv`, "text/csv; charset=utf-8");
           return BOM + matchEventsToCsv(document);
