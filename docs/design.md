@@ -254,7 +254,9 @@ The API is a versioned REST service (`/v1`) written in Fastify, and all input is
 - Passwords are hashed with argon2id.
 - The access token is a JWT that lasts 15 minutes.
 - The refresh token is random, lasts 30 days, is replaced on every use, and only its hash is stored.
-- The phone app sends `Authorization: Bearer <token>`. The website keeps tokens in httpOnly, SameSite=Lax cookies.
+- The API takes `Authorization: Bearer <token>` only. The phone app keeps tokens in secure storage; the website's server keeps them in httpOnly, SameSite=Lax cookies and calls the API on the user's behalf.
+- Refresh tokens rotate on every use. Presenting an already-used refresh token revokes every token from that sign-in, since it may have been stolen.
+- Sign-in is refused until the email address is verified. Following a password-reset link also counts as verifying it.
 - Sign-up requires email verification. Password reset uses a single-use link that expires after 1 hour. Mail goes out over SMTP.
 - Sign-in and reset requests are rate-limited per IP address and per email, to 10 per 15 minutes.
 
@@ -262,28 +264,33 @@ The API is a versioned REST service (`/v1`) written in Fastify, and all input is
 
 | Method + path | Who | Purpose |
 | --- | --- | --- |
-| `POST /auth/register` | Public | Create an account, optionally with a club request |
+| `POST /auth/register` | Public | Create an account, optionally with a club request. Always answers 202, so it can't be used to find out which emails are registered. |
+| `POST /auth/resend-verification` | Public | Send a new verification link |
 | `POST /auth/login` / `refresh` / `logout` | Public / signed in | Issue, renew and revoke tokens |
 | `POST /auth/verify-email`, `/auth/forgot-password`, `/auth/reset-password` | Public | Email flows |
 | `GET /me` · `PATCH /me` · `DELETE /me` | Signed in | View or edit your own account; DELETE asks an admin to delete it |
 | `POST /me/push-tokens` · `DELETE /me/push-tokens/{token}` | Signed in | Register or remove a device for push notifications |
+| `GET /umpires?q=` | Umpire / admin | Find registered umpires by name, to add as umpire 2 |
 | `GET /users` · `PATCH /users/{id}` · `DELETE /users/{id}` | Admin | Manage users, set roles, assign club admins |
 | `GET /matches` | Public (published only), wider by role | List with filters: club, team, umpire, date range, competition. Paged. |
 | `GET /matches/{id}` · `GET /m/{shareCode}` | Public if published | Match document plus the worked-out summary |
-| `PUT /matches/{id}` | Umpire (own) / admin | Create or replace; idempotent; `If-Match` for edits |
+| `PUT /matches/{id}` | Umpire (own) / admin | Create or replace. Body `{ source, document }`. Idempotent; changing an existing match needs `If-Match` (428 without it, 412 if stale). Returns the match and any validation warnings. |
+| `PUT /matches/{id}/umpires/2` · `DELETE …` | Umpire (own) / admin | Set umpire 2: `{ userId }` for a registered umpire or `{ name }` for anyone else |
 | `POST /matches/{id}/publish` · `/unpublish` | Umpire (own) / admin | Change visibility |
 | `DELETE /matches/{id}` | Admin | Soft delete for 30 days, then purged |
-| `GET /matches/{id}/revisions` | Umpire (own) / admin | Edit history |
+| `GET /matches/{id}/revisions` · `GET /matches/{id}/revisions/{n}` | Umpire (own), club admin (own club), admin | Edit history, and any past revision's document |
 | `GET /matches/{id}/export.{json,csv,pdf}` | Same as reading the match | Downloads |
 | `GET /matches/export.csv?…` | Club admin (own club) / admin | Bulk CSV for a filtered list |
-| `GET/POST/PATCH/DELETE /clubs`, `/clubs/{id}/teams` | Read: public · Clubs: admin · Teams: admin or club admin (own club) · Delete: admin | Club and team directory |
+| `GET/POST/PATCH/DELETE /clubs`, `/clubs/{id}/teams` | Read: public · Clubs: admin · Teams: admin or club admin (own club) · Delete: admin | Club and team directory. `GET /clubs/{id or slug}` includes the teams. |
+| `GET /teams?q=` | Public | Search teams by club and team name together (e.g. `hawks m1`), for linking a match |
 | `GET/POST /club-requests` · `POST /club-requests/{id}/approve` · `/reject` | Signed in (own) / admin | Ask for a new club or to be a club's admin; admins review |
 
 **Background jobs**
 
 - Auto-publish: a job runs every minute, publishes drafts whose `auto_publish_at` has passed, and sends the push notification described under Mobile app.
 - Purge: a daily job permanently removes matches soft-deleted more than 30 days ago.
-- Both run inside the API process on a timer, using a Postgres advisory lock so a restart or a second process never runs a job twice.
+- Both run inside the API process on a timer. Auto-publish selects drafts with `FOR UPDATE SKIP LOCKED`, so two runs at once never publish or notify for the same match twice. Purge is safe to repeat.
+- Purge also removes expired refresh tokens and spent or expired email tokens. Revoked refresh tokens are kept until they expire, so reuse of a stolen one is still detected.
 
 **Conventions**
 
