@@ -1,0 +1,843 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "UUIDv7 created on the watch. Stable from watch to website."
+    },
+    "createdOn": {
+      "type": "string",
+      "enum": [
+        "wear",
+        "watchos",
+        "mobile",
+        "web"
+      ]
+    },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "periods": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "periodLengthSec": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 5400
+        },
+        "breakLengthsSec": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3600
+          },
+          "description": "Break after each period except the last, so periods - 1 entries."
+        },
+        "cardDurationsSec": {
+          "type": "object",
+          "properties": {
+            "green": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            },
+            "yellowShort": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            },
+            "yellowLong": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            }
+          },
+          "required": [
+            "green",
+            "yellowShort",
+            "yellowLong"
+          ],
+          "additionalProperties": false
+        },
+        "shootoutIfDrawn": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "periods",
+        "periodLengthSec",
+        "breakLengthsSec",
+        "cardDurationsSec",
+        "shootoutIfDrawn"
+      ],
+      "additionalProperties": false
+    },
+    "teams": {
+      "type": "object",
+      "properties": {
+        "home": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "teamId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Linked team in the directory, or null while unlinked."
+            },
+            "color": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "Hex colour, e.g. #1E40AF."
+            },
+            "captain": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "Player's shirt number."
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "name",
+            "teamId",
+            "color"
+          ],
+          "additionalProperties": false
+        },
+        "away": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "teamId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Linked team in the directory, or null while unlinked."
+            },
+            "color": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "Hex colour, e.g. #1E40AF."
+            },
+            "captain": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "Player's shirt number."
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "name",
+            "teamId",
+            "color"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "home",
+        "away"
+      ],
+      "additionalProperties": false
+    },
+    "venue": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "competition": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "endedAt": {
+      "description": "Final whistle. Starts the 2-hour auto-publish window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991,
+                "description": "Position in the event log. Unique, ascending in array order."
+              },
+              "wallTime": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "UTC time the event was recorded on the watch."
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "description": "1-based period number."
+              },
+              "clockMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Match-clock time within the period, in milliseconds. Excludes stoppages."
+              },
+              "type": {
+                "type": "string",
+                "const": "period_start"
+              }
+            },
+            "required": [
+              "seq",
+              "period",
+              "clockMs",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991,
+                "description": "Position in the event log. Unique, ascending in array order."
+              },
+              "wallTime": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "UTC time the event was recorded on the watch."
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "description": "1-based period number."
+              },
+              "clockMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Match-clock time within the period, in milliseconds. Excludes stoppages."
+              },
+              "type": {
+                "type": "string",
+                "const": "period_end"
+              }
+            },
+            "required": [
+              "seq",
+              "period",
+              "clockMs",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991,
+                "description": "Position in the event log. Unique, ascending in array order."
+              },
+              "wallTime": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "UTC time the event was recorded on the watch."
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "description": "1-based period number."
+              },
+              "clockMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Match-clock time within the period, in milliseconds. Excludes stoppages."
+              },
+              "type": {
+                "type": "string",
+                "const": "clock_stop"
+              },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "injury",
+                  "video",
+                  "other"
+                ]
+              }
+            },
+            "required": [
+              "seq",
+              "period",
+              "clockMs",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991,
+                "description": "Position in the event log. Unique, ascending in array order."
+              },
+              "wallTime": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "UTC time the event was recorded on the watch."
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "description": "1-based period number."
+              },
+              "clockMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Match-clock time within the period, in milliseconds. Excludes stoppages."
+              },
+              "type": {
+                "type": "string",
+                "const": "clock_resume"
+              }
+            },
+            "required": [
+              "seq",
+              "period",
+              "clockMs",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991,
+                "description": "Position in the event log. Unique, ascending in array order."
+              },
+              "wallTime": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "UTC time the event was recorded on the watch."
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "description": "1-based period number."
+              },
+              "clockMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Match-clock time within the period, in milliseconds. Excludes stoppages."
+              },
+              "type": {
+                "type": "string",
+                "const": "goal"
+              },
+              "team": {
+                "type": "string",
+                "enum": [
+                  "home",
+                  "away"
+                ],
+                "description": "Which team an event belongs to."
+              },
+              "player": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 999,
+                "description": "Player's shirt number."
+              },
+              "method": {
+                "description": "field = field goal, pc = penalty corner, ps = penalty stroke.",
+                "type": "string",
+                "enum": [
+                  "field",
+                  "pc",
+                  "ps"
+                ]
+              }
+            },
+            "required": [
+              "seq",
+              "period",
+              "clockMs",
+              "type",
+              "team"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991,
+                "description": "Position in the event log. Unique, ascending in array order."
+              },
+              "wallTime": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "UTC time the event was recorded on the watch."
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "description": "1-based period number."
+              },
+              "clockMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Match-clock time within the period, in milliseconds. Excludes stoppages."
+              },
+              "type": {
+                "type": "string",
+                "const": "card"
+              },
+              "team": {
+                "type": "string",
+                "enum": [
+                  "home",
+                  "away"
+                ],
+                "description": "Which team an event belongs to."
+              },
+              "player": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 999,
+                "description": "Player's shirt number."
+              },
+              "color": {
+                "type": "string",
+                "enum": [
+                  "green",
+                  "yellow",
+                  "red"
+                ]
+              },
+              "durationSec": {
+                "description": "Suspension length. Required for green and yellow, absent for red.",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "seq",
+              "period",
+              "clockMs",
+              "type",
+              "team",
+              "color"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991,
+                "description": "Position in the event log. Unique, ascending in array order."
+              },
+              "wallTime": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "UTC time the event was recorded on the watch."
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "description": "1-based period number."
+              },
+              "clockMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Match-clock time within the period, in milliseconds. Excludes stoppages."
+              },
+              "type": {
+                "type": "string",
+                "const": "card_end"
+              },
+              "refSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991,
+                "description": "seq of the card whose suspension ended."
+              }
+            },
+            "required": [
+              "seq",
+              "period",
+              "clockMs",
+              "type",
+              "refSeq"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991,
+                "description": "Position in the event log. Unique, ascending in array order."
+              },
+              "wallTime": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "UTC time the event was recorded on the watch."
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "description": "1-based period number."
+              },
+              "clockMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Match-clock time within the period, in milliseconds. Excludes stoppages."
+              },
+              "type": {
+                "type": "string",
+                "const": "penalty_corner"
+              },
+              "team": {
+                "type": "string",
+                "enum": [
+                  "home",
+                  "away"
+                ],
+                "description": "Team awarded the penalty corner."
+              }
+            },
+            "required": [
+              "seq",
+              "period",
+              "clockMs",
+              "type",
+              "team"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991,
+                "description": "Position in the event log. Unique, ascending in array order."
+              },
+              "wallTime": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "UTC time the event was recorded on the watch."
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "description": "1-based period number."
+              },
+              "clockMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Match-clock time within the period, in milliseconds. Excludes stoppages."
+              },
+              "type": {
+                "type": "string",
+                "const": "penalty_stroke"
+              },
+              "team": {
+                "type": "string",
+                "enum": [
+                  "home",
+                  "away"
+                ],
+                "description": "Team awarded the penalty stroke."
+              },
+              "scored": {
+                "type": "boolean",
+                "description": "Whether the stroke was scored. A scored stroke also needs a goal event with method ps; only goal events count towards the score."
+              }
+            },
+            "required": [
+              "seq",
+              "period",
+              "clockMs",
+              "type",
+              "team",
+              "scored"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991,
+                "description": "Position in the event log. Unique, ascending in array order."
+              },
+              "wallTime": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "UTC time the event was recorded on the watch."
+              },
+              "type": {
+                "type": "string",
+                "const": "shootout_attempt"
+              },
+              "team": {
+                "type": "string",
+                "enum": [
+                  "home",
+                  "away"
+                ],
+                "description": "Which team an event belongs to."
+              },
+              "round": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "player": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 999,
+                "description": "Player's shirt number."
+              },
+              "scored": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "seq",
+              "type",
+              "team",
+              "round",
+              "scored"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991,
+                "description": "Position in the event log. Unique, ascending in array order."
+              },
+              "wallTime": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "UTC time the event was recorded on the watch."
+              },
+              "type": {
+                "type": "string",
+                "const": "void"
+              },
+              "refSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991,
+                "description": "seq of the event being cancelled. A void cannot target another void."
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "description": "1-based period number."
+              },
+              "clockMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Match-clock time within the period, in milliseconds. Excludes stoppages."
+              }
+            },
+            "required": [
+              "seq",
+              "type",
+              "refSeq"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991,
+                "description": "Position in the event log. Unique, ascending in array order."
+              },
+              "wallTime": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "UTC time the event was recorded on the watch."
+              },
+              "type": {
+                "type": "string",
+                "const": "note"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "description": "1-based period number."
+              },
+              "clockMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Match-clock time within the period, in milliseconds. Excludes stoppages."
+              }
+            },
+            "required": [
+              "seq",
+              "type",
+              "text"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "createdOn",
+    "settings",
+    "teams",
+    "startedAt",
+    "events"
+  ],
+  "additionalProperties": false,
+  "title": "Field hockey match document",
+  "$id": "https://fh-watch.local/schema/match.v1.schema.json"
+}

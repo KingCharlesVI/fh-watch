@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "0192a1b4-7c3e-7d2a-9f10-3b5e8c1d2a47",
+  "createdOn": "wear",
+  "settings": {
+    "periods": 4,
+    "periodLengthSec": 900,
+    "breakLengthsSec": [120, 300, 120],
+    "cardDurationsSec": { "green": 120, "yellowShort": 300, "yellowLong": 600 },
+    "shootoutIfDrawn": false
+  },
+  "teams": {
+    "home": { "name": "Oxford Hawks M1", "teamId": null, "color": "#1E40AF", "captain": 7 },
+    "away": { "name": "Reading M1", "teamId": null, "color": "#B91C1C", "captain": null }
+  },
+  "venue": "Oxford Hawks, Pitch 1",
+  "competition": "South League Premier",
+  "startedAt": "2026-09-19T13:02:11Z",
+  "endedAt": "2026-09-19T14:14:02Z",
+  "events": [
+    { "seq": 1, "type": "period_start", "period": 1, "clockMs": 0, "wallTime": "2026-09-19T13:02:11Z" },
+    { "seq": 2, "type": "goal", "team": "home", "player": 9, "method": "field", "period": 1, "clockMs": 412000 },
+    { "seq": 3, "type": "card", "team": "away", "player": 4, "color": "yellow", "durationSec": 300, "period": 1, "clockMs": 530500 },
+    { "seq": 4, "type": "penalty_corner", "team": "home", "period": 1, "clockMs": 601000 },
+    { "seq": 5, "type": "goal", "team": "home", "player": 11, "method": "pc", "period": 1, "clockMs": 605000 },
+    { "seq": 6, "type": "card_end", "refSeq": 3, "period": 1, "clockMs": 830500 },
+    { "seq": 7, "type": "period_end", "period": 1, "clockMs": 900000, "wallTime": "2026-09-19T13:17:40Z" },
+    { "seq": 8, "type": "period_start", "period": 2, "clockMs": 0, "wallTime": "2026-09-19T13:19:45Z" },
+    { "seq": 9, "type": "clock_stop", "reason": "injury", "period": 2, "clockMs": 120000 },
+    { "seq": 10, "type": "clock_resume", "period": 2, "clockMs": 120000 },
+    { "seq": 11, "type": "goal", "team": "home", "player": 9, "period": 2, "clockMs": 290000 },
+    { "seq": 12, "type": "void", "refSeq": 11, "period": 2, "clockMs": 296000 },
+    { "seq": 13, "type": "penalty_stroke", "team": "away", "scored": true, "period": 2, "clockMs": 500000 },
+    { "seq": 14, "type": "goal", "team": "away", "player": 7, "method": "ps", "period": 2, "clockMs": 500000 },
+    { "seq": 15, "type": "card", "team": "home", "player": 2, "color": "green", "durationSec": 120, "period": 2, "clockMs": 600000 },
+    { "seq": 16, "type": "card_end", "refSeq": 15, "period": 2, "clockMs": 720000 },
+    { "seq": 17, "type": "period_end", "period": 2, "clockMs": 900000, "wallTime": "2026-09-19T13:35:30Z" },
+    { "seq": 18, "type": "period_start", "period": 3, "clockMs": 0, "wallTime": "2026-09-19T13:40:31Z" },
+    { "seq": 19, "type": "card", "team": "home", "player": 5, "color": "red", "period": 3, "clockMs": 200000 },
+    { "seq": 20, "type": "period_end", "period": 3, "clockMs": 900000, "wallTime": "2026-09-19T13:56:20Z" },
+    { "seq": 21, "type": "period_start", "period": 4, "clockMs": 0, "wallTime": "2026-09-19T13:58:21Z" },
+    { "seq": 22, "type": "penalty_corner", "team": "away", "period": 4, "clockMs": 100000 },
+    { "seq": 23, "type": "period_end", "period": 4, "clockMs": 900000, "wallTime": "2026-09-19T14:14:02Z" },
+    { "seq": 24, "type": "note", "text": "Floodlights on pitch 1 failed briefly at half time." }
+  ]
+}
