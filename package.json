@@ -10,5 +10,11 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "gen:schema": "pnpm --filter @fh/shared gen:schema"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "^19.3.0",
+      "@types/react-dom": "^19.3.0"
+    }
   }
 }

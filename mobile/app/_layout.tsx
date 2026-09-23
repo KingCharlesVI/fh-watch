@@ -1,0 +1,65 @@
+import * as Notifications from "expo-notifications";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, router } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
+import { ActivityIndicator, View, useColorScheme } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { notificationTarget } from "@/services/push";
+import { AuthProvider, useAuth } from "@/state/auth";
+import { useSyncTriggers } from "@/state/sync";
+import { useColors } from "@/ui/theme";
+
+export default function RootLayout() {
+  const scheme = useColorScheme();
+  const c = useColors();
+  const base = scheme === "dark" ? DarkTheme : DefaultTheme;
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider
+        value={{ ...base, colors: { ...base.colors, primary: c.primary, background: c.background, card: c.card, text: c.text, border: c.border } }}
+      >
+        <AuthProvider>
+          <Navigator />
+        </AuthProvider>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </SafeAreaProvider>
+  );
+}
+
+function Navigator() {
+  const { status } = useAuth();
+  const c = useColors();
+  const signedIn = status === "signedIn";
+  useSyncTriggers(signedIn);
+
+  // A tapped notification opens its match (or its editor, when teams need linking).
+  const lastResponse = Notifications.useLastNotificationResponse();
+  useEffect(() => {
+    if (!signedIn || !lastResponse) return;
+    const target = notificationTarget(lastResponse);
+    if (target) router.push(target as never);
+  }, [signedIn, lastResponse]);
+
+  if (status === "loading") {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.background }}>
+        <ActivityIndicator color={c.primary} />
+      </View>
+    );
+  }
+
+  return (
+    <Stack screenOptions={{ headerTintColor: c.primary, headerTitleStyle: { color: c.text }, contentStyle: { backgroundColor: c.background } }}>
+      <Stack.Protected guard={signedIn}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="match/[id]/index" options={{ title: "Match" }} />
+        <Stack.Screen name="match/[id]/edit" options={{ title: "Edit match" }} />
+        <Stack.Screen name="match/[id]/share" options={{ title: "Share", presentation: "modal" }} />
+      </Stack.Protected>
+      <Stack.Protected guard={!signedIn}>
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+      </Stack.Protected>
+    </Stack>
+  );
+}

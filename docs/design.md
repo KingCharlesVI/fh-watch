@@ -226,9 +226,14 @@ The phone app is an inbox for matches from the watch. The umpire reviews a match
 
 **Data and upload**
 
-- Local store: SQLite (`expo-sqlite`), holding the match document and a local revision number.
-- Upload: `PUT /matches/{id}` with the full document. It's idempotent, so repeating it is harmless. It retries with backoff, and the queue survives app restarts.
-- Conflicts: every request carries `If-Match: <revision>`. If the server copy was edited on the website, the app shows both versions and the umpire picks one.
+- Local store: SQLite (`expo-sqlite`). Each match keeps its current document, the original from the watch, the server revision it's based on, the server's last view of it, and its upload state.
+- Upload: `PUT /matches/{id}` with the full document. It's idempotent, so repeating it is harmless. A match edited before its first upload sends the watch's original first, so revision 1 is always what the watch recorded.
+- Retries: network failures and server errors back off from 5 seconds, doubling up to 15 minutes. A network failure stops the run, so it doesn't try every match. The queue lives in SQLite, so it survives restarts. Uploads run on start, when the app returns to the foreground, when the connection comes back, and every 20 seconds.
+- Refusals: a validation error or permission problem pauses that match and shows why, until the umpire edits it or taps Try again.
+- Conflicts: edits carry `If-Match: <revision>`. If the server copy changed meanwhile (412), the app offers "Keep mine" or "Use theirs". If an earlier upload succeeded but its reply was lost, the app sees the server already has its version and settles it without asking.
+- Tokens: kept in secure storage. Only one refresh is ever in flight, because the API treats a reused refresh token as theft. If the session ends by itself, the phone keeps its matches, since some may not be uploaded yet. Signing out deliberately clears them, with a warning if any are unsent.
+- Matches tabs: **New** means not yet opened on this phone, **Drafts** and **Published** follow the server status. Matches uploaded from elsewhere are listed from the server and downloaded when opened.
+- The sync engine and API client are plain TypeScript, tested against a fake API that can go offline, fail, or lose replies.
 - An unpublished match can still be viewed on the phone, but it gets no public link.
 - A new match stays a draft until an umpire publishes it or 2 hours pass after the final whistle, whichever comes first. The API runs the timer, so a match uploaded after the 2 hours publishes as soon as it arrives. Unpublishing a match cancels its timer.
 
@@ -401,7 +406,7 @@ The work runs from the server outwards, so every step can be tested end to end b
 | 2 | API core | Auth, users, roles, clubs and teams, match upload and edit with revisions, auto-publish job. Integration tests against a real Postgres. |
 | 3 | Website (public + admin) | Match pages, JSON/CSV/PDF downloads, dashboards, admin screens |
 | 4 | Server deployment | Running on the server with TLS, backups and a deploy script |
-| 5 | Mobile app without watch | Sign in, import a match from a file, edit, publish, share by QR code or link, offline upload queue, push notifications |
+| 5 | Mobile app without watch | Sign in, import a match from a file, edit, publish, share by QR code or link, offline upload queue, push notifications. Expo SDK 57 with Expo Router; editing uses the same shared functions as the website. |
 | 6 | Wear OS app + Android sync | Full umpiring features. A match reaches the phone automatically. Tested at a real match. |
 | 7 | watchOS app + iOS sync | Same features as Wear OS, including workout session, Action Button and double-tap |
 | 8 | Beta | Closed testing with 5–10 umpires through TestFlight and a Play internal test track |

@@ -1,16 +1,23 @@
 "use client";
 
 import {
+  type EventInput,
   type MatchDocument,
   type MatchEvent,
+  type NewEvent,
   type TeamSide,
   type ValidationIssue,
+  addEvent,
+  buildEvent,
+  cancelEvent,
   describeEvent,
   eventTime,
   parseMatch,
   periodLabel,
+  restoreEvent,
   sortChronologically,
   summarizeMatch,
+  voidedSeqs,
 } from "@fh/shared";
 import { CircleAlert, Link2, Plus, RotateCcw, Save, TriangleAlert, Unlink, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -359,16 +366,13 @@ function UmpiresEditor({ matchId, initialUmpires }: { matchId: string; initialUm
 
 function EventsEditor({ doc, saved, update }: { doc: MatchDocument; saved: MatchDocument; update: Update }) {
   const savedSeqs = useMemo(() => new Set(saved.events.map((e) => e.seq)), [saved]);
-  const voided = new Set(doc.events.flatMap((e) => (e.type === "void" ? [e.refSeq] : [])));
+  const voided = voidedSeqs(doc);
   const shown = sortChronologically(doc.events.filter((e) => e.type !== "void"));
-  const nextSeq = () => Math.max(0, ...doc.events.map((e) => e.seq)) + 1;
 
-  const cancel = (e: MatchEvent) =>
-    update((d) => {
-      if (!savedSeqs.has(e.seq)) d.events = d.events.filter((x) => x.seq !== e.seq);
-      else d.events.push({ seq: nextSeq(), type: "void", refSeq: e.seq });
-    });
-  const restore = (e: MatchEvent) => update((d) => void (d.events = d.events.filter((x) => !(x.type === "void" && x.refSeq === e.seq))));
+  // The shared helpers return new documents; copy the result into the editor's draft.
+  const apply = (next: MatchDocument) => update((d) => void (d.events = next.events));
+  const cancel = (e: MatchEvent) => apply(cancelEvent(doc, e.seq, savedSeqs));
+  const restore = (e: MatchEvent) => apply(restoreEvent(doc, e.seq));
 
   return (
     <Section title="Events" description="Cancelling an event keeps it in the record, crossed out, so the watch's original is never lost.">
@@ -409,19 +413,13 @@ function EventsEditor({ doc, saved, update }: { doc: MatchDocument; saved: Match
             })}
           </TableBody>
         </Table>
-        <AddEvent doc={doc} onAdd={(event) => update((d) => void d.events.push({ ...event, seq: nextSeq() } as MatchEvent))} />
+        <AddEvent doc={doc} onAdd={(event) => apply(addEvent(doc, event))} />
       </div>
     </Section>
   );
 }
 
-type NewEventType = "goal" | "card" | "penalty_corner" | "penalty_stroke" | "note";
-
-/** "12:30" or "12" → milliseconds; null if unreadable. */
-function parseClock(value: string): number | null {
-  const m = /^\s*(\d{1,3})(?::([0-5]\d))?\s*$/.exec(value);
-  return m ? (Number(m[1]) * 60 + Number(m[2] ?? 0)) * 1000 : null;
-}
+type NewEventType = EventInput["type"];
 
 function Choice<T extends string>({ id, label, value, onChange, options }: { id: string; label: string; value: T; onChange: (v: T) => void; options: [T, string][] }) {
   return (
@@ -443,7 +441,7 @@ function Choice<T extends string>({ id, label, value, onChange, options }: { id:
   );
 }
 
-function AddEvent({ doc, onAdd }: { doc: MatchDocument; onAdd: (event: Omit<MatchEvent, "seq">) => void }) {
+function AddEvent({ doc, onAdd }: { doc: MatchDocument; onAdd: (event: NewEvent) => void }) {
   const { settings } = doc;
   const [type, setType] = useState<NewEventType>("goal");
   const [team, setTeam] = useState<TeamSide>("home");
@@ -458,24 +456,12 @@ function AddEvent({ doc, onAdd }: { doc: MatchDocument; onAdd: (event: Omit<Matc
   const [error, setError] = useState<string | null>(null);
 
   function add() {
-    const clockMs = parseClock(clock);
-    if (type !== "note" && clockMs === null) return setError("Enter the time on the match clock, e.g. 12:30.");
-    if (type === "note" && !note.trim()) return setError("Write the note first.");
-    if (type === "card" && player === "") return setError("Cards need the player's shirt number.");
-    const at = { period: Number(period), clockMs: clockMs ?? 0 };
-    const shirt = player === "" ? {} : { player: Number(player) };
-    const d = settings.cardDurationsSec;
-    const event =
-      type === "goal"
-        ? { type, team, ...at, ...shirt, ...(method !== "none" ? { method } : {}) }
-        : type === "card"
-          ? { type, team, ...at, ...shirt, color, ...(color === "red" ? {} : { durationSec: color === "green" ? d.green : yellowLong ? d.yellowLong : d.yellowShort }) }
-          : type === "penalty_corner"
-            ? { type, team, ...at }
-            : type === "penalty_stroke"
-              ? { type, team, ...at, scored }
-              : { type, text: note.trim(), ...(clockMs === null ? {} : at) };
-    onAdd(event as Omit<MatchEvent, "seq">);
+    const built = buildEvent(
+      { type, team, period: Number(period), clock, player, method: method === "none" ? undefined : method, color, yellowLong, scored, text: note },
+      settings,
+    );
+    if ("error" in built) return setError(built.error);
+    onAdd(built.event);
     setError(null);
     setPlayer("");
     setNote("");
