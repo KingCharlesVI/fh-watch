@@ -1,6 +1,8 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 
-# Deployment files run on Linux: always LF, even from a Windows checkout.
+# Deployment files: LF, even from a Windows checkout, so a Windows clone copied to Linux still runs.
 *.sh text eol=lf
 deploy/** text eol=lf
+# Except batch files, which cmd.exe wants with CRLF.
+*.cmd text eol=crlf

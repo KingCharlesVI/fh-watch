@@ -1,0 +1,34 @@
+package com.fhmatchcentre.watch
+
+import android.app.Application
+import com.fhmatchcentre.watch.data.Prefs
+import com.fhmatchcentre.watch.data.WatchDatabase
+import com.fhmatchcentre.watch.match.MatchController
+import com.fhmatchcentre.watch.sync.WatchSync
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+
+/** The app's long-lived objects, created once per process. */
+class Services(app: Application) {
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    val db = WatchDatabase.open(app)
+    val prefs = Prefs(app)
+    val sync = WatchSync(app, db.matches())
+    val controller = MatchController(app, db.matches(), sync, scope)
+}
+
+class WatchApp : Application() {
+    lateinit var services: Services
+        private set
+
+    override fun onCreate() {
+        super.onCreate()
+        services = Services(this)
+        services.scope.launch {
+            // Synced matches are kept for 30 days, then deleted.
+            services.db.matches().deleteSyncedBefore(System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000)
+        }
+    }
+}

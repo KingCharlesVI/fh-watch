@@ -281,3 +281,29 @@ describe("publishing", () => {
     await expect(t.engine.publish(doc.id, true)).rejects.toThrow("Check your connection");
   });
 });
+
+describe("refreshing while uploading", () => {
+  it("keeps a match uploaded after the server's list was read", async () => {
+    // The app returning to the foreground both refreshes and takes in a watch match,
+    // whose upload can finish while the list request is in flight.
+    const t = await setup();
+    const doc = matchDoc();
+    t.server.duringNextList = async () => {
+      await t.engine.importMatch(doc, "watch");
+      await t.engine.uploadPending();
+    };
+    await t.engine.refresh();
+    const row = await t.engine.get(doc.id);
+    expect(row).toMatchObject({ baseRevision: 1, dirty: false });
+  });
+
+  it("still removes an uploaded match the server no longer lists", async () => {
+    const t = await setup();
+    const doc = matchDoc();
+    await t.engine.importMatch(doc, "watch");
+    await t.engine.uploadPending();
+    t.server.matches.delete(doc.id);
+    await t.engine.refresh();
+    expect(await t.engine.get(doc.id)).toBeNull();
+  });
+});

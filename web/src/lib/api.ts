@@ -1,4 +1,5 @@
 import { cookies, headers } from "next/headers";
+import { clientIpHeaders } from "./client-ip";
 import { ACCESS_COOKIE } from "./session-cookies";
 import type { Problem } from "./types";
 
@@ -24,11 +25,9 @@ export interface ApiOptions {
   auth?: boolean;
 }
 
-/** Headers to pass the visitor's IP on, so the API's per-IP rate limits apply per visitor, not to this server. */
+/** Passes the visitor's IP on, so the API's per-IP rate limits apply per visitor, not to this server. */
 export async function forwardedFor(): Promise<Record<string, string>> {
-  const h = await headers();
-  const xff = h.get("x-forwarded-for");
-  return xff ? { "x-forwarded-for": xff } : {};
+  return clientIpHeaders(await headers());
 }
 
 export function apiUrl(path: string, query?: ApiOptions["query"]): string {

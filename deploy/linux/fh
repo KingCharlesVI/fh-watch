@@ -1,0 +1,3 @@
+#!/bin/sh
+# FH Match Centre server commands, e.g. `sudo fh deploy v0.1.0`, `sudo fh status`. See fh.mjs.
+exec /usr/bin/node /opt/fh/bin/fh.mjs "$@"

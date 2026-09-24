@@ -22,13 +22,14 @@ export const PASSWORD = "correct horse battery";
  * One app per test file, on the shared test database, with fake email, push
  * and a clock tests can move. Tables are emptied before each test.
  */
-export async function setupTestApp(options: { authRateLimitMax?: number } = {}) {
+export async function setupTestApp(options: { authRateLimitMax?: number; env?: Record<string, string> } = {}) {
   const config = loadConfig({
     NODE_ENV: "test",
     DATABASE_URL: testDatabaseUrl(),
     JWT_SECRET: "test-secret-that-is-at-least-32-characters-long",
     WEB_URL: "https://hockey.test",
     PDF_CACHE_DIR: mkdtempSync(join(tmpdir(), "fh-pdf-test-")),
+    ...options.env,
   });
   const { db, close } = createDb(config.databaseUrl, { max: 5 });
   const clock = { now: new Date("2026-09-19T12:00:00Z") };

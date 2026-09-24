@@ -19,6 +19,11 @@ const Env = z.object({
   EXPO_ACCESS_TOKEN: z.string().optional(),
   /** Where rendered match PDFs are cached. */
   PDF_CACHE_DIR: z.string().default(join(tmpdir(), "fh-pdf-cache")),
+  /**
+   * Header carrying the visitor's IP address, set by a proxy on this machine:
+   * cf-connecting-ip behind a Cloudflare Tunnel. Unset: X-Forwarded-For.
+   */
+  CLIENT_IP_HEADER: z.string().optional(),
   JOBS_ENABLED: z
     .enum(["true", "false"])
     .default("true")
@@ -37,6 +42,7 @@ export interface Config {
   expoAccessToken: string | undefined;
   jobsEnabled: boolean;
   pdfCacheDir: string;
+  clientIpHeader: string | undefined;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -57,5 +63,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     expoAccessToken: e.EXPO_ACCESS_TOKEN,
     jobsEnabled: e.JOBS_ENABLED,
     pdfCacheDir: e.PDF_CACHE_DIR,
+    clientIpHeader: e.CLIENT_IP_HEADER?.toLowerCase(),
   };
 }

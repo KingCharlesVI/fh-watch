@@ -241,6 +241,9 @@ export class SyncEngine {
     await this.uploadPending({ force: true });
     if (!this.userId) return;
 
+    // What was already uploaded before asking. A match uploaded while the list is in
+    // flight (e.g. one just in from the watch) is missing from it, but mustn't be removed.
+    const before = new Map((await this.store.list()).map((r) => [r.id, r.baseRevision]));
     const seen = new Set<string>();
     let cursor: string | undefined;
     let complete = false;
@@ -260,7 +263,8 @@ export class SyncEngine {
     // Uploaded, unchanged matches that the server no longer lists (deleted, or no longer ours) go too.
     if (complete) {
       for (const row of await this.store.list()) {
-        if (!seen.has(row.id) && row.baseRevision !== null && !row.dirty && !row.conflict) await this.store.remove(row.id);
+        const unchanged = row.baseRevision !== null && before.get(row.id) === row.baseRevision;
+        if (!seen.has(row.id) && unchanged && !row.dirty && !row.conflict) await this.store.remove(row.id);
       }
     }
     this.changed();

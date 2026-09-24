@@ -1,0 +1,22 @@
+[Unit]
+Description=FH Match Centre database backup
+After=postgresql.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/node /opt/fh/bin/fh.mjs backup
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictRealtime=yes
+ReadWritePaths=/var/backups/fh
+# rclone keeps a little state here when copying off-site.
+CacheDirectory=fh-backup
+Environment=RCLONE_CACHE_DIR=/var/cache/fh-backup

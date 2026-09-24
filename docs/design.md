@@ -53,7 +53,7 @@ Pairing is platform-bound: an Apple Watch pairs only with an iPhone, and a Wear 
 | `mobile/ios/…Watch App/` | watchOS umpire app, built inside the iOS Xcode project | Swift, SwiftUI |
 | `api/` | REST API and database migrations | Node.js, Fastify, Drizzle ORM, PostgreSQL |
 | `web/` | Public site and admin area | Next.js (App Router), shadcn/ui, Tailwind CSS |
-| `deploy/` | systemd units, nginx config, backup scripts | shell |
+| `deploy/` | The `fh` operations command, provision scripts, systemd units and Windows service definitions | Node, shell, PowerShell |
 
 The watchOS app has to ship inside the iOS app bundle, so it lives in the Expo project's `ios/` folder. It's added as an Xcode target, using an Expo config plugin so it survives rebuilds.
 
@@ -173,6 +173,16 @@ The watch app does everything MatchGear does and works fully offline. The only e
 - Wear OS uses Room (SQLite). watchOS uses SwiftData.
 - Each event is written as soon as it happens, so a crash or a flat battery loses nothing.
 - Synced matches are kept for 30 days, then deleted.
+
+**Wear OS implementation (Milestone 6)**
+
+- The match engine is pure Kotlin (`watch-wear/.../engine`), unit-tested on the JVM. Its documents are checked against `schema/match.schema.json` in the Kotlin tests, and a sample is checked by the TypeScript validator and the phone's tests.
+- The clock holds at full time: time in a period never runs past its length, and the umpire ends the period (the physical button does it once time is up). Events recorded after time is up carry the full-time clock.
+- Suspension timers run on total match-clock time, so they pause for stoppages and breaks and carry across periods. When one ends, a `card_end` is logged at the exact clock time it ran out, even if the watch was off then.
+- Every recorded event can be undone from the match screen for 10 seconds, and from the event list afterwards. A stroke goal writes both the `penalty_stroke` and the `goal`, and undoing either cancels both. Ending a period early or the match asks first.
+- A foreground service (type `specialUse`) with an Ongoing Activity keeps the match alive; a partial wake lock (released at the end, capped at 4 hours) makes alerts fire on time with the screen off. Alerts vibrate as alarms, so Do Not Disturb doesn't silence them.
+- If the app is killed or the watch restarts mid-match, it resumes where it was: every change is saved, and the clock uses the monotonic clock, falling back to the wall clock across a reboot.
+- On the phone, the Expo module `mobile/modules/watch-sync` holds the `WearableListenerService` and the file inbox. It also pulls any match the Data Layer still holds each time the app opens, which covers a missed delivery or a lost acknowledgement.
 
 ## Watch-to-phone sync protocol
 
@@ -369,32 +379,36 @@ Unpublished matches are never shown to the public. Their URLs return 404, so vis
 
 ## Deployment
 
-Everything runs directly on one Ubuntu 24.04 server, managed by systemd, with nginx in front. There are no containers. 2 vCPU, 4 GB RAM and 40 GB of disk is enough for thousands of matches, and PDF rendering is the heaviest job. The step-by-step runbook is [deployment.md](deployment.md); the files are in `deploy/`.
+Everything runs directly on one machine, Linux or Windows, with no containers. A Cloudflare Tunnel connects it to fhmatchcentre.com: `cloudflared` dials out to Cloudflare, which terminates HTTPS and forwards requests back through the tunnel. The machine needs no public IP address, open ports or certificates, so a spare PC at home works while the user base is small, and moving to a VPS later is the same Linux setup. 2 CPU cores, 4 GB RAM and 40 GB of disk is enough for thousands of matches; PDF rendering is the heaviest job. The step-by-step runbook is [deployment.md](deployment.md); the files are in `deploy/`.
 
 ```mermaid
 flowchart LR
-    C[Clients] -->|443 TLS| N[nginx]
-    N -->|/v1/*| A[fh-api.service<br/>Node 22, :3001]
-    N -->|everything else| W[fh-web.service<br/>Next.js, :3000]
-    A --> P[(PostgreSQL 16<br/>127.0.0.1:5432)]
+    C[Clients] -->|HTTPS| CF[Cloudflare]
+    CF <-->|tunnel, dialled out<br/>from the machine| T[fh-tunnel<br/>cloudflared]
+    T -->|/v1/*| A[fh-api<br/>Node 24, :3001]
+    T -->|everything else| W[fh-web<br/>Next.js, :3000]
+    A --> P[(PostgreSQL<br/>127.0.0.1:5432)]
     W --> A
 ```
 
-| Concern | Approach |
-| --- | --- |
-| Setup | `deploy/provision.sh`, run once as root: packages, users, database, secrets, firewall, SSH, TLS and services. Safe to run again. |
-| Processes | `fh-api.service` and `fh-web.service`, running as the unprivileged `fh-api` and `fh-web` users with `Restart=always`, settings from `/etc/fh/*.env` and systemd sandboxing (read-only system, private /tmp). |
-| Node runtime | Node 22 LTS from NodeSource; pnpm through corepack. |
-| TLS | Let's Encrypt via `certbot certonly --webroot`; certbot's timer renews and a hook reloads nginx. HSTS and standard security headers. |
-| Database | PostgreSQL 16 from Ubuntu's own packages. The API connects over 127.0.0.1 as the `fh` role with a generated password (scram). |
-| Deploys | `/opt/fh/bin/deploy.sh <tag>`: clone into `/opt/fh/releases/<time>-<tag>`, install and build as `fh-deploy`, migrate, switch the `/opt/fh/current` symlink atomically, restart, health-check. An unhealthy release is rolled back automatically. `rollback.sh` switches back by hand. The last 5 releases are kept. |
-| First admin | `/opt/fh/bin/fh-admin <email> [--verify]` promotes a registered user. |
-| Backups | Nightly `pg_dump -Fc` from `fh-backup.timer`, 14 days kept locally, copied off-site with `rclone` once a remote is configured. `fh-restore-test.timer` restores the latest backup into a scratch database monthly. `restore.sh` restores for real. |
-| Firewall and SSH | `ufw` allows SSH, 80 and 443 only. SSH is key-only once a key is installed. `unattended-upgrades` is on. |
-| Logs and monitoring | journald for app logs. `/v1/health` for an external uptime monitor. |
-| PDF | Chromium's headless shell, installed by each deploy into `/opt/fh/ms-playwright`; its system libraries by `provision.sh`. |
-| Email | SMTP relay (e.g. Postmark, Resend, Mailgun, SES) set as `SMTP_URL` in `/etc/fh/api.env`. Until then emails go to the log and the API warns at startup. |
-| Push | Expo Push Service over HTTPS, with the access token in `/etc/fh/api.env`. |
+| Concern | Linux (Ubuntu 22.04+ / Debian 12+) | Windows 10/11 |
+| --- | --- | --- |
+| Setup | `deploy/linux/provision.sh`, run once as root. Safe to run again. | `deploy/windows/provision.ps1`, run once as administrator. Safe to run again. |
+| Processes | systemd units `fh-api`, `fh-web`, `fh-tunnel`, each as its own unprivileged user, with sandboxing (read-only system, private /tmp). | Windows services `fh-api`, `fh-web`, `fh-tunnel` via WinSW (a pinned, checksummed download), each under its own virtual account (`NT SERVICEh-api`) with folder permissions to match. |
+| Settings | `/etc/fh/*.env` | `C:ProgramDatahconfig*.env`, read with `node --env-file` |
+| Operations | The `fh` command, one Node script (`deploy/fh.mjs`) for both systems: `deploy`, `rollback`, `status`, `logs`, `backup`, `restore`, `restore-test`, `admin`, `tunnel`. | Same. |
+| Deploys | `fh deploy <tag>`: clone into `releases/<time>-<tag>`, install and build (as `fh-deploy` on Linux), migrate, point `current` at it (a symlink on Linux, a junction on Windows), restart, health-check. An unhealthy release is switched back automatically. The last 5 releases are kept. | Same. |
+| Public access | Cloudflare Tunnel set up by `fh tunnel`: creates the tunnel, adds DNS records for the domain and www, writes the routing rules. Cloudflare handles TLS. The site sends HSTS and the usual security headers itself; `www` redirects to the main address. | Same. |
+| Visitor IPs | Cloudflare puts each visitor's address in `CF-Connecting-IP`. The API uses it for rate limits (`CLIENT_IP_HEADER`), and only from proxies on the same machine. | Same. |
+| Caching | API responses are `no-store` unless a route says otherwise, because Cloudflare caches URLs ending in `.csv` and `.pdf` by default. | Same. |
+| Database | PostgreSQL from the distribution's packages. The API connects over 127.0.0.1 as the `fh` role with a generated password. Backups and restores use the same role, so no superuser is needed after setup. | PostgreSQL from the EnterpriseDB installer; otherwise the same. |
+| Backups | Nightly `pg_dump` (`fh-backup.timer`), 14 days kept, off-site with `rclone` once configured. A weekly timer restores the newest into a scratch database. `fh restore` runs in one transaction, so a failed restore changes nothing. | The same, as Task Scheduler jobs running as SYSTEM. |
+| Firewall and SSH | `ufw` allows SSH only; the tunnel needs no inbound ports. SSH is key-only once a key is installed. `unattended-upgrades` is on. | Nothing listens beyond 127.0.0.1 (except PostgreSQL if its installer left it open; the script warns). |
+| Staying up | Sleep is disabled. Services restart on failure and start at boot. | Sleep on mains power is disabled. Services restart on failure and start at boot, before anyone signs in. |
+| Logs and monitoring | journald; `fh logs`. `/v1/health` for an external uptime monitor. | WinSW log files in `C:ProgramDatahlogs`; `fh logs`. |
+| PDF | Chromium's headless shell, installed by each deploy; its system libraries by `provision.sh`. | Chromium's headless shell, installed by each deploy. |
+| Email | SMTP relay set as `SMTP_URL` in `api.env`. Until then emails go to the log and the API warns at startup. | Same. |
+| Push | Expo Push Service over HTTPS, with the access token in `api.env`. | Same. |
 
 ## Build plan
 
@@ -405,9 +419,9 @@ The work runs from the server outwards, so every step can be tested end to end b
 | 1 | Monorepo, schema, shared package | The JSON Schema and TS types are generated, and score calculation and the CSV builder have unit tests with sample matches |
 | 2 | API core | Auth, users, roles, clubs and teams, match upload and edit with revisions, auto-publish job. Integration tests against a real Postgres. |
 | 3 | Website (public + admin) | Match pages, JSON/CSV/PDF downloads, dashboards, admin screens |
-| 4 | Server deployment | Running on the server with TLS, backups and a deploy script |
+| 4 | Server deployment | Running on a Linux or Windows machine behind a Cloudflare Tunnel, with backups and a deploy command |
 | 5 | Mobile app without watch | Sign in, import a match from a file, edit, publish, share by QR code or link, offline upload queue, push notifications. Expo SDK 57 with Expo Router; editing uses the same shared functions as the website. |
-| 6 | Wear OS app + Android sync | Full umpiring features. A match reaches the phone automatically. Tested at a real match. |
+| 6 | Wear OS app + Android sync | Full umpiring features. A match reaches the phone automatically. Tested at a real match. Built: the app, sync and phone receiver, tested on emulators (see below); still to do: MatchGear-style screens, a paired end-to-end test and a real match. |
 | 7 | watchOS app + iOS sync | Same features as Wear OS, including workout session, Action Button and double-tap |
 | 8 | Beta | Closed testing with 5–10 umpires through TestFlight and a Play internal test track |
 
@@ -418,7 +432,7 @@ Milestones 6 and 7 don't depend on each other and can run side by side. Releasin
 **Open questions**
 
 - [ ] Which SMTP provider? (Until one is set, emails are written to the API log.)
-- [ ] Which server to deploy to? (Milestone 4 needs a Linux VPS.)
+- [ ] Which machine to run on? A spare Windows or Linux PC behind a Cloudflare Tunnel for now; a VPS later if needed.
 
 **Decided**
 
@@ -444,4 +458,5 @@ Milestones 6 and 7 don't depend on each other and can run side by side. Releasin
 | Battery drain on a 70-minute match plus breaks | Watch dies mid-match | Dark UI, ambient mode, no network during the match, and a test of battery use on each platform |
 | React Native watch bridges are custom native code | More upkeep with each Expo upgrade | Keep the bridge small, send the document only, and give it its own tests |
 | Self-hosted server is a single point of failure | Website down, uploads fail | The phone app queues uploads offline. Off-site backups. A restore is rehearsed. |
+| Hosting at home (power cuts, broadband outages, the PC being switched off) | Site down until the machine is back | Fine while testing. Services and the tunnel come back by themselves after a restart. Moving to a VPS is the same Linux setup plus `fh tunnel`, and a backup restore. |
 | Close copy of MatchGear's visual design | Intellectual property complaint | Match the workflow and layout, but use original icons, artwork and styling |

@@ -9,7 +9,7 @@ import { logMailer, smtpMailer } from "./services/mailer.js";
 import { chromiumPdfRenderer } from "./services/pdf.js";
 import { expoPushSender, logPushSender } from "./services/push.js";
 
-// Development convenience; production gets its environment from systemd's EnvironmentFile.
+// Development convenience; in production the service manager supplies the environment from api.env.
 if (existsSync(".env")) process.loadEnvFile(".env");
 
 const config = loadConfig();

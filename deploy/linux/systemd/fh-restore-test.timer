@@ -1,0 +1,10 @@
+[Unit]
+Description=Weekly check that the newest FH Match Centre backup restores
+
+[Timer]
+OnCalendar=Sun *-*-* 04:30
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,159 @@
+package com.fhmatchcentre.watch.match
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.media.AudioAttributes
+import android.os.Build
+import android.os.PowerManager
+import android.os.VibrationAttributes
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
+import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleService
+import androidx.lifecycle.lifecycleScope
+import androidx.wear.ongoing.OngoingActivity
+import androidx.wear.ongoing.Status
+import com.fhmatchcentre.watch.MainActivity
+import com.fhmatchcentre.watch.R
+import com.fhmatchcentre.watch.WatchApp
+import com.fhmatchcentre.watch.engine.Alert
+import com.fhmatchcentre.watch.engine.MatchRecord
+import com.fhmatchcentre.watch.engine.Phase
+import com.fhmatchcentre.watch.engine.score
+import com.fhmatchcentre.watch.ui.periodName
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+/**
+ * Keeps a match alive while it's played: a foreground service with an ongoing
+ * activity (so the match stays on the watch face and in recents), ticking once
+ * a second to log suspensions that end and to vibrate alerts, with the screen
+ * off too. It stops itself when there's no match in progress.
+ */
+class MatchService : LifecycleService() {
+    private lateinit var wakeLock: PowerManager.WakeLock
+    private lateinit var haptics: Haptics
+    private var shownStatus: String? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        haptics = Haptics(this)
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(NotificationChannel(CHANNEL, "Match in progress", NotificationManager.IMPORTANCE_LOW))
+        startForeground(NOTIFICATION_ID, notification("Match in progress"), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+
+        // Alerts must fire on time with the screen off, when the CPU would otherwise sleep.
+        wakeLock = getSystemService(PowerManager::class.java).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "fh:match")
+        wakeLock.acquire(MAX_MATCH_MS)
+
+        val controller = (application as WatchApp).services.controller
+        lifecycleScope.launch {
+            while (true) {
+                val record = controller.active.value ?: break
+                haptics.alert(controller.tick())
+                val status = statusLine(record)
+                if (status != shownStatus) {
+                    shownStatus = status
+                    manager.notify(NOTIFICATION_ID, notification(status))
+                }
+                // Wake just after each whole second of wall time, so displays and alerts line up.
+                delay(1000 - System.currentTimeMillis() % 1000 + 20)
+            }
+            stopSelf()
+        }
+    }
+
+    override fun onDestroy() {
+        if (wakeLock.isHeld) wakeLock.release()
+        super.onDestroy()
+    }
+
+    private fun statusLine(record: MatchRecord): String {
+        val s = record.score()
+        val teams = record.document.teams
+        val phase = when (record.clock.phase) {
+            Phase.READY -> "Ready"
+            Phase.PLAYING -> periodName(record.clock.period, record.settings.periods) + if (record.clock.running) "" else " · stopped"
+            Phase.BREAK -> "Break"
+            Phase.FULL_TIME -> "Full time"
+            Phase.SHOOTOUT -> "Shootout"
+            Phase.ENDED -> "Ended"
+        }
+        return "$phase · ${teams.home.name} ${s.home}–${s.away} ${teams.away.name}"
+    }
+
+    private fun notification(text: String): Notification {
+        val open = PendingIntent.getActivity(
+            this, 0, Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val builder = NotificationCompat.Builder(this, CHANNEL)
+            .setSmallIcon(R.drawable.ic_stopwatch)
+            .setContentTitle("Match in progress")
+            .setContentText(text)
+            .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setContentIntent(open)
+        OngoingActivity.Builder(this, NOTIFICATION_ID, builder)
+            .setStaticIcon(R.drawable.ic_stopwatch)
+            .setTouchIntent(open)
+            .setStatus(Status.Builder().addTemplate(text).build())
+            .build()
+            .apply(this)
+        return builder.build()
+    }
+
+    companion object {
+        private const val CHANNEL = "match"
+        private const val NOTIFICATION_ID = 1
+
+        /** Longer than any real match, so a forgotten one can't drain the battery forever. */
+        private const val MAX_MATCH_MS = 4 * 60 * 60 * 1000L
+
+        fun start(context: Context) {
+            ContextCompat.startForegroundService(context, Intent(context, MatchService::class.java))
+        }
+    }
+}
+
+/** Distinct patterns, so the umpire can tell alerts apart without looking. */
+class Haptics(context: Context) {
+    private val vibrator: Vibrator = context.getSystemService(VibratorManager::class.java).defaultVibrator
+
+    fun alert(alerts: List<Alert>) {
+        for (a in alerts) {
+            vibrate(
+                when (a) {
+                    is Alert.OneMinuteLeft -> longArrayOf(0, 200, 150, 200)
+                    is Alert.TimeUp -> longArrayOf(0, 600, 200, 600, 200, 600)
+                    is Alert.SuspensionOver -> longArrayOf(0, 120, 100, 120, 100, 120)
+                    is Alert.BreakOver -> longArrayOf(0, 500, 150, 150, 150, 500)
+                },
+            )
+        }
+    }
+
+    /** Confirms a button press, e.g. the physical button starting the clock. */
+    fun click() {
+        vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK))
+    }
+
+    private fun vibrate(pattern: LongArray) {
+        val effect = VibrationEffect.createWaveform(pattern, -1)
+        // As an alarm, so Do Not Disturb or bedtime mode can't silence a match alert.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            vibrator.vibrate(effect, VibrationAttributes.createForUsage(VibrationAttributes.USAGE_ALARM))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(effect, AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build())
+        }
+    }
+}

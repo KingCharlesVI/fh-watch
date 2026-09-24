@@ -28,6 +28,8 @@ export class FakeApi {
   dropPutReply: number | null = null;
   /** Runs during the next PUT, before it's answered: for "edited while uploading". */
   duringNextPut: (() => Promise<void>) | null = null;
+  /** Runs after the next match list is read but before it's answered: for "uploaded while listing". */
+  duringNextList: (() => Promise<void>) | null = null;
 
   private accessTokens = new Set<string>();
   private refreshTokens = new Map<string, "live" | "spent">();
@@ -94,6 +96,9 @@ export class FakeApi {
       const items = [...this.matches.entries()]
         .filter(([, m]) => m.umpireId === url.searchParams.get("umpireId"))
         .map(([id]) => this.dto(id));
+      const during = this.duringNextList;
+      this.duringNextList = null;
+      await during?.();
       return json(200, { items, nextCursor: null });
     }
 

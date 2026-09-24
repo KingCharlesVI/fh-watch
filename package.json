@@ -6,10 +6,15 @@
     "node": ">=22"
   },
   "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:api": "node scripts/dev.mjs api",
+    "dev:web": "node scripts/dev.mjs api web",
+    "dev:mobile": "node scripts/dev.mjs api mobile",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "gen:schema": "pnpm --filter @fh/shared gen:schema"
+    "gen:schema": "pnpm --filter @fh/shared gen:schema",
+    "dev:watch": "node scripts/dev.mjs watch"
   },
   "pnpm": {
     "overrides": {

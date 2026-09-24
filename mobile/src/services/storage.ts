@@ -34,8 +34,10 @@ export function sqliteMatchStore(): MatchStore {
   db.execSync("create table if not exists matches (id text primary key not null, data text not null)");
   return {
     async list() {
-      const rows = await db.getAllAsync<{ data: string }>("select data from matches");
-      return rows.map((r) => JSON.parse(r.data) as LocalMatch);
+      const rows = await db.getAllAsync<{ id: string; data: string }>("select id, data from matches");
+      // "insert or replace" moves a row, so a read overlapping a write can meet it twice.
+      const byId = new Map(rows.map((r) => [r.id, r.data]));
+      return [...byId.values()].map((data) => JSON.parse(data) as LocalMatch);
     },
     async get(id) {
       const row = await db.getFirstAsync<{ data: string }>("select data from matches where id = ?", id);

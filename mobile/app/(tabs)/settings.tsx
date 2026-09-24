@@ -2,10 +2,11 @@ import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert } from "react-native";
+import { Alert, Share } from "react-native";
 import { API_URL, WEB_URL } from "@/config";
 import { sync } from "@/services";
 import { importFromFile, sampleMatch } from "@/services/import";
+import { useConnectedWatches, useWatchProblems, watchSyncAvailable } from "@/services/watch";
 import { useAuth } from "@/state/auth";
 import { useMatches } from "@/state/sync";
 import { Badge, Banner, Button, Card, Row, Screen, T } from "@/ui/kit";
@@ -85,7 +86,7 @@ export default function SettingsScreen() {
       </Card>
 
       <Card title="Watch">
-        <T variant="muted">Watch sync arrives with the watch apps. Until then, import matches exported from the watch.</T>
+        <WatchStatus />
         <Button title="Import a match from a file" variant="outline" icon="document-attach-outline" onPress={doImport} loading={importing} />
         {__DEV__ && (
           <Button
@@ -110,5 +111,36 @@ export default function SettingsScreen() {
 
       <Button title="Sign out" variant="danger" icon="log-out-outline" onPress={confirmSignOut} />
     </Screen>
+  );
+}
+
+/** Whether a watch is in reach, and any matches from it that couldn't be stored. */
+function WatchStatus() {
+  const watches = useConnectedWatches();
+  const problems = useWatchProblems();
+  if (!watchSyncAvailable) {
+    return <T variant="muted">Syncing from an Apple Watch arrives with the watchOS app. Until then, import matches exported from the watch.</T>;
+  }
+  return (
+    <>
+      <T variant="muted">
+        {watches === null
+          ? "Looking for your watch…"
+          : watches.length
+            ? `Connected to ${watches.map((w) => w.name).join(", ")}. Finished matches arrive by themselves.`
+            : "No watch connected. Matches wait on the watch and arrive when it's next in reach."}
+      </T>
+      {problems.map((p) => (
+        <Banner
+          key={p.id}
+          tone="warn"
+          icon="alert-circle-outline"
+          title={p.kind === "needs_update" ? "Update the app for this match" : "A match from the watch couldn't be read"}
+          action={<Button title="Export" variant="outline" icon="share-outline" onPress={() => void Share.share({ title: `Match ${p.id}`, message: p.json })} />}
+        >
+          {p.details.slice(0, 3).join("\n")}
+        </Banner>
+      ))}
+    </>
   );
 }

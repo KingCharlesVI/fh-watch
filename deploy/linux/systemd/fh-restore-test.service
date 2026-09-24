@@ -1,0 +1,17 @@
+[Unit]
+Description=FH Match Centre backup restore test
+After=postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/node /opt/fh/bin/fh.mjs restore-test
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictRealtime=yes

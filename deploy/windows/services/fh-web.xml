@@ -1,0 +1,23 @@
+<!--
+  WinSW service definition for the website. provision.ps1 fills in the __PLACEHOLDERS__ and installs it
+  next to fh-web.exe in C:\ProgramData\fh\services. After changing it, run provision.ps1 again.
+-->
+<service>
+  <id>fh-web</id>
+  <name>FH Match Centre website</name>
+  <description>FH Match Centre website on 127.0.0.1:3000.</description>
+  <executable>__NODE__</executable>
+  <arguments>--env-file="__ROOT__\config\web.env" serve.mjs</arguments>
+  <workingdirectory>__ROOT__\current\web</workingdirectory>
+  <env name="NODE_ENV" value="production"/>
+  <env name="TEMP" value="__ROOT__\data\web\tmp"/>
+  <env name="TMP" value="__ROOT__\data\web\tmp"/>
+  <onfailure action="restart" delay="5 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <stoptimeout>20 sec</stoptimeout>
+  <logpath>__ROOT__\logs\web</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>5</keepFiles>
+  </log>
+</service>

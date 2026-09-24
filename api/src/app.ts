@@ -23,10 +23,33 @@ function problem(status: number, slug: string, title: string, extra: Record<stri
 export async function buildApp(deps: AppDeps, options: { logger?: FastifyBaseLogger } = {}) {
   const app = Fastify({
     ...(options.logger ? { loggerInstance: options.logger } : { logger: false }),
-    // nginx on the same machine sets X-Forwarded-For; trust nobody else's.
+    // Only proxies on this machine (cloudflared, the website) may say who the visitor is.
     trustProxy: "127.0.0.1",
     bodyLimit: 1024 * 1024,
   }).withTypeProvider<ZodTypeProvider>();
+
+  const { clientIpHeader, webUrl } = deps.config;
+  if (clientIpHeader) {
+    // Behind a Cloudflare Tunnel the visitor's address is in CF-Connecting-IP, which Cloudflare
+    // always overwrites. request.ip reads X-Forwarded-For, so point that at it; trustProxy
+    // still ignores it from anywhere but this machine.
+    app.addHook("onRequest", async (request) => {
+      const ip = request.headers[clientIpHeader];
+      if (typeof ip === "string" && ip) {
+        request.raw.headers["x-forwarded-for"] = ip;
+      }
+    });
+  }
+
+  const hsts = webUrl.startsWith("https://");
+  app.addHook("onSend", async (_request, reply) => {
+    // Nothing here may be cached by Cloudflare unless a route says so: exports end in .csv and .pdf,
+    // which it would otherwise cache, and they depend on who's asking.
+    if (!reply.hasHeader("cache-control")) reply.header("cache-control", "no-store");
+    reply.header("x-content-type-options", "nosniff");
+    reply.header("referrer-policy", "strict-origin-when-cross-origin");
+    if (hsts) reply.header("strict-transport-security", "max-age=63072000; includeSubDomains");
+  });
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);

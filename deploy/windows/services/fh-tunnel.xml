@@ -1,0 +1,21 @@
+<!--
+  WinSW service definition for the Cloudflare Tunnel. provision.ps1 fills in the __PLACEHOLDERS__ and
+  installs it next to fh-tunnel.exe in C:\ProgramData\fh\services. tunnel.yml is written by `fh tunnel`.
+-->
+<service>
+  <id>fh-tunnel</id>
+  <name>FH Match Centre Cloudflare Tunnel</name>
+  <description>Connects fhmatchcentre.com to this machine through Cloudflare.</description>
+  <executable>__CLOUDFLARED__</executable>
+  <!-- Updates come from winget, not cloudflared itself. -->
+  <arguments>tunnel --no-autoupdate --metrics 127.0.0.1:20241 --config "__ROOT__\config\tunnel.yml" run</arguments>
+  <workingdirectory>__ROOT__\data\tunnel</workingdirectory>
+  <onfailure action="restart" delay="10 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <stoptimeout>20 sec</stoptimeout>
+  <logpath>__ROOT__\logs\tunnel</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>5</keepFiles>
+  </log>
+</service>

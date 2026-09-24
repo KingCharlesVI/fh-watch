@@ -6,6 +6,7 @@ import {
   refreshCookie,
   secondsUntilExpiry,
 } from "./lib/session-cookies";
+import { clientIpHeaders } from "./lib/client-ip";
 import type { TokenPair } from "./lib/types";
 
 const API_URL = (process.env.API_URL ?? "http://127.0.0.1:3001").replace(/\/$/, "");
@@ -17,11 +18,11 @@ type RefreshResult = TokenPair | "signed_out" | "unavailable";
 /** Parallel requests carrying the same refresh token share one refresh call. */
 const inflight = new Map<string, Promise<RefreshResult>>();
 
-async function refresh(token: string, forwardedFor: string | null): Promise<RefreshResult> {
+async function refresh(token: string, forwarded: Record<string, string>): Promise<RefreshResult> {
   try {
     const res = await fetch(`${API_URL}/v1/auth/refresh`, {
       method: "POST",
-      headers: { "content-type": "application/json", ...(forwardedFor ? { "x-forwarded-for": forwardedFor } : {}) },
+      headers: { "content-type": "application/json", ...forwarded },
       body: JSON.stringify({ refreshToken: token }),
       cache: "no-store",
     });
@@ -46,7 +47,7 @@ export async function proxy(request: NextRequest) {
 
   let pending = inflight.get(refreshToken);
   if (!pending) {
-    pending = refresh(refreshToken, request.headers.get("x-forwarded-for"));
+    pending = refresh(refreshToken, clientIpHeaders(request.headers));
     inflight.set(refreshToken, pending);
     void pending.finally(() => setTimeout(() => inflight.delete(refreshToken), 10_000));
   }

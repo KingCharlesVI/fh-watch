@@ -1,9 +1,0 @@
-[Unit]
-Description=FH Match Centre restore test (restores the latest backup into a scratch database)
-After=postgresql.service
-
-[Service]
-Type=oneshot
-User=postgres
-Group=postgres
-ExecStart=/opt/fh/bin/restore-test.sh

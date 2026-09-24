@@ -21,7 +21,8 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "gen:schema": "tsx scripts/generate-json-schema.ts"
+    "gen:schema": "tsx scripts/generate-json-schema.ts",
+    "check:match": "tsx --conditions=source scripts/check-match-file.ts"
   },
   "dependencies": {
     "zod": "^4.6.5"

@@ -1,0 +1,32 @@
+[Unit]
+Description=FH Match Centre website
+After=network-online.target fh-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fh-web
+Group=fh-web
+WorkingDirectory=/opt/fh/current/web
+EnvironmentFile=/etc/fh/web.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node serve.mjs
+Restart=always
+RestartSec=3
+TimeoutStopSec=20
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictRealtime=yes
+# Next writes to .next/cache in the release; fh deploy gives fh-web that folder only.
+ReadWritePaths=/opt/fh/releases
+
+[Install]
+WantedBy=multi-user.target

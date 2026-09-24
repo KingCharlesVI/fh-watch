@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly FH Match Centre database backup
+
+[Timer]
+OnCalendar=*-*-* 03:15
+RandomizedDelaySec=10min
+# If the machine was off at 03:15, back up when it's next on.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

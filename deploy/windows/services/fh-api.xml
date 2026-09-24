@@ -1,0 +1,26 @@
+<!--
+  WinSW service definition for the API. provision.ps1 fills in the __PLACEHOLDERS__ and installs it
+  next to fh-api.exe in C:\ProgramData\fh\services. After changing it, run provision.ps1 again.
+-->
+<service>
+  <id>fh-api</id>
+  <name>FH Match Centre API</name>
+  <description>FH Match Centre API on 127.0.0.1:3001.</description>
+  <executable>__NODE__</executable>
+  <arguments>--env-file="__ROOT__\config\api.env" dist\server.js</arguments>
+  <workingdirectory>__ROOT__\current\api</workingdirectory>
+  <env name="NODE_ENV" value="production"/>
+  <!-- Temporary files and Chromium's profile (PDF reports), somewhere this service may write. -->
+  <env name="TEMP" value="__ROOT__\data\api\tmp"/>
+  <env name="TMP" value="__ROOT__\data\api\tmp"/>
+  <env name="LOCALAPPDATA" value="__ROOT__\data\api"/>
+  <onfailure action="restart" delay="5 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <!-- Ctrl+C first, so the API finishes its requests and closes the database cleanly. -->
+  <stoptimeout>20 sec</stoptimeout>
+  <logpath>__ROOT__\logs\api</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>5</keepFiles>
+  </log>
+</service>

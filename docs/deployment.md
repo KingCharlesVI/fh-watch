@@ -1,41 +1,106 @@
 # Deploying FH Match Centre
 
-Everything runs on one Ubuntu 24.04 server: nginx in front, the API and website as systemd services, PostgreSQL on the same machine. There are no containers. The files live in [`deploy/`](../deploy).
+Everything runs on one machine, **Windows or Linux**, with no containers: PostgreSQL, the API, the website, and a **Cloudflare Tunnel** that connects the machine to fhmatchcentre.com. The tunnel dials out to Cloudflare, so the machine needs no public IP address, no open ports and no certificates. A spare PC at home is enough while the user base is small; moving to a VPS later uses the same Linux setup (see [Moving to another machine](#moving-to-another-machine)).
+
+The files live in [`deploy/`](../deploy): `fh.mjs` (the `fh` command, the same on both systems), `linux/` and `windows/` (setup scripts and service definitions), and `env/` (settings templates).
+
+```
+visitor ──HTTPS──> Cloudflare <══tunnel══ fh-tunnel (cloudflared) ──/v1/*──────────> fh-api  :3001 ──> PostgreSQL
+                                                                  └─everything else─> fh-web  :3000
+```
 
 ## Before you start
 
 | You need | Notes |
 | --- | --- |
-| A server | Ubuntu 24.04 LTS, 2 vCPU, 4 GB RAM, 40 GB disk (e.g. Hetzner CX22 or a DigitalOcean 4 GB droplet). You must be able to SSH in as root with a key. |
-| DNS for fhmatchcentre.com | At your domain registrar, add **A** records for `fhmatchcentre.com` and `www.fhmatchcentre.com` pointing at the server's IPv4 address (and **AAAA** records for its IPv6 address, if it has one). Allow up to an hour to spread. |
-| The repository on GitHub | The server clones releases from it using a read-only deploy key. |
+| A machine that stays on | **Windows 10/11**, or **Ubuntu 22.04+ / Debian 12+** (Raspberry Pi OS 64-bit counts). 64-bit, 4 GB RAM, 40 GB free disk. A wired network connection is best. The site is down whenever the machine is off or asleep. |
+| A Cloudflare account | The free plan is enough. |
+| The domain on Cloudflare | See step 1. The domain stays registered where it is; only its DNS moves to Cloudflare. |
+| The repository on GitHub | The machine clones releases from it. |
 | An email provider (can wait) | Without one, sign-up confirmations and password resets are only written to the API log, so nobody else can register. See [Email](#email). |
 
-## 1. Provision the server (once)
+## 1. Put the domain on Cloudflare (once)
 
-From your computer, in the repository folder:
+1. In the Cloudflare dashboard, **Add a domain**: `fhmatchcentre.com`, Free plan.
+2. Cloudflare gives you two nameservers. At your domain registrar, replace the domain's nameservers with those two. Cloudflare emails you when the domain is active, usually within an hour.
+3. In Cloudflare, go to **SSL/TLS → Edge Certificates** and turn on **Always Use HTTPS**.
+4. Leave **Bot Fight Mode** and **Under Attack mode** off. They answer some requests with a browser challenge, which the phone app and watches can't complete.
 
-```sh
-scp -r deploy root@SERVER_IP:/root/fh-deploy
-ssh root@SERVER_IP "bash /root/fh-deploy/provision.sh --email you@example.com --repo git@github.com:KingCharlesVI/fh-watch.git"
-```
+You don't add the site's DNS records yourself: the setup script does that in step 2. From now on, any DNS records you add (e.g. for email) go in Cloudflare, not at the registrar.
 
-This takes about 5 minutes. It:
+## 2. Set up the machine (once)
 
-- installs Node 22, PostgreSQL 16, nginx, certbot and security updates
-- creates the `fh-api`, `fh-web` and `fh-deploy` users
-- creates the `fh` database, with a random password
-- writes `/etc/fh/*.env`, including a random JWT secret
-- turns on the firewall (SSH, HTTP and HTTPS only)
-- switches SSH to keys only, if it finds a key
-- gets the HTTPS certificate
-- installs the services and the nightly backup timer
+Follow **2a** for Windows or **2b** for Linux. Both finish by setting up the tunnel, which opens a Cloudflare sign-in page: sign in and pick `fhmatchcentre.com`.
 
-If DNS isn't pointing at the server yet, run it with `--skip-tls`, then run it again without that flag once DNS has spread. Running `provision.sh` again is always safe: it keeps existing secrets and configuration.
+### 2a. Windows
 
-At the end it prints a **deploy key**. In GitHub, open the repository's **Settings → Deploy keys → Add deploy key**, paste the key and leave write access off.
+1. **Install the tools**, in PowerShell:
 
-## 2. Deploy
+   ```powershell
+   winget install --id OpenJS.NodeJS.LTS
+   winget install --id Git.Git
+   winget install --id Cloudflare.cloudflared
+   ```
+
+   Then install **PostgreSQL** (16 or later) with the installer from [postgresql.org/download/windows](https://www.postgresql.org/download/windows/). Keep the defaults, and note the password it asks you to choose for the `postgres` superuser. You don't need Stack Builder.
+
+2. **Get the repository and run the setup**, in a *new* administrator PowerShell (right-click PowerShell → Run as administrator):
+
+   ```powershell
+   git clone https://github.com/KingCharlesVI/fh-watch.git C:\fh-setup
+   powershell -ExecutionPolicy Bypass -File C:\fh-setup\deploy\windows\provision.ps1 -Repo https://github.com/KingCharlesVI/fh-watch.git
+   ```
+
+   The first `git clone` asks you to sign in to GitHub; Git remembers it for deploys. The setup asks for the PostgreSQL password, then takes a few minutes. It:
+
+   - checks the tools and turns on Windows long paths
+   - creates `C:\ProgramData\fh`, readable by the services but changeable only by administrators
+   - creates the `fh` database role (random password) and the `fh` and `fh_restore_test` databases
+   - writes the settings to `C:\ProgramData\fh\config`, including a random JWT secret
+   - installs the `fh-api`, `fh-web` and `fh-tunnel` Windows services. Each runs under its own low-privilege account, starts at boot and restarts if it fails.
+   - adds the `fh` command to the PATH
+   - schedules a nightly backup and a weekly restore test in Task Scheduler, under *FH Match Centre*
+   - turns off sleep and hibernate on mains power
+   - sets up the Cloudflare Tunnel
+
+   If it says PostgreSQL accepts connections from other computers, follow its instructions to limit it to this one.
+
+3. **Laptops:** in *Control Panel → Power Options → Choose what closing the lid does*, set "When I close the lid" to **Do nothing** for "Plugged in".
+
+Windows Update restarts the machine now and then. The services and tunnel start again by themselves, before anyone signs in.
+
+### 2b. Linux
+
+1. **Copy the `deploy` folder to the machine** and sign in to it, from your computer in the repository folder:
+
+   ```sh
+   scp -r deploy you@MACHINE:fh-deploy
+   ssh you@MACHINE
+   ```
+
+2. **Run the setup**:
+
+   ```sh
+   sudo bash ~/fh-deploy/linux/provision.sh --repo git@github.com:KingCharlesVI/fh-watch.git
+   ```
+
+   This takes about 5 minutes. It:
+
+   - installs Node 24, PostgreSQL, cloudflared (from Cloudflare's package repository) and security updates
+   - creates the `fh-api`, `fh-web`, `fh-tunnel` and `fh-deploy` users
+   - creates the `fh` database role (random password) and the `fh` and `fh_restore_test` databases
+   - writes the settings to `/etc/fh`, including a random JWT secret
+   - installs the services and the backup timers, and the `fh` command
+   - turns off sleep and suspend, even with a laptop lid closed
+   - turns on the firewall with only SSH allowed in (the tunnel needs no inbound ports)
+   - switches SSH to keys only, if it finds a key
+   - sets up the Cloudflare Tunnel. On a machine without a browser, open the link it prints on any computer.
+
+   At the end it prints a **deploy key**. In GitHub, open the repository's **Settings → Deploy keys → Add deploy key**, paste the key and leave write access off.
+
+Running either setup script again is safe: it keeps existing secrets and settings. Add `-SkipTunnel` (Windows) or `--skip-tunnel` (Linux) to leave the tunnel for later, then run `fh tunnel` when ready.
+
+## 3. Deploy
 
 Tag the release on your computer and push it:
 
@@ -44,32 +109,23 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-Then deploy it on the server:
+Then deploy it on the machine: `fh deploy v0.1.0` in an administrator PowerShell on Windows, or `sudo fh deploy v0.1.0` on Linux. It:
 
-```sh
-ssh root@SERVER_IP "/opt/fh/bin/deploy.sh v0.1.0"
-```
+1. clones the tag into a new folder under `releases`
+2. installs dependencies and builds the API and website (on Linux as the unprivileged `fh-deploy` user)
+3. installs Chromium for PDF reports
+4. runs the database migrations
+5. points `current` at the new release and restarts the API and website
+6. checks both answer
 
-`deploy.sh` clones the tag into `/opt/fh/releases/<time>-<tag>`, then:
+If they don't answer, it switches back to the previous release and shows the logs. If it fails before the switch, the live site is untouched. The last 5 releases are kept.
 
-1. installs dependencies and builds everything as `fh-deploy`
-2. installs Chromium for PDF reports
-3. runs the database migrations
-4. points `/opt/fh/current` at the new release and restarts both services
-5. checks both services answer
+A branch name works in place of a tag (e.g. `fh deploy main`), but tags make it clear what's running. The first deploy takes 5–10 minutes; later ones are quicker.
 
-If they don't answer, it switches back to the previous release and prints the logs. If it fails before the switch, the live site is untouched. The last 5 releases are kept.
-
-A branch name works in place of a tag (e.g. `deploy.sh main`), but tags make it clear what's running.
-
-## 3. Create the first admin
+## 4. Create the first admin
 
 1. Register on https://fhmatchcentre.com/register.
-2. Make that account an admin:
-
-   ```sh
-   ssh root@SERVER_IP "/opt/fh/bin/fh-admin you@example.com --verify"
-   ```
+2. Make that account an admin: `fh admin you@example.com --verify` (with `sudo` on Linux).
 
    `--verify` also confirms your email address, so you can sign in before email is set up. From then on, use **Admin → Users** on the website to manage roles.
 
@@ -77,64 +133,90 @@ A branch name works in place of a tag (e.g. `deploy.sh main`), but tags make it 
 
 Pick a transactional email provider, e.g. Postmark, Resend, Mailgun or Amazon SES. Then:
 
-1. **Verify the domain with the provider.** Add the DNS records it gives you (SPF, DKIM, and ideally a DMARC record) at your registrar. Without them, mail from `no-reply@fhmatchcentre.com` lands in spam.
-2. **Add the SMTP URL** to `/etc/fh/api.env`, URL-encoding any special characters in the password:
+1. **Verify the domain with the provider.** Add the DNS records it gives you (SPF, DKIM, and ideally a DMARC record) in **Cloudflare's DNS**. Without them, mail from `no-reply@fhmatchcentre.com` lands in spam. Records for mail must be "DNS only" (grey cloud), not proxied.
+2. **Add the SMTP URL** to `api.env` (`/etc/fh/api.env` or `C:\ProgramData\fh\config\api.env`), URL-encoding any special characters in the password:
 
    ```
    SMTP_URL=smtps://USERNAME:PASSWORD@smtp.provider.com:465
    ```
 
-3. **Restart the API:** `systemctl restart fh-api`.
-4. **Test it:** use **Forgotten your password?** on the sign-in page. Until this works, `journalctl -u fh-api | grep "Email to"` shows the emails that would have been sent.
+3. **Restart the API:** `sudo systemctl restart fh-api` on Linux, `Restart-Service fh-api` on Windows.
+4. **Test it:** use **Forgotten your password?** on the sign-in page. Until this works, `fh logs api` shows the emails that would have been sent.
 
 ## Backups
 
-- **Nightly:** `fh-backup.timer` runs a `pg_dump` at about 03:15. It keeps 14 days of backups in `/var/backups/fh`.
-- **Monthly restore test:** `fh-restore-test.timer` restores the newest backup into a scratch database on the 1st of each month, compares row counts, then drops it. Check the result with `journalctl -u fh-restore-test`.
-- **Off-site copies:** set these up soon. A backup that only lives on the same server doesn't survive losing the server.
+- **Nightly:** a `pg_dump` at about 03:15 (a systemd timer on Linux, a scheduled task on Windows). If the machine was off then, it runs when it's next on. 14 days are kept.
+- **Weekly restore test:** on Sunday mornings, the newest backup is restored into the `fh_restore_test` database and its row counts are printed next to the live ones. Check it with `journalctl -u fh-restore-test` (Linux) or `C:\ProgramData\fh\logs\tasks\restore-test.log` (Windows).
+- **Off-site copies:** set these up soon. A backup that only lives on the same machine doesn't survive losing the machine, and a home PC is easier to lose than a server.
 
-  1. Create a bucket with any S3-compatible storage (Backblaze B2, Cloudflare R2, Wasabi, AWS S3). Give it a lifecycle rule that deletes old files, e.g. after 90 days.
-  2. Run `rclone config --config /etc/fh/rclone.conf` and add the bucket as a remote.
-  3. Set `RCLONE_REMOTE=remote-name:bucket-name` in `/etc/fh/backup.env`.
-  4. Test it with `systemctl start fh-backup && journalctl -u fh-backup -n 5`.
+  1. Install rclone: it's already there on Linux; on Windows run `winget install --id Rclone.Rclone`.
+  2. Create a bucket with any S3-compatible storage (Cloudflare R2, Backblaze B2, Wasabi, AWS S3). Give it a lifecycle rule that deletes old files, e.g. after 90 days.
+  3. Add the bucket as a remote: `rclone config --config /etc/fh/rclone.conf` (Linux) or `rclone config --config C:\ProgramData\fh\config\rclone.conf` (Windows).
+  4. In `fh.env`, set `RCLONE_REMOTE=remote-name:bucket-name`. On Windows also set `RCLONE=` to rclone's full path (`(Get-Command rclone).Source` shows it), because backups run as SYSTEM, which doesn't see your PATH.
+  5. Test it with `fh backup`.
 
-- **Restore from a backup:** this stops the site, takes a safety backup, then replaces the database.
-
-  ```sh
-  /opt/fh/bin/restore.sh /var/backups/fh/fh-YYYYMMDD-HHMMSS.dump
-  ```
+- **Restore from a backup:** `fh restore <file>` (e.g. `sudo fh restore /var/backups/fh/fh-20260920-031500.dump`). It takes a safety backup first, stops the site, and replaces the database in one transaction: if anything goes wrong, the database is left exactly as it was.
 
 ## Monitoring
 
-Point a free uptime monitor (e.g. UptimeRobot or Better Stack) at `https://fhmatchcentre.com/v1/health`. It should return `{"ok":true}`.
+- `fh status` shows the running release, whether each service is up and answering, whether the tunnel is connected, and the newest backup.
+- Point a free uptime monitor (e.g. UptimeRobot or Better Stack) at `https://fhmatchcentre.com/v1/health`. It should return `{"ok":true}`. At home this also tells you about power cuts and broadband outages.
 
 ## Day-to-day
 
-| Task | Command (on the server, as root) |
+Run `fh` commands from an administrator PowerShell on Windows, or with `sudo` on Linux.
+
+| Task | Command |
 | --- | --- |
-| Deploy a release | `/opt/fh/bin/deploy.sh v0.2.0` |
-| Go back one release | `/opt/fh/bin/rollback.sh` |
-| See what's running | `readlink /opt/fh/current` |
-| Follow the logs | `journalctl -u fh-api -u fh-web -f` |
-| Restart | `systemctl restart fh-api fh-web` |
-| Service status | `systemctl status fh-api fh-web` |
-| Change configuration | edit `/etc/fh/api.env` or `/etc/fh/web.env`, then restart that service |
-| Make someone admin | `/opt/fh/bin/fh-admin someone@example.com` |
-| Back up now | `systemctl start fh-backup` |
-| Database shell | `sudo -u postgres psql fh` |
+| Deploy a release | `fh deploy v0.2.0` |
+| Go back one release | `fh rollback` |
+| What's running, is it healthy | `fh status` |
+| Logs | `fh logs` (all), `fh logs api`, add `-f` to follow |
+| Make someone admin | `fh admin someone@example.com` |
+| Back up now | `fh backup` |
+| Restore | `fh restore <file>` |
+| Reconnect the tunnel or repair its DNS records | `fh tunnel` |
+| Restart | Linux: `sudo systemctl restart fh-api fh-web`. Windows: `Restart-Service fh-api, fh-web` |
+| Change settings | Edit `api.env` or `web.env`, then restart that service. `SITE_URL` in `web.env` is built into the website, so deploy again after changing it. |
+| Database shell | Linux: `sudo -u postgres psql fh`. Windows: `& "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres fh` (use your PostgreSQL version) |
 
 A rollback doesn't undo database migrations. Write migrations that the previous release can still run against, for example by adding columns rather than renaming them.
 
+`fh.mjs` itself is updated by each deploy. The service definitions and scripts in `deploy/linux` and `deploy/windows` aren't, so run the setup script again after changing them.
+
+## Moving to another machine
+
+For example, from a home PC to a VPS:
+
+1. Set up the new machine (step 2) with `--skip-tunnel` / `-SkipTunnel`, and deploy the same release.
+2. On the old machine, run `fh backup`. Stop the old site: `sudo systemctl disable --now fh-tunnel fh-web fh-api` (Linux) or `Stop-Service fh-tunnel, fh-web, fh-api` and set them to Disabled (Windows).
+3. Copy that backup to the new machine and run `fh restore <file>`.
+4. On the new machine, run `fh tunnel`. It reconnects to the same tunnel, so the site follows it within a minute.
+
+Stop the old tunnel before starting the new one: two machines running the same tunnel share its traffic between them.
+
 ## Where things live
 
-| Path | What |
+| What | Linux | Windows |
+| --- | --- | --- |
+| Releases (one folder per deploy) and `current`, the live one | `/opt/fh/releases`, `/opt/fh/current` | `C:\ProgramData\fh\releases`, `C:\ProgramData\fh\current` |
+| The `fh` command | `/opt/fh/bin/fh.mjs` (and `/usr/local/bin/fh`) | `C:\ProgramData\fh\bin` |
+| API settings and secrets (database password, JWT secret, SMTP) | `/etc/fh/api.env` | `C:\ProgramData\fh\config\api.env` |
+| Website settings | `/etc/fh/web.env` | `C:\ProgramData\fh\config\web.env` |
+| Deploy and backup settings | `/etc/fh/fh.env` | `C:\ProgramData\fh\config\fh.env` |
+| Tunnel settings and credentials (written by `fh tunnel`) | `/etc/fh/tunnel.yml`, `/etc/fh/tunnel.json` | `C:\ProgramData\fh\config\tunnel.yml`, `tunnel.json` |
+| Cloudflare sign-in used by `fh tunnel` | `/root/.cloudflared/cert.pem` | `%USERPROFILE%\.cloudflared\cert.pem` |
+| Database backups | `/var/backups/fh` | `C:\ProgramData\fh\backups` |
+| Logs | journald (`fh logs`) | `C:\ProgramData\fh\logs` (`fh logs`) |
+| Cached PDF reports (safe to delete) | `/var/cache/fh-api/pdf` | `C:\ProgramData\fh\data\api\pdf` |
+| Service definitions | `/etc/systemd/system/fh-*` | `C:\ProgramData\fh\services` (WinSW) |
+
+## Troubleshooting
+
+| Symptom | Likely cause |
 | --- | --- |
-| `/opt/fh/releases/` | One folder per deploy. `/opt/fh/current` links to the live one. |
-| `/opt/fh/bin/` | `deploy.sh`, `rollback.sh`, `fh-admin`, the backup and restore scripts. Updated by each deploy. |
-| `/etc/fh/api.env` | API settings and secrets (database password, JWT secret, SMTP). |
-| `/etc/fh/web.env` | Website settings. |
-| `/etc/fh/backup.env`, `/etc/fh/rclone.conf` | Backup settings. |
-| `/etc/fh/deploy.env` | Repository URL, number of releases to keep. |
-| `/var/backups/fh/` | Database backups. |
-| `/var/cache/fh-api/` | Cached PDF reports (safe to delete). |
-| `/etc/nginx/sites-available/fhmatchcentre.conf` | nginx site. It's installed by `provision.sh`, so run that again after changing `deploy/nginx/`. |
+| Cloudflare error page **1033** | The tunnel isn't connected: the machine is off or asleep, or `fh-tunnel` has stopped. Check `fh status` and `fh logs tunnel`. |
+| Cloudflare error page **502** | The tunnel is up but the API or website isn't. Check `fh status` and `fh logs api` / `fh logs web`. |
+| `fh deploy` fails at "Fetching" on Windows | Git can't sign in to GitHub. Run `git clone` on the repository once in the same administrator PowerShell to sign in. |
+| `fh deploy` fails at "Fetching" on Linux | The deploy key isn't added to GitHub (step 2b). |
+| The phone app can't upload, but the website works | Bot Fight Mode or Under Attack mode is on in Cloudflare (step 1). |

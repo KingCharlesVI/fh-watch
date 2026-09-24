@@ -4,6 +4,7 @@ import { AppState } from "react-native";
 import type { LocalMatch } from "@/core/store";
 import type { SyncState } from "@/core/sync";
 import { sync } from "@/services";
+import { drainWatchInbox, onWatchMatch } from "@/services/watch";
 
 export interface MatchRow {
   match: LocalMatch;
@@ -66,19 +67,29 @@ const RETRY_EVERY_MS = 20_000;
 /**
  * Keeps uploads moving while signed in: on start, when the app comes back to
  * the foreground, when the connection returns, and every 20 seconds (the
- * engine skips matches still in their backoff).
+ * engine skips matches still in their backoff). Matches from the watch are
+ * taken in on start, on returning to the foreground and as they arrive; while
+ * signed out they wait safely in the native inbox.
  */
 export function useSyncTriggers(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
     const refresh = () => void sync.refresh().catch(() => {});
     const upload = () => void sync.uploadPending().catch(() => {});
+    const watch = () => void drainWatchInbox();
     refresh();
-    const app = AppState.addEventListener("change", (s) => s === "active" && refresh());
+    watch();
+    const app = AppState.addEventListener("change", (s) => {
+      if (s !== "active") return;
+      refresh();
+      watch();
+    });
+    const offWatch = onWatchMatch(watch);
     const net = Network.addNetworkStateListener((s) => s.isInternetReachable && upload());
     const timer = setInterval(upload, RETRY_EVERY_MS);
     return () => {
       app.remove();
+      offWatch();
       net.remove();
       clearInterval(timer);
     };
