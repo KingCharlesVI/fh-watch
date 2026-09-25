@@ -20,8 +20,10 @@ export const CURRENT_STAGE: Stage = "alpha";
 
 export interface StoreLink {
   label: string;
-  store: "google-play" | "app-store" | "testflight";
+  store: "google-play" | "app-store" | "testflight" | "apk";
   href: string | null;
+  /** Shown beside the label, e.g. an APK's version and size: "0.2.0 · 112 MB". */
+  detail?: string;
 }
 
 export interface Download {
@@ -38,10 +40,13 @@ export const DOWNLOADS: Download[] = [
     stage: "alpha",
     title: "Alpha",
     summary: "The watch and phone apps on their own: umpire on a Wear OS watch, review and export matches on your Android phone. Nothing leaves your phone unless you send it.",
-    audience: "Invited umpires. Ask to join, then use the Google Play link on your phone with the same Google account.",
+    audience: "Invited umpires. Ask to join, then use the Google Play link on your phone with the same Google account, or install the APKs directly.",
     links: [
       // Play Console → Internal testing → Testers → "Join on Android" link.
       { label: "Android and Wear OS", store: "google-play", href: null },
+      // The APKs' public URLs (e.g. in the S3 bucket). Update them and `detail` for each new build.
+      { label: "Phone app (APK)", store: "apk", href: null, detail: undefined },
+      { label: "Watch app (APK)", store: "apk", href: null, detail: undefined },
     ],
   },
   {

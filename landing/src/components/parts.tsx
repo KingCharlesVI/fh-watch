@@ -1,4 +1,4 @@
-import { ArrowUpRight, Mail } from "lucide-react";
+import { ArrowUpRight, Download, Mail } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { SITE, type StoreLink } from "@/content";
@@ -36,7 +36,7 @@ export function Button({ href, children, variant = "primary" }: { href: string; 
   );
 }
 
-const STORE_NAMES = { "google-play": "Google Play", "app-store": "App Store", testflight: "TestFlight" } as const;
+const STORE_NAMES = { "google-play": "Google Play", "app-store": "App Store", testflight: "TestFlight", apk: "APK" } as const;
 
 /** A store button, or a quiet "Coming soon" when there's no link yet. */
 export function StoreButton({ link }: { link: StoreLink }) {
@@ -46,6 +46,21 @@ export function StoreButton({ link }: { link: StoreLink }) {
         <span>{link.label}</span>
         <span className="text-xs">Coming soon</span>
       </span>
+    );
+  }
+  if (link.store === "apk") {
+    // A file on this site, downloaded rather than opened.
+    return (
+      <a
+        href={link.href}
+        download
+        className="flex h-11 items-center justify-between gap-3 rounded-lg border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
+      >
+        <span className="inline-flex items-center gap-2">
+          <Download className="size-4" /> {link.label}
+        </span>
+        {link.detail && <span className="text-xs text-muted-foreground">{link.detail}</span>}
+      </a>
     );
   }
   return (
@@ -95,5 +110,49 @@ export function PhoneFrame({ src, alt }: { src: string; alt: string }) {
         <Image src={src} alt={alt} width={1080} height={2400} className="h-auto w-full" />
       </div>
     </div>
+  );
+}
+
+/** How to install the APKs, for testers not using Google Play. */
+export function ApkInstructions() {
+  return (
+    <details className="rounded-lg border px-4 py-3 text-sm">
+      <summary className="cursor-pointer font-medium">How to install the APKs</summary>
+      <div className="mt-3 space-y-3 text-muted-foreground">
+        <p>
+          <span className="font-medium text-foreground">Install both from here, or both from Google Play,</span> not one of each: the watch only talks to a
+          phone app from the same place. To switch, uninstall both first.
+        </p>
+        <div>
+          <p className="font-medium text-foreground">Phone</p>
+          <ol className="mt-1 list-decimal space-y-1 pl-5">
+            <li>On your Android phone, tap <em>Phone app (APK)</em>.</li>
+            <li>Open the downloaded file. If asked, allow your browser to install apps.</li>
+          </ol>
+        </div>
+        <div>
+          <p className="font-medium text-foreground">Watch</p>
+          <p className="mt-1">A watch can&apos;t download apps from a web page, so the watch app goes on from a computer:</p>
+          <ol className="mt-1 list-decimal space-y-1 pl-5">
+            <li>
+              On the watch: Settings → About watch → Software information → tap <em>Software version</em> five times to turn on developer options. In
+              Developer options, turn on <em>ADB debugging</em> and <em>Wireless debugging</em> (<em>Debug over Wi-Fi</em> on older watches). Keep the
+              watch on the same Wi-Fi as the computer.
+            </li>
+            <li>
+              On a computer with{" "}
+              <a className="underline" href="https://developer.android.com/tools/releases/platform-tools">
+                Android platform tools
+              </a>
+              , download <em>Watch app (APK)</em>. On newer watches, tap <em>Pair new device</em> under Wireless debugging and run{" "}
+              <code className="rounded bg-muted px-1">adb pair &lt;address&gt; &lt;code&gt;</code> with what it shows. Then run{" "}
+              <code className="rounded bg-muted px-1">adb connect &lt;address&gt;</code> with the address shown under Wireless debugging (accept the
+              prompt on the watch), and <code className="rounded bg-muted px-1">adb install &lt;the APK file&gt;</code>.
+            </li>
+            <li>Turn ADB debugging off again afterwards: it uses battery.</li>
+          </ol>
+        </div>
+      </div>
+    </details>
   );
 }

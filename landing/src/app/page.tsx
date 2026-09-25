@@ -1,5 +1,5 @@
 import { Check, FileText, Flag, Globe, Hand, Smartphone, Timer, Vibrate, Watch, WifiOff } from "lucide-react";
-import { Button, Container, Logo, PhoneFrame, RequestAccess, Section, StoreButton, WatchFrame } from "@/components/parts";
+import { ApkInstructions, Button, Container, Logo, PhoneFrame, RequestAccess, Section, StoreButton, WatchFrame } from "@/components/parts";
 import { CURRENT_STAGE, DOWNLOADS, ROADMAP, SITE, type RoadmapStep } from "@/content";
 
 const FEATURES = [
@@ -117,6 +117,7 @@ export default function Home() {
                     {d.links.map((link) => (
                       <StoreButton key={link.label} link={link} />
                     ))}
+                    {d.links.some((l) => l.store === "apk" && l.href) && <ApkInstructions />}
                     {isCurrent && <RequestAccess stage={d.title.toLowerCase()} />}
                   </div>
                 </div>
