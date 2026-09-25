@@ -25,7 +25,8 @@ import { useMatch } from "@/state/sync";
 import { Badge, Banner, Button, Card, Choice, Field, Row, Screen, Swatch, T, Text } from "@/ui/kit";
 import { space, useColors } from "@/ui/theme";
 
-const TEAM_COLOURS = ["#1E40AF", "#0EA5E9", "#065F46", "#16A34A", "#B91C1C", "#EA580C", "#CA8A04", "#7C3AED", "#DB2777", "#111827", "#6B7280", "#FFFFFF"];
+/** The same palette as the watch (TEAM_COLOURS in watch-wear/.../ui/Common.kt). */
+const TEAM_COLOURS = ["#DC2626", "#1D4ED8", "#FACC15", "#16A34A", "#EA580C", "#7C3AED", "#38BDF8", "#EC4899", "#111111", "#FFFFFF"];
 
 export default function EditMatchScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

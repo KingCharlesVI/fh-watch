@@ -3,7 +3,6 @@ package com.fhmatchcentre.watch.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -155,10 +154,9 @@ private fun TimingPage(m: MatchRecord, now: Moment, countDown: Boolean, controll
     val toggle: () -> Unit = { controller.perform { toggleClock(it) } }
     ListScreen(title = null, fromTop = true) {
         item {
-            // Tapping the clock does the same as the physical button.
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth().clickable(onClick = toggle).padding(top = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             ) {
                 // The match minute (time played in all periods) sits beside the period, like a referee's second watch.
                 val played = if (m.clock.phase == Phase.PLAYING) " · ${m.matchTimeMs(now) / 60_000}′" else ""
@@ -176,7 +174,7 @@ private fun TimingPage(m: MatchRecord, now: Moment, countDown: Boolean, controll
                 val next = if (m.clock.phase == Phase.READY) 1 else m.clock.period + 1
                 item { PillButton("Start ${periodName(next, m.settings.periods)}", BRAND, onClick = toggle) }
                 if (m.clock.phase == Phase.READY) {
-                    item { Hint("The side button (Back on Galaxy watches) or a tap on the clock starts and stops time. Swipe left for cards, goals and more.") }
+                    item { Hint("The side button (the lower one on Galaxy watches) also starts and stops time. Swipe left for cards, goals and more.") }
                 }
             }
             Phase.PLAYING -> {

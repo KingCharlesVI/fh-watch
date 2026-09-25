@@ -17,10 +17,10 @@ data class Setup(
     val cards: CardDurations = Engine.DEFAULT_CARDS,
     val shootoutIfDrawn: Boolean = false,
     val homeName: String = "Home",
-    val homeColor: String = "#1E40AF",
+    val homeColor: String = "#1D4ED8",
     val homeCaptain: Int? = null,
     val awayName: String = "Away",
-    val awayColor: String = "#B91C1C",
+    val awayColor: String = "#DC2626",
     val awayCaptain: Int? = null,
     val venue: String? = null,
 ) {

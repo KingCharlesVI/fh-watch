@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
+import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material3.SwitchButton
 import androidx.wear.compose.material3.Text
 import androidx.wear.input.RemoteInputIntentHelper
@@ -68,13 +69,15 @@ fun rememberTextInput(label: String, onText: (String) -> Unit): () -> Unit {
     }
 }
 
-private enum class Editing { PERIODS, LENGTH, BREAK, HALF_TIME, HOME_CAPTAIN, AWAY_CAPTAIN }
+private enum class Editing { PERIODS, LENGTH, BREAK, HALF_TIME, HOME_CAPTAIN, AWAY_CAPTAIN, HOME_COLOUR, AWAY_COLOUR }
 
 /** Match setup, starting from the last match's choices. */
 @Composable
 fun SetupScreen(services: Services, onStarted: () -> Unit) {
     var setup by remember { mutableStateOf(services.prefs.lastSetup) }
     var editing by rememberSaveable { mutableStateOf<Editing?>(null) }
+    // Kept out here so the list is where it was after a number or colour is picked.
+    val listState = rememberScalingLazyListState(initialCenterItemIndex = 1)
     val scope = rememberCoroutineScope()
     val homeName = rememberTextInput("Home team") { setup = setup.copy(homeName = it.take(80)) }
     val awayName = rememberTextInput("Away team") { setup = setup.copy(awayName = it.take(80)) }
@@ -83,22 +86,23 @@ fun SetupScreen(services: Services, onStarted: () -> Unit) {
     editing?.let { field ->
         val done = { editing = null }
         when (field) {
-            Editing.PERIODS -> NumberPicker("Periods", 1..8, setup.periods, false) { setup = setup.copy(periods = it!!); done() }
-            Editing.LENGTH -> NumberPicker("Minutes each", 1..90, setup.periodMinutes, false) { setup = setup.copy(periodMinutes = it!!); done() }
-            Editing.BREAK -> NumberPicker("Break minutes", 0..30, setup.breakMinutes, false) { setup = setup.copy(breakMinutes = it!!); done() }
-            Editing.HALF_TIME -> NumberPicker("Half-time minutes", 0..30, setup.halfTimeMinutes, false) { setup = setup.copy(halfTimeMinutes = it!!); done() }
-            Editing.HOME_CAPTAIN -> NumberPicker("Home captain", 0..99, setup.homeCaptain ?: 1, true) { setup = setup.copy(homeCaptain = it); done() }
-            Editing.AWAY_CAPTAIN -> NumberPicker("Away captain", 0..99, setup.awayCaptain ?: 1, true) { setup = setup.copy(awayCaptain = it); done() }
+            Editing.PERIODS -> NumberPad("Periods", 1..8, setup.periods, false) { setup = setup.copy(periods = it!!); done() }
+            Editing.LENGTH -> NumberPad("Minutes", 1..90, setup.periodMinutes, false) { setup = setup.copy(periodMinutes = it!!); done() }
+            Editing.BREAK -> NumberPad("Break", 0..30, setup.breakMinutes, false) { setup = setup.copy(breakMinutes = it!!); done() }
+            Editing.HALF_TIME -> NumberPad("Half-time", 0..30, setup.halfTimeMinutes, false) { setup = setup.copy(halfTimeMinutes = it!!); done() }
+            Editing.HOME_CAPTAIN -> NumberPad("Captain", 0..99, setup.homeCaptain, true) { setup = setup.copy(homeCaptain = it); done() }
+            Editing.AWAY_CAPTAIN -> NumberPad("Captain", 0..99, setup.awayCaptain, true) { setup = setup.copy(awayCaptain = it); done() }
+            Editing.HOME_COLOUR -> ColourPalette("Home colour", setup.homeColor) { setup = setup.copy(homeColor = it); done() }
+            Editing.AWAY_COLOUR -> ColourPalette("Away colour", setup.awayColor) { setup = setup.copy(awayColor = it); done() }
         }
         return
     }
 
-    fun nextColor(current: String) = TEAM_COLOURS[(TEAM_COLOURS.indexOf(current) + 1).mod(TEAM_COLOURS.size)]
     val preset = Setup.PRESETS.firstOrNull {
         it.periods == setup.periods && it.minutes == setup.periodMinutes && it.breakMinutes == setup.breakMinutes && it.halfTimeMinutes == setup.halfTimeMinutes
     }
 
-    ListScreen("New match") {
+    ListScreen("New match", state = listState) {
         item {
             ChoiceButton("Format", preset?.label ?: "Custom") {
                 val i = Setup.PRESETS.indexOf(preset)
@@ -113,10 +117,10 @@ fun SetupScreen(services: Services, onStarted: () -> Unit) {
             if (setup.hasHalfTime) item { ChoiceButton("Half-time", "${setup.halfTimeMinutes} min") { editing = Editing.HALF_TIME } }
         }
         item { TeamButton(Team(setup.homeName, null, setup.homeColor), secondary = "Home · tap to rename") { homeName() } }
-        item { ChoiceButton("Home colour", color = parseColor(setup.homeColor)) { setup = setup.copy(homeColor = nextColor(setup.homeColor)) } }
+        item { ChoiceButton("Home colour", COLOUR_NAMES[setup.homeColor], color = parseColor(setup.homeColor)) { editing = Editing.HOME_COLOUR } }
         item { ChoiceButton("Home captain", setup.homeCaptain?.let { "#$it" } ?: "None") { editing = Editing.HOME_CAPTAIN } }
         item { TeamButton(Team(setup.awayName, null, setup.awayColor), secondary = "Away · tap to rename") { awayName() } }
-        item { ChoiceButton("Away colour", color = parseColor(setup.awayColor)) { setup = setup.copy(awayColor = nextColor(setup.awayColor)) } }
+        item { ChoiceButton("Away colour", COLOUR_NAMES[setup.awayColor], color = parseColor(setup.awayColor)) { editing = Editing.AWAY_COLOUR } }
         item { ChoiceButton("Away captain", setup.awayCaptain?.let { "#$it" } ?: "None") { editing = Editing.AWAY_CAPTAIN } }
         item { ChoiceButton("Venue", setup.venue ?: "None") { venue() } }
         item {

@@ -120,7 +120,7 @@ class MatchController(
             if (next == current) return@withLock
             save(next)
             _active.value = next
-            // One buzz whenever the clock starts or stops: the physical button, a tap or the Stop button.
+            // One buzz whenever the clock starts or stops: the physical button or the on-screen one.
             if (next.clock.running != current.clock.running) haptics.buzz()
             if (undoLabel != null) {
                 val recorded = next.document.events.drop(current.document.events.size).lastOrNull(MatchEvent::isUndoable)

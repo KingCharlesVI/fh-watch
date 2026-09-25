@@ -9,6 +9,8 @@ import type { ExpoConfig } from "expo/config";
  * version code in it must be unique.
  */
 const release = JSON.parse(readFileSync(join(__dirname, "..", "version.json"), "utf8")) as { version: string; build: number };
+// CI builds number themselves (FH_BUILD_NUMBER, the workflow's run number), so each APK installs over the last.
+if (process.env.FH_BUILD_NUMBER) release.build = Number(process.env.FH_BUILD_NUMBER);
 
 // EXPO_PUBLIC_* values are baked into the app at build time.
 // Development default: the Android emulator reaches this PC's API at 10.0.2.2.

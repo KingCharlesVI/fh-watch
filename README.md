@@ -143,3 +143,41 @@ adb -s <watch serial> install -r dist/play/fh-match-centre-watch-<version>-<buil
 **The phone build takes longer.** It first regenerates `mobile/android/` from `mobile/app.config.ts` (`expo prebuild`), so the version, icon, fonts and signing are always current, and then builds the JavaScript bundle into the app. Don't edit files in `mobile/android/` by hand: they're overwritten.
 
 After building, upload the bundles as described in [docs/play-store.md](docs/play-store.md) (step 4, Internal testing).
+
+### Building in GitHub Actions
+
+[.github/workflows/android.yml](.github/workflows/android.yml) runs the same packaging script on GitHub's servers, so every change gets fresh APKs without building on your PC.
+
+| When | What you get |
+| --- | --- |
+| A push to any branch (e.g. `dev`) | Both apps' APKs and App Bundles, attached to the workflow run. On GitHub: **Actions** → the run → **Artifacts** at the bottom (one zip per app). They're kept for 90 days. |
+| A pull request merged into `main` (or any push to `main`) | The same, plus a **GitHub release** (a pre-release while in alpha or beta) with all four files attached, tagged e.g. `v0.3.0-alpha.42`. On GitHub: **Releases**. |
+
+The phone and watch apps build side by side; the phone takes much longer (its native code and JavaScript bundle), and the first run is slowest, before the caches fill. Pushes that only change the website, API, landing page or docs don't start a build. A newer push to the same branch cancels a build still running. To build without pushing, use **Actions** → **Android apps** → **Run workflow**.
+
+**Version and build number.** The version name comes from `version.json` (change it there for a new version, e.g. 0.3.0 → 0.4.0). The build number is the workflow's run number, which goes up by one for every run, so each new APK installs over the one before. `version.json`'s `build` is only used by local builds. If you upload CI-built bundles to Google Play, keep doing so: a later local build would have a lower number, which Play refuses, unless you first set `build` in `version.json` above the last run number.
+
+**The stage.** `STAGE` at the top of the workflow is `alpha`. When the beta opens, change it to `beta`: the phone app is then built with the API and website (and the phone job needs the beta's `EXPO_PUBLIC_*` addresses, see `mobile/.env.example`).
+
+#### Signing (once)
+
+Without an upload key, CI signs both apps with the debug key: they install and sync with each other, but Google Play refuses them, and they won't install over apps signed with your upload key (or from Google Play). To sign with your upload key, add four **repository secrets** (GitHub → the repository → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**):
+
+| Secret | Value |
+| --- | --- |
+| `FH_UPLOAD_KEYSTORE_BASE64` | The `.jks` file as base64 text (below) |
+| `FH_UPLOAD_STORE_PASSWORD` | As in your `~/.gradle/gradle.properties` |
+| `FH_UPLOAD_KEY_ALIAS` | As in your `~/.gradle/gradle.properties` (e.g. `fh-upload`) |
+| `FH_UPLOAD_KEY_PASSWORD` | As in your `~/.gradle/gradle.properties` |
+
+To get the base64 text on Windows, in PowerShell (this copies it to the clipboard, ready to paste):
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("$env:USERPROFILE\fh-upload-key.jks")) | Set-Clipboard
+```
+
+Secrets are hidden in logs and never shown again once saved. The workflow writes the key to a temporary file for the build and deletes it afterwards.
+
+#### Getting the APKs to testers
+
+The repository is private, so artifacts and releases need a GitHub login with access to it. For testers, download the APKs from the release (or the run's artifacts) and put them wherever the landing page links to (e.g. the S3 bucket), then update the links and `detail` in `landing/src/content.ts`.

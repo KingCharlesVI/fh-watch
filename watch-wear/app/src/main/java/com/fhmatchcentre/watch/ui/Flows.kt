@@ -71,7 +71,7 @@ fun GoalFlow(controller: MatchController, forTeam: Side?, onDone: () -> Unit) {
     }
     when {
         team == null -> PickTeam(m, "Goal") { team = it }
-        !pickedPlayer -> NumberPicker("Scorer", 0..99, 10, optional = true) { player = it; pickedPlayer = true }
+        !pickedPlayer -> NumberPad("Scorer", 0..99, null, optional = true) { player = it; pickedPlayer = true }
         else -> ListScreen("How?") {
             item { ChoiceButton("Field goal") { save(GoalMethod.FIELD) } }
             item { ChoiceButton("Penalty corner") { save(GoalMethod.PC) } }
@@ -124,7 +124,7 @@ fun CardFlow(controller: MatchController, onDone: () -> Unit) {
                 item { ChoiceButton("Change card") { kind = null; repeat = null } }
             }
         }
-        else -> NumberPicker("Player", 0..99, 10, optional = false) { number ->
+        else -> NumberPad("Player", 0..99, null, optional = false) { number ->
             val n = number!!
             val carded = m.activeEvents().any { it is Card && it.team == team && it.player == n }
             if (carded) repeat = n else save(n)
@@ -150,7 +150,7 @@ fun StrokeFlow(controller: MatchController, onDone: () -> Unit) {
                 }
             }
         }
-        else -> NumberPicker("Scorer", 0..99, 10, optional = true) { player ->
+        else -> NumberPad("Scorer", 0..99, null, optional = true) { player ->
             val side = team!!
             controller.perform("goal") { goal(side, player, GoalMethod.PS, it) }
             onDone()

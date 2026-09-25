@@ -44,6 +44,14 @@ const say = (message) => console.log(`\n\x1b[1m==> ${message}\x1b[0m`);
 
 const versionFile = join(ROOT, "version.json");
 const release = JSON.parse(readFileSync(versionFile, "utf8"));
+// CI sets the build number itself (see .github/workflows/android.yml); app.config.ts and the watch's Gradle read it too.
+if (process.env.FH_BUILD_NUMBER) {
+  if (args.has("--bump")) {
+    console.error("FH_BUILD_NUMBER is set, so --bump does nothing: leave one of them out.");
+    process.exit(1);
+  }
+  release.build = Number(process.env.FH_BUILD_NUMBER);
+}
 if (args.has("--bump")) {
   release.build += 1;
   writeFileSync(versionFile, `${JSON.stringify(release, null, 2)}\n`);

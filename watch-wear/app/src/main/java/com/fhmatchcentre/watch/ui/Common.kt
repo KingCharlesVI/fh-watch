@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -51,8 +52,18 @@ fun onColor(hex: String): Color {
     return if (luminance > 0.6) Color.Black else Color.White
 }
 
-/** The same palette as the phone app's team editor. */
-val TEAM_COLOURS = listOf("#1E40AF", "#0EA5E9", "#065F46", "#16A34A", "#B91C1C", "#EA580C", "#CA8A04", "#7C3AED", "#DB2777", "#111827", "#6B7280", "#FFFFFF")
+/** Team colours: the primary colours, black and white, and a few more. The same palette as the phone app's team editor. */
+val TEAM_COLOURS = listOf(
+    "#DC2626", "#1D4ED8", "#FACC15",
+    "#16A34A", "#EA580C", "#7C3AED", "#38BDF8",
+    "#EC4899", "#111111", "#FFFFFF",
+)
+
+val COLOUR_NAMES = mapOf(
+    "#DC2626" to "Red", "#1D4ED8" to "Blue", "#FACC15" to "Yellow",
+    "#16A34A" to "Green", "#EA580C" to "Orange", "#7C3AED" to "Purple", "#38BDF8" to "Sky blue",
+    "#EC4899" to "Pink", "#111111" to "Black", "#FFFFFF" to "White",
+)
 
 val CARD_GREEN = Color(0xFF2E9E44)
 val CARD_YELLOW = Color(0xFFF2C230)
@@ -114,7 +125,7 @@ fun ChoiceButton(label: String, secondary: String? = null, color: Color? = null,
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         colors = if (color != null) {
-            ButtonDefaults.buttonColors(containerColor = color, contentColor = if (color == CARD_YELLOW) Color.Black else Color.White)
+            ButtonDefaults.buttonColors(containerColor = color, contentColor = if (color.luminance() > 0.5f) Color.Black else Color.White, secondaryContentColor = if (color.luminance() > 0.5f) Color.Black else Color.White)
         } else {
             ButtonDefaults.filledTonalButtonColors()
         },

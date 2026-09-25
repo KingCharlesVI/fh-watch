@@ -2,6 +2,7 @@ package com.fhmatchcentre.watch
 
 import android.Manifest
 import android.os.Bundle
+import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -64,10 +65,15 @@ class MainActivity : ComponentActivity() {
      * The physical button starts and stops the clock while a match is under way, on
      * every screen. Galaxy Watch 4 to 7 have no stem buttons: their lower button sends
      * Back, which apps may use (the upper one, Home, belongs to the system). Watches
-     * with stem buttons use those. Swiping right still goes back.
+     * with stem buttons use those.
+     *
+     * Swiping right must still go back, and on Wear OS 6 the swipe arrives as a Back key
+     * too, made up by the system (device -1, no scan code, FLAG_VIRTUAL_HARD_KEY). So only
+     * a key from a real button counts: it comes from an input device with a scan code.
+     * (`adb shell input keyevent` is made up too, so it navigates rather than starting the clock.)
      */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode in CLOCK_BUTTONS && matchUnderWay()) {
+        if (event.keyCode in CLOCK_BUTTONS && event.isPhysicalButton() && matchUnderWay()) {
             if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
                 services.controller.perform { toggleClock(it) }
             }
@@ -76,6 +82,9 @@ class MainActivity : ComponentActivity() {
         }
         return super.dispatchKeyEvent(event)
     }
+
+    private fun KeyEvent.isPhysicalButton(): Boolean =
+        deviceId != KeyCharacterMap.VIRTUAL_KEYBOARD && scanCode != 0 && (flags and KeyEvent.FLAG_VIRTUAL_HARD_KEY) == 0
 
     private fun matchUnderWay(): Boolean {
         val phase = services.controller.active.value?.clock?.phase
