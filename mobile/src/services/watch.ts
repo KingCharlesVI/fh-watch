@@ -11,7 +11,8 @@ let running: Promise<void> | null = null;
 let again = false;
 
 /**
- * Stores matches waiting in the watch inbox, then starts uploading them.
+ * Stores matches waiting in the watch inbox on the phone. Nothing is uploaded:
+ * that waits for the umpire.
  * Calls while one is running make it go round again, so a match arriving
  * mid-drain isn't left waiting.
  */
@@ -28,7 +29,6 @@ export function drainWatchInbox(): Promise<void> {
         const result = await drainInbox(WatchSync, sync);
         problems = result.problems;
         for (const l of listeners) l();
-        if (result.added.length) void sync.uploadPending().catch(() => {});
       } while (again);
     } catch (err) {
       console.warn("Couldn't read matches from the watch", err);

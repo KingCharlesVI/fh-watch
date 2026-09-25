@@ -15,12 +15,11 @@
 import { spawn, spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { connect } from "node:net";
-import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { WIN, androidSdk, exe, javaHome } from "./lib/android.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const WIN = process.platform === "win32";
 const TARGETS = ["api", "web", "mobile", "watch"];
 /** What a bare `pnpm dev` starts. The watch is separate: a second emulator is heavy. */
 const DEFAULT_TARGETS = ["api", "web", "mobile"];
@@ -150,19 +149,6 @@ function prepareShared() {
 
 // ------------------------------------------------------------------ Android
 
-function androidSdk() {
-  const candidates = [
-    process.env.ANDROID_HOME,
-    process.env.ANDROID_SDK_ROOT,
-    WIN && process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, "Android", "Sdk"),
-    join(homedir(), "Library", "Android", "sdk"),
-    join(homedir(), "Android", "Sdk"),
-  ];
-  return candidates.find((p) => p && existsSync(p));
-}
-
-const exe = (name) => (WIN ? `${name}.exe` : name);
-
 function adb(sdk, serial, ...adbArgs) {
   return spawnSync(join(sdk, "platform-tools", exe("adb")), [...(serial ? ["-s", serial] : []), ...adbArgs], { encoding: "utf8" });
 }
@@ -238,17 +224,6 @@ function buildEnv(sdk, serial) {
   return { ANDROID_HOME: sdk, ANDROID_SERIAL: serial, ...(java ? { JAVA_HOME: java } : {}) };
 }
 
-/** The JDK that comes with Android Studio, unless JAVA_HOME says otherwise. */
-function javaHome() {
-  if (process.env.JAVA_HOME) return process.env.JAVA_HOME;
-  const candidates = [
-    WIN && "C:\\Program Files\\Android\\Android Studio\\jbr",
-    "/Applications/Android Studio.app/Contents/jbr/Contents/Home",
-    "/opt/android-studio/jbr",
-  ];
-  return candidates.find((p) => p && existsSync(p));
-}
-
 /** Builds the Wear OS app, installs it on the watch emulator and opens it. */
 async function prepareWatch() {
   const sdk = androidSdk();
@@ -284,7 +259,13 @@ if (want.has("web")) {
   start("web", "pnpm", ["--filter", "@fh/web", "dev"]);
 }
 if (want.has("mobile")) {
-  if (android.build) log("mobile", "building and installing the development app (a few minutes the first time)");
+  if (android.build) {
+    // expo run:android only generates android/ when it is missing, so config changes (fonts, icons,
+    // plugins in app.config.ts) would otherwise never reach the build.
+    log("mobile", "updating the native project from app.config.ts");
+    runSync("pnpm", ["--filter", "@fh/mobile", "exec", "expo", "prebuild", "--platform", "android", "--no-install"]);
+    log("mobile", "building and installing the development app (a few minutes the first time)");
+  }
   // ANDROID_SERIAL makes Expo and adb use the phone, not a watch that's also connected.
   const mobileArgs = android.build ? ["android", "--device", android.name] : ["start"];
   start("mobile", "pnpm", ["--filter", "@fh/mobile", ...mobileArgs], { env: buildEnv(android.sdk, android.serial) });

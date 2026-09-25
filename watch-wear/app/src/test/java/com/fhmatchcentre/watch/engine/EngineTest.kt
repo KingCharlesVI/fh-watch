@@ -223,12 +223,17 @@ class EngineTest {
     }
 
     @Test
-    fun `alerts for one minute left, time up and the end of a break fire once each`() {
+    fun `alerts for two and one minutes left, time up and the end of a break fire once each`() {
         var m = newMatch().startPeriod(t.now)
-        t.advance(13 * MIN)
+        t.advance(12 * MIN)
         assertTrue(m.tick(t.now).alerts.isEmpty())
         t.advance(MIN)
         var tick = m.tick(t.now)
+        assertEquals(listOf(Alert.TwoMinutesLeft(1)), tick.alerts)
+        m = tick.record
+        assertTrue(m.tick(t.now).alerts.isEmpty())
+        t.advance(MIN)
+        tick = m.tick(t.now)
         assertEquals(listOf(Alert.OneMinuteLeft(1)), tick.alerts)
         m = tick.record
         assertTrue(m.tick(t.now).alerts.isEmpty())
@@ -240,6 +245,13 @@ class EngineTest {
         tick = m.tick(t.now)
         assertEquals(listOf(Alert.BreakOver(1)), tick.alerts)
         assertTrue(tick.record.tick(t.now).alerts.isEmpty())
+    }
+
+    @Test
+    fun `after a gap only the alert that still applies fires`() {
+        val m = newMatch().startPeriod(t.now)
+        t.advance(14 * MIN + 30_000)
+        assertEquals(listOf(Alert.OneMinuteLeft(1)), m.tick(t.now).alerts)
     }
 
     @Test

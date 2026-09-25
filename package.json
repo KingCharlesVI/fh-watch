@@ -14,7 +14,10 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "gen:schema": "pnpm --filter @fh/shared gen:schema",
-    "dev:watch": "node scripts/dev.mjs watch"
+    "dev:watch": "node scripts/dev.mjs watch",
+    "release:android": "node scripts/release-android.mjs",
+    "release:phone": "node scripts/release-android.mjs phone",
+    "release:watch": "node scripts/release-android.mjs watch"
   },
   "pnpm": {
     "overrides": {

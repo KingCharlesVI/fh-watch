@@ -3,17 +3,25 @@ import type { ComponentProps, ReactNode } from "react";
 import {
   ActivityIndicator,
   Pressable,
+  Text as RNText,
   type RefreshControlProps,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   type TextInputProps,
+  type TextProps,
   type TextStyle,
   View,
   type ViewStyle,
 } from "react-native";
-import { type Colors, radius, space, useColors } from "./theme";
+import { type Colors, FONT, radius, space, useColors } from "./theme";
+
+/**
+ * The app's building blocks, styled after the website's shadcn/ui components
+ * (web/src/components/ui): bordered cards, 10px corners, neutral greys, a green
+ * primary and the Geist typeface. Sizes are a little larger than the site's for
+ * touch.
+ */
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -31,17 +39,23 @@ export function Screen({ children, refresh }: { children: ReactNode; refresh?: R
   );
 }
 
+/** React Native's Text in the app's typeface and colour. Use it (or T) instead of the plain one. */
+export function Text({ style, ...props }: TextProps) {
+  const c = useColors();
+  return <RNText {...props} style={[{ fontFamily: FONT, color: c.text }, style]} />;
+}
+
 type TextVariant = "title" | "heading" | "body" | "muted" | "small" | "label";
 
 export function T({ children, variant = "body", style, numberOfLines }: { children: ReactNode; variant?: TextVariant; style?: TextStyle; numberOfLines?: number }) {
   const c = useColors();
   const base: Record<TextVariant, TextStyle> = {
-    title: { fontSize: 24, fontWeight: "700", color: c.text },
-    heading: { fontSize: 17, fontWeight: "600", color: c.text },
+    title: { fontSize: 24, fontWeight: "600", letterSpacing: -0.4, color: c.text },
+    heading: { fontSize: 16, fontWeight: "500", color: c.text },
     body: { fontSize: 16, color: c.text },
-    muted: { fontSize: 15, color: c.muted },
-    small: { fontSize: 13, color: c.muted },
-    label: { fontSize: 14, fontWeight: "600", color: c.text },
+    muted: { fontSize: 14, lineHeight: 20, color: c.muted },
+    small: { fontSize: 13, lineHeight: 18, color: c.muted },
+    label: { fontSize: 14, fontWeight: "500", color: c.text },
   };
   return (
     <Text style={[base[variant], style]} numberOfLines={numberOfLines}>
@@ -53,7 +67,7 @@ export function T({ children, variant = "body", style, numberOfLines }: { childr
 export function Card({ children, style, title, action }: { children?: ReactNode; style?: ViewStyle; title?: string; action?: ReactNode }) {
   const c = useColors();
   return (
-    <View style={[{ backgroundColor: c.card, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: space.lg, gap: space.md }, style]}>
+    <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }, style]}>
       {(title || action) && (
         <View style={styles.rowBetween}>
           {title && <T variant="heading">{title}</T>}
@@ -65,7 +79,7 @@ export function Card({ children, style, title, action }: { children?: ReactNode;
   );
 }
 
-type ButtonVariant = "primary" | "outline" | "ghost" | "danger";
+type ButtonVariant = "primary" | "outline" | "secondary" | "ghost" | "danger";
 
 export function Button({
   title,
@@ -96,34 +110,35 @@ export function Button({
       style={({ pressed }) => [
         styles.button,
         small && styles.buttonSmall,
-        { backgroundColor: look.bg, borderColor: look.border, opacity: off ? 0.55 : pressed ? 0.8 : 1 },
+        { backgroundColor: pressed && !off ? look.pressed : look.bg, borderColor: look.border, opacity: off ? 0.5 : 1 },
       ]}
     >
-      {loading ? <ActivityIndicator color={look.fg} size="small" /> : icon && <Ionicons name={icon} size={small ? 16 : 18} color={look.fg} />}
-      <Text style={{ color: look.fg, fontWeight: "600", fontSize: small ? 14 : 16 }}>{title}</Text>
+      {loading ? <ActivityIndicator color={look.fg} size="small" /> : icon && <Ionicons name={icon} size={small ? 15 : 17} color={look.fg} />}
+      <Text style={{ color: look.fg, fontWeight: "500", fontSize: small ? 14 : 15 }}>{title}</Text>
     </Pressable>
   );
 }
 
 const buttonLook = (c: Colors) => ({
-  primary: { bg: c.primary, fg: c.primaryText, border: c.primary },
-  outline: { bg: c.card, fg: c.text, border: c.border },
-  ghost: { bg: "transparent", fg: c.primary, border: "transparent" },
-  danger: { bg: c.dangerSoft, fg: c.danger, border: c.dangerSoft },
+  primary: { bg: c.primary, pressed: c.primary + "CC", fg: c.primaryText, border: c.primary },
+  outline: { bg: c.background, pressed: c.subtle, fg: c.text, border: c.border },
+  secondary: { bg: c.subtle, pressed: c.border, fg: c.text, border: c.subtle },
+  ghost: { bg: "transparent", pressed: c.subtle, fg: c.text, border: "transparent" },
+  danger: { bg: c.dangerSoft, pressed: c.dangerSoft, fg: c.danger, border: c.dangerSoft },
 });
 
 export function Field({ label, hint, error, ...input }: TextInputProps & { label: string; hint?: string; error?: string }) {
   const c = useColors();
   return (
-    <View style={{ gap: space.xs }}>
+    <View style={{ gap: 6 }}>
       <T variant="label">{label}</T>
       <TextInput
         placeholderTextColor={c.muted}
         {...input}
         style={[
           styles.input,
-          { color: c.text, backgroundColor: c.input, borderColor: error ? c.danger : c.border },
-          input.multiline && { minHeight: 72, textAlignVertical: "top" },
+          { color: c.text, borderColor: error ? c.danger : c.input },
+          input.multiline && { minHeight: 80, textAlignVertical: "top" },
           input.style,
         ]}
       />
@@ -140,18 +155,18 @@ export function Chip({ label, selected, onPress, swatch }: { label: string; sele
       accessibilityRole="radio"
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={[styles.chip, { borderColor: selected ? c.primary : c.border, backgroundColor: selected ? c.primarySoft : c.card }]}
+      style={[styles.chip, { borderColor: selected ? c.primary : c.border, backgroundColor: selected ? c.primarySoft : c.background }]}
     >
       {swatch && <Swatch color={swatch} />}
-      <Text style={{ color: selected ? c.text : c.muted, fontWeight: selected ? "600" : "400" }}>{label}</Text>
+      <Text style={{ color: selected ? c.primary : c.text, fontWeight: selected ? "500" : "400", fontSize: 14 }}>{label}</Text>
     </Pressable>
   );
 }
 
-/** A row of chips where one is picked. */
+/** A row of chips where one is picked, for choices in forms. */
 export function Choice<V extends string | number>({ label, value, options, onChange }: { label?: string; value: V; options: { value: V; label: string; swatch?: string }[]; onChange: (v: V) => void }) {
   return (
-    <View style={{ gap: space.xs }}>
+    <View style={{ gap: 6 }}>
       {label && <T variant="label">{label}</T>}
       <View style={styles.wrap} accessibilityRole="radiogroup">
         {options.map((o) => (
@@ -162,37 +177,68 @@ export function Choice<V extends string | number>({ label, value, options, onCha
   );
 }
 
+/** Switches between views of a list, like the website's tabs. */
+export function Tabs<V extends string>({ value, options, onChange }: { value: V; options: { value: V; label: string }[]; onChange: (v: V) => void }) {
+  const c = useColors();
+  return (
+    <View style={[styles.tabs, { backgroundColor: c.subtle }]} accessibilityRole="tablist">
+      {options.map((o) => {
+        const active = o.value === value;
+        return (
+          <Pressable
+            key={o.value}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            onPress={() => onChange(o.value)}
+            style={[styles.tab, active && { backgroundColor: c.background, borderColor: c.border }]}
+          >
+            <Text style={{ fontSize: 14, fontWeight: "500", color: active ? c.text : c.muted }} numberOfLines={1}>
+              {o.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 type Tone = "neutral" | "primary" | "warn" | "danger";
 
 const toneColors = (c: Colors, tone: Tone) =>
   ({
-    neutral: { bg: c.border, fg: c.text },
-    primary: { bg: c.primarySoft, fg: c.primary },
-    warn: { bg: c.warnSoft, fg: c.warn },
-    danger: { bg: c.dangerSoft, fg: c.danger },
+    neutral: { bg: c.subtle, fg: c.text, border: c.subtle },
+    primary: { bg: c.primary, fg: c.primaryText, border: c.primary },
+    warn: { bg: c.warnSoft, fg: c.warn, border: c.warnBorder },
+    danger: { bg: c.dangerSoft, fg: c.danger, border: c.dangerSoft },
   })[tone];
 
 export function Badge({ label, tone = "neutral", icon }: { label: string; tone?: Tone; icon?: IconName }) {
   const c = useColors();
   const t = toneColors(c, tone);
   return (
-    <View style={[styles.badge, { backgroundColor: t.bg }]}>
+    <View style={[styles.badge, { backgroundColor: t.bg, borderColor: t.border }]}>
       {icon && <Ionicons name={icon} size={12} color={t.fg} />}
-      <Text style={{ color: t.fg, fontSize: 12, fontWeight: "600" }}>{label}</Text>
+      <Text style={{ color: t.fg, fontSize: 12, fontWeight: "500" }}>{label}</Text>
     </View>
   );
 }
 
+/** A notice, like the website's alerts: bordered, with a coloured title for warnings and errors. */
 export function Banner({ tone = "neutral", icon, title, children, action }: { tone?: Tone; icon?: IconName; title: string; children?: ReactNode; action?: ReactNode }) {
   const c = useColors();
-  const t = toneColors(c, tone);
+  const look = {
+    neutral: { bg: c.card, border: c.border, title: c.text, body: c.muted },
+    primary: { bg: c.primarySoft, border: c.primarySoft, title: c.primary, body: c.text },
+    warn: { bg: c.warnSoft, border: c.warnBorder, title: c.warn, body: c.warn },
+    danger: { bg: c.card, border: c.border, title: c.danger, body: c.danger },
+  }[tone];
   return (
-    <View style={[styles.banner, { backgroundColor: tone === "neutral" ? c.card : t.bg, borderColor: tone === "neutral" ? c.border : t.bg }]}>
+    <View style={[styles.banner, { backgroundColor: look.bg, borderColor: look.border }]}>
       <View style={{ flexDirection: "row", gap: space.sm, alignItems: "flex-start" }}>
-        {icon && <Ionicons name={icon} size={20} color={t.fg} style={{ marginTop: 1 }} />}
-        <View style={{ flex: 1, gap: space.xs }}>
-          <Text style={{ color: t.fg, fontWeight: "600", fontSize: 15 }}>{title}</Text>
-          {typeof children === "string" ? <Text style={{ color: t.fg, fontSize: 14 }}>{children}</Text> : children}
+        {icon && <Ionicons name={icon} size={18} color={look.title} style={{ marginTop: 1 }} />}
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={{ color: look.title, fontWeight: "500", fontSize: 15 }}>{title}</Text>
+          {typeof children === "string" ? <Text style={{ color: look.body, fontSize: 14, lineHeight: 20 }}>{children}</Text> : children}
         </View>
       </View>
       {action}
@@ -211,8 +257,8 @@ export function Row({ children, style }: { children: ReactNode; style?: ViewStyl
 export function Empty({ icon, title, children }: { icon: IconName; title: string; children?: ReactNode }) {
   const c = useColors();
   return (
-    <View style={{ alignItems: "center", paddingVertical: space.xl * 2, gap: space.sm }}>
-      <Ionicons name={icon} size={40} color={c.muted} />
+    <View style={[styles.card, styles.empty, { borderColor: c.border, backgroundColor: c.card }]}>
+      <Ionicons name={icon} size={32} color={c.muted} />
       <T variant="heading">{title}</T>
       {children && <T variant="muted" style={{ textAlign: "center" }}>{children}</T>}
     </View>
@@ -225,10 +271,14 @@ const styles = StyleSheet.create({
   rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   row: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap" },
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
-  button: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.sm, minHeight: 48, paddingHorizontal: space.lg, borderRadius: radius.md, borderWidth: 1 },
-  buttonSmall: { minHeight: 36, paddingHorizontal: space.md },
-  input: { borderWidth: 1, borderRadius: radius.sm, paddingHorizontal: space.md, paddingVertical: 10, fontSize: 16 },
-  chip: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: space.md, paddingVertical: 8, borderRadius: 999, borderWidth: 1 },
-  badge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, alignSelf: "flex-start" },
-  banner: { borderRadius: radius.md, padding: space.md, gap: space.md, borderWidth: 1 },
+  card: { borderWidth: 1, borderRadius: radius.xl, padding: space.lg, gap: space.md },
+  empty: { alignItems: "center", paddingVertical: space.xl * 1.5, gap: space.sm },
+  button: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.sm, minHeight: 44, paddingHorizontal: space.lg, borderRadius: radius.lg, borderWidth: 1 },
+  buttonSmall: { minHeight: 34, paddingHorizontal: space.md },
+  input: { borderWidth: 1, borderRadius: radius.lg, paddingHorizontal: space.md, paddingVertical: 10, fontSize: 16, fontFamily: FONT, backgroundColor: "transparent" },
+  chip: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: space.md, paddingVertical: 7, borderRadius: radius.md, borderWidth: 1 },
+  tabs: { flexDirection: "row", padding: 3, borderRadius: radius.lg, alignSelf: "stretch" },
+  tab: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 7, paddingHorizontal: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: "transparent" },
+  badge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, borderWidth: 1, alignSelf: "flex-start" },
+  banner: { borderRadius: radius.lg, paddingHorizontal: space.lg, paddingVertical: space.md, gap: space.md, borderWidth: 1 },
 });

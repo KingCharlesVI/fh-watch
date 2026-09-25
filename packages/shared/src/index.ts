@@ -6,4 +6,5 @@ export { buildMatchJsonSchema } from "./json-schema.js";
 export * from "./policy.js";
 export * from "./describe.js";
 export * from "./edit.js";
+export * from "./report.js";
 export type * from "./api-types.js";

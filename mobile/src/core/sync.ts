@@ -4,11 +4,16 @@ import type { LocalMatch, MatchStore } from "./store";
 
 /**
  * Keeps the phone's matches and the server in step. Everything is saved on the
- * phone first; uploads happen in the background and retry with backoff, so the
- * app works at a ground with no signal. Plain TypeScript, tested without a device.
+ * phone first. A match is uploaded only when the umpire asks; after that it
+ * retries with backoff until it gets through, so asking at a ground with no
+ * signal works. Plain TypeScript, tested without a device.
  */
 
-export type SyncState = "pending" | "uploading" | "synced" | "conflict" | "error" | "server";
+/**
+ * - local: only on this phone (or has changes the umpire hasn't asked to upload)
+ * - pending: asked to upload, waiting for a connection or a retry
+ */
+export type SyncState = "local" | "pending" | "uploading" | "synced" | "conflict" | "error" | "server";
 
 export interface ImportResult {
   status: "added" | "duplicate" | "invalid";
@@ -52,7 +57,7 @@ export class SyncEngine {
     if (this.uploadingIds.has(m.id)) return "uploading";
     if (m.conflict) return "conflict";
     if (m.lastError) return "error";
-    if (m.dirty) return "pending";
+    if (m.dirty) return m.uploadRequested ? "pending" : "local";
     return m.source === "server" && !m.document ? "server" : "synced";
   }
 
@@ -77,6 +82,7 @@ export class SyncEngine {
       baseRevision: null,
       server: null,
       dirty: true,
+      uploadRequested: false,
       conflict: null,
       lastError: null,
       warnings: parsed.warnings,
@@ -119,8 +125,27 @@ export class SyncEngine {
 
   /** Clears a refused upload's error so it's tried again. */
   async retry(id: string) {
+    await this.requestUpload(id);
+  }
+
+  /** The umpire's go-ahead to upload a match (or its latest changes). Starts straight away. */
+  async requestUpload(id: string): Promise<void> {
     const row = await this.require(id);
-    await this.store.put({ ...row, lastError: null, attempts: 0, nextAttemptAt: null });
+    await this.store.put({ ...row, uploadRequested: true, lastError: null, attempts: 0, nextAttemptAt: null });
+    this.changed();
+    await this.uploadPending();
+  }
+
+  /** Umpire names kept on the phone (see LocalMatch.umpireNames). */
+  async setUmpireNames(id: string, names: string[]) {
+    const row = await this.require(id);
+    await this.store.put({ ...row, umpireNames: names.map((n) => n.trim()).filter(Boolean) });
+    this.changed();
+  }
+
+  /** Removes a match from this phone. It stays on the server if it was uploaded. */
+  async deleteLocal(id: string) {
+    await this.store.remove(id);
     this.changed();
   }
 
@@ -131,19 +156,19 @@ export class SyncEngine {
     await this.store.put(
       keep === "theirs"
         ? { ...row, document: row.conflict.document, baseRevision: row.conflict.revision, dirty: false, conflict: null, lastError: null }
-        : { ...row, baseRevision: row.conflict.revision, dirty: true, conflict: null, lastError: null, attempts: 0, nextAttemptAt: null },
+        : { ...row, baseRevision: row.conflict.revision, dirty: true, uploadRequested: true, conflict: null, lastError: null, attempts: 0, nextAttemptAt: null },
     );
     this.changed();
   }
 
   // ---- Talking to the server ----
 
-  /** Uploads every match with changes, one at a time. Concurrent calls share one run. */
+  /** Uploads every match the umpire has asked to upload, one at a time. Concurrent calls share one run. */
   uploadPending(options: { force?: boolean } = {}): Promise<void> {
     this.uploadRun ??= (async () => {
       try {
         for (const row of await this.store.list()) {
-          if (!row.dirty || row.conflict || row.lastError || !row.document) continue;
+          if (!row.dirty || !row.uploadRequested || row.conflict || row.lastError || !row.document) continue;
           if (!options.force && row.nextAttemptAt && row.nextAttemptAt > this.now()) continue;
           const keepGoing = await this.upload(row);
           if (!keepGoing) break;
@@ -173,13 +198,15 @@ export class SyncEngine {
       } else {
         result = await this.api.putMatch(row.id, uploaded, "mobile", revision);
       }
-      // The umpire may have edited again while this was uploading; keep that edit queued.
+      // The umpire may have edited again while this was uploading: that edit stays on
+      // the phone until they ask to upload it.
       const current = (await this.store.get(row.id)) ?? row;
       await this.store.put({
         ...current,
         server: result.match,
         baseRevision: result.match.currentRevision,
         dirty: !same(current.document, uploaded),
+        uploadRequested: false,
         warnings: result.warnings,
         attempts: 0,
         nextAttemptAt: null,
@@ -212,7 +239,7 @@ export class SyncEngine {
         if (same(latest.document, row.document)) {
           // An earlier upload got through but its reply was lost: nothing to resolve.
           const dirty = !same(current.document, latest.document);
-          await this.store.put({ ...current, server: latest.match, baseRevision: latest.match.currentRevision, dirty, attempts: 0, nextAttemptAt: null });
+          await this.store.put({ ...current, server: latest.match, baseRevision: latest.match.currentRevision, dirty, uploadRequested: false, attempts: 0, nextAttemptAt: null });
           return true;
         }
         await this.store.put({
@@ -236,9 +263,8 @@ export class SyncEngine {
     return true;
   }
 
-  /** Uploads what's waiting, then fetches the umpire's matches from the server. */
+  /** Fetches the umpire's matches from the server. Uploads nothing. */
   async refresh(): Promise<void> {
-    await this.uploadPending({ force: true });
     if (!this.userId) return;
 
     // What was already uploaded before asking. A match uploaded while the list is in

@@ -51,6 +51,7 @@ class MatchController(
     private val scope: CoroutineScope,
 ) {
     private val mutex = Mutex()
+    private val haptics = Haptics(context)
     private var createdAt = 0L
 
     private val _active = MutableStateFlow<MatchRecord?>(null)
@@ -119,6 +120,8 @@ class MatchController(
             if (next == current) return@withLock
             save(next)
             _active.value = next
+            // One buzz whenever the clock starts or stops: the physical button, a tap or the Stop button.
+            if (next.clock.running != current.clock.running) haptics.buzz()
             if (undoLabel != null) {
                 val recorded = next.document.events.drop(current.document.events.size).lastOrNull(MatchEvent::isUndoable)
                 _undo.value = recorded?.let { UndoOffer(it.seq, undoLabel, now.elapsedMs + UNDO_WINDOW_MS) }

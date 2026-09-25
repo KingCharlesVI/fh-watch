@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.wear.compose.foundation.lazy.AutoCenteringParams
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListScope
 import androidx.wear.compose.foundation.lazy.ScalingLazyListState
@@ -71,11 +72,24 @@ fun rememberNow(intervalMs: Long = 200): Moment {
     return now
 }
 
-/** A scrolling screen with a title, the standard layout for every list and choice. */
+/**
+ * A scrolling screen with a title, the standard layout for every list and choice.
+ * [fromTop] lays it out from just under the time instead of centring it, for the match pages.
+ */
 @Composable
-fun ListScreen(title: String?, state: ScalingLazyListState = rememberScalingLazyListState(), content: ScalingLazyListScope.() -> Unit) {
+fun ListScreen(
+    title: String?,
+    fromTop: Boolean = false,
+    state: ScalingLazyListState = rememberScalingLazyListState(initialCenterItemIndex = if (fromTop) 0 else 1),
+    content: ScalingLazyListScope.() -> Unit,
+) {
     ScreenScaffold(scrollState = state) { padding ->
-        ScalingLazyColumn(state = state, contentPadding = padding, modifier = Modifier.fillMaxWidth()) {
+        ScalingLazyColumn(
+            state = state,
+            contentPadding = padding,
+            autoCentering = if (fromTop) null else AutoCenteringParams(itemIndex = 1),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             if (title != null) item { ListHeader { Text(title, textAlign = TextAlign.Center) } }
             content()
         }

@@ -1,8 +1,8 @@
+import { renderMatchReport } from "@fh/shared";
 import { existsSync } from "node:fs";
 import { chromium } from "playwright-core";
 import { afterAll, describe, expect, it } from "vitest";
 import { chromiumPdfRenderer } from "../src/services/pdf.js";
-import { renderMatchReport } from "../src/services/report.js";
 import { matchDoc } from "./helpers.js";
 
 const hasChromium = existsSync(chromium.executablePath());

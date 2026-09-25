@@ -75,6 +75,7 @@ data class MatchRecord(
 
 /** Something the umpire should feel on their wrist. */
 sealed interface Alert {
+    data class TwoMinutesLeft(val period: Int) : Alert
     data class OneMinuteLeft(val period: Int) : Alert
     data class TimeUp(val period: Int) : Alert
     data class SuspensionOver(val cardSeq: Int, val team: Side, val player: Int?) : Alert
@@ -326,6 +327,8 @@ fun MatchRecord.tick(now: Moment): Tick {
     when (c.phase) {
         Phase.PLAYING -> {
             val left = settings.periodLengthMs - record.periodElapsedMs(now)
+            // Only the one that applies: after a gap (a restart, say) the two-minute one is skipped if it's already under a minute.
+            if (settings.periodLengthMs > 120_000 && left in 60_001..120_000) once("two:${c.period}", Alert.TwoMinutesLeft(c.period))
             if (settings.periodLengthMs > 60_000 && left in 1..60_000) once("minute:${c.period}", Alert.OneMinuteLeft(c.period))
             if (left <= 0) once("time:${c.period}", Alert.TimeUp(c.period))
         }

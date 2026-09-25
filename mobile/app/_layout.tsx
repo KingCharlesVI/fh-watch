@@ -6,8 +6,9 @@ import { ActivityIndicator, View, useColorScheme } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { notificationTarget } from "@/services/push";
 import { AuthProvider, useAuth } from "@/state/auth";
-import { useSyncTriggers } from "@/state/sync";
-import { useColors } from "@/ui/theme";
+import { ONLINE } from "@/config";
+import { useSyncTriggers, useWatchInbox } from "@/state/sync";
+import { FONT, useColors } from "@/ui/theme";
 
 export default function RootLayout() {
   const scheme = useColorScheme();
@@ -31,17 +32,20 @@ function Navigator() {
   const { status } = useAuth();
   const c = useColors();
   const signedIn = status === "signedIn";
-  useSyncTriggers(signedIn);
+  // Alpha has no accounts: the app is always open, and watch matches come straight in.
+  const open = !ONLINE || signedIn;
+  useWatchInbox(open);
+  useSyncTriggers(ONLINE && signedIn);
 
   // A tapped notification opens its match (or its editor, when teams need linking).
   const lastResponse = Notifications.useLastNotificationResponse();
   useEffect(() => {
-    if (!signedIn || !lastResponse) return;
+    if (!ONLINE || !signedIn || !lastResponse) return;
     const target = notificationTarget(lastResponse);
     if (target) router.push(target as never);
   }, [signedIn, lastResponse]);
 
-  if (status === "loading") {
+  if (ONLINE && status === "loading") {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.background }}>
         <ActivityIndicator color={c.primary} />
@@ -50,14 +54,22 @@ function Navigator() {
   }
 
   return (
-    <Stack screenOptions={{ headerTintColor: c.primary, headerTitleStyle: { color: c.text }, contentStyle: { backgroundColor: c.background } }}>
-      <Stack.Protected guard={signedIn}>
+    <Stack
+      screenOptions={{
+        headerTintColor: c.text,
+        headerTitleStyle: { color: c.text, fontFamily: FONT, fontWeight: "600" },
+        headerStyle: { backgroundColor: c.card },
+        headerShadowVisible: false,
+        contentStyle: { backgroundColor: c.background },
+      }}
+    >
+      <Stack.Protected guard={open}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="match/[id]/index" options={{ title: "Match" }} />
         <Stack.Screen name="match/[id]/edit" options={{ title: "Edit match" }} />
         <Stack.Screen name="match/[id]/share" options={{ title: "Share", presentation: "modal" }} />
       </Stack.Protected>
-      <Stack.Protected guard={!signedIn}>
+      <Stack.Protected guard={!open}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>

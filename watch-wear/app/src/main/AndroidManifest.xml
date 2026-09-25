@@ -23,8 +23,11 @@
             android:name="com.google.android.wearable.standalone"
             android:value="true" />
 
+        <!-- Predictive back is off so the Back button reaches the app as a key press:
+             on Galaxy watches it's the button that starts and stops the clock. -->
         <activity
             android:name=".MainActivity"
+            android:enableOnBackInvokedCallback="false"
             android:exported="true"
             android:launchMode="singleTask"
             android:taskAffinity=""

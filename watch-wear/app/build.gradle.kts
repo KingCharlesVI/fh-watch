@@ -1,9 +1,18 @@
+import groovy.json.JsonSlurper
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
 }
+
+/** The release number shared with the phone app (version.json at the repository root). */
+@Suppress("UNCHECKED_CAST")
+val release = JsonSlurper().parse(rootProject.file("../version.json")) as Map<String, Any>
+
+/** The upload key, from Gradle properties outside the repository; see mobile/plugins/with-release-signing.js. */
+val uploadKey = providers.gradleProperty("FH_UPLOAD_STORE_FILE").orNull
 
 android {
     namespace = "com.fhmatchcentre.watch"
@@ -15,11 +24,20 @@ android {
         applicationId = "com.fhmatchcentre.app"
         minSdk = 30
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        // 1,000,000 above the phone app's: they share one Play listing, and version codes must be unique in it.
+        versionCode = 1_000_000 + (release["build"] as Number).toInt()
+        versionName = release["version"] as String
     }
 
     signingConfigs {
+        if (uploadKey != null) {
+            create("release") {
+                storeFile = file(uploadKey)
+                storePassword = providers.gradleProperty("FH_UPLOAD_STORE_PASSWORD").get()
+                keyAlias = providers.gradleProperty("FH_UPLOAD_KEY_ALIAS").get()
+                keyPassword = providers.gradleProperty("FH_UPLOAD_KEY_PASSWORD").get()
+            }
+        }
         getByName("debug") {
             // React Native's public debug key, which the phone app's debug build also uses.
             storeFile = file("debug.keystore")
@@ -31,6 +49,8 @@ android {
 
     buildTypes {
         release {
+            // Without the upload key, the debug key: fine for trying a release build, refused by Google Play.
+            signingConfig = signingConfigs.getByName(if (uploadKey != null) "release" else "debug")
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
@@ -58,6 +78,7 @@ ksp {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.fragment)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.service)

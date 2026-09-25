@@ -1,9 +1,12 @@
-import { type MatchDocument, describeEvent, eventTime, summarizeMatch } from "@fh/shared";
+import { describeEvent, eventTime } from "./describe.js";
+import type { MatchDocument } from "./schema.js";
+import { summarizeMatch } from "./summary.js";
 
 export interface ReportInput {
   document: MatchDocument;
   umpires: { slot: number; name: string }[];
-  revision: number;
+  /** The server revision, or null for a report made on the phone from its own copy. */
+  revision: number | null;
   shareUrl: string | null;
   generatedAt: Date;
 }
@@ -100,8 +103,8 @@ ${rows ? `<table><thead><tr><th>Time</th><th>Team</th><th>Event</th><th>Player</
 <p><strong>Umpires:</strong> ${umpireText}</p>
 
 <footer>
-  <span>${shareUrl ? esc(shareUrl) : "Not published"}</span>
-  <span>Revision ${revision} · generated ${esc(generatedAt.toISOString().slice(0, 16).replace("T", " "))} UTC</span>
+  <span>${shareUrl ? esc(shareUrl) : revision === null ? "From the FH Match Centre app" : "Not published"}</span>
+  <span>${revision === null ? "" : `Revision ${revision} · `}generated ${esc(generatedAt.toISOString().slice(0, 16).replace("T", " "))} UTC</span>
 </footer>
 </body></html>`;
 }

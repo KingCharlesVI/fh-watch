@@ -153,7 +153,7 @@ The watch app does everything MatchGear does and works fully offline. The only e
 | Cards | Green 2 min, yellow 5 or 10 min, red. The player's shirt number is required. Suspension timers count only while the match clock runs, per FIH rules. Up to 6 timers can run at once. |
 | Penalty corners and strokes | One tap per team. The count shows on the summary screen. |
 | Shootout | Offered when a match ends drawn, if enabled. Tracks rounds per team with sudden death. |
-| Haptics | Distinct vibrations for 1 min left in a period, period end, a suspension ending, and break end. |
+| Haptics | One buzz when the clock starts or stops (however it was done) and when a suspension ends; two buzzes at 2 minutes left in a period; three at 1 minute left; long–short–short–long at the end of a period; four quick buzzes at the end of a break. |
 | Match list | Past matches are stored on the watch, each with a sync status (Not synced / Synced). |
 
 **Keeping the app running during a match**
@@ -165,7 +165,7 @@ The watch app does everything MatchGear does and works fully offline. The only e
 
 | Platform | What third-party apps can use | Plan |
 | --- | --- | --- |
-| Wear OS | Extra "stem" buttons (`KEYCODE_STEM_1` to `3`) on watches that have them. The main button is reserved by the system. Rotary crown or bezel input is available. | Map the first stem button to start/stop. Fall back to a large on-screen button. Test on a Galaxy Watch and a Pixel Watch. |
+| Wear OS | The main (Home) button is reserved by the system. Galaxy Watch 4 to 7 have a second, lower button that sends Back, which apps receive as a key press. Some other watches have extra "stem" buttons (`KEYCODE_STEM_1` to `3`). Rotary crown or bezel input is available. | While a match is under way (before kickoff, in a period or a break), Back and the stem buttons start and stop the clock on every screen; swiping right still navigates. Predictive back is turned off for the activity so the Back key reaches the app. Tapping the clock does the same. Needs checking on a real Galaxy Watch: behaviour with the screen dimmed (ambient). |
 | watchOS | The side button and a Digital Crown press are reserved by the system. Crown rotation is available. The Action Button (Ultra models) and double-tap (Series 9+ / Ultra 2+) can trigger an app's main action. | Start/stop on the Action Button and double-tap. Crown rotation scrolls. On-screen button everywhere else. |
 
 **Local storage**
@@ -220,14 +220,21 @@ The native module confirms receipt once it has written the file, not when the JS
 
 ## Mobile app
 
-The phone app is an inbox for matches from the watch. The umpire reviews a match, links the teams, fixes mistakes and publishes it. Everything is stored on the phone first, so it all works at a ground with no signal, and uploads wait until there's a connection.
+The phone app is an inbox for matches from the watch. The umpire reviews a match, links the teams, fixes mistakes and publishes it. Everything is stored on the phone first, so it all works at a ground with no signal. Nothing is uploaded until the umpire taps Upload; after that, the upload waits for a connection.
+
+**Stages.** The phone app is built for one of two stages (`EXPO_PUBLIC_STAGE`, baked in at build time):
+
+- **Alpha:** the watch and the phone only. No account, no sign-in and no network use. Matches are saved on the phone, edited there (including umpire names, kept on the phone), and exported when the umpire chooses: a one-page PDF report (the same report the website prints, rendered on the phone with `expo-print`), the events as CSV, or the match as JSON. Each can be saved to a folder the umpire picks or shared. A backup puts every match in one JSON file, and "Import from a file" reads it back (skipping matches already on the phone). Matches can be deleted from the phone.
+- **Beta:** adds the API and website: sign-in, upload, publishing, share links, team linking and umpire 2 from the directory. Exports, backups and deleting stay available.
+
+Upgrading a phone from the alpha to the beta keeps its matches: signing in clears the phone only when a different user signs in.
 
 **Screens**
 
 | Screen | Contents |
 | --- | --- |
 | Sign in / register | Email and password, forgot password. Tokens are kept in the Keychain (iOS) or Keystore (Android) via `expo-secure-store`. |
-| Matches | Tabs: New from watch, Drafts, Published. Each row shows the teams, score, date and an upload status badge. Published matches with unlinked teams show a "Link teams" badge. |
+| Matches | Tabs: New from watch, Drafts, Published (alpha: New and Saved). Each row shows the teams, score, date and an upload status badge. Published matches with unlinked teams show a "Link teams" badge. |
 | Match detail | Score header, per-period summary, event timeline, and card and penalty-corner totals. |
 | Edit match | Link the home and away teams to clubs and teams (searchable), set venue and competition, add umpire 2, add, change or void events, and add notes. The score updates live as events change. |
 | Publish | Checks that both teams are linked (or confirmed as free text), then uploads. |
@@ -238,11 +245,12 @@ The phone app is an inbox for matches from the watch. The umpire reviews a match
 
 - Local store: SQLite (`expo-sqlite`). Each match keeps its current document, the original from the watch, the server revision it's based on, the server's last view of it, and its upload state.
 - Upload: `PUT /matches/{id}` with the full document. It's idempotent, so repeating it is harmless. A match edited before its first upload sends the watch's original first, so revision 1 is always what the watch recorded.
-- Retries: network failures and server errors back off from 5 seconds, doubling up to 15 minutes. A network failure stops the run, so it doesn't try every match. The queue lives in SQLite, so it survives restarts. Uploads run on start, when the app returns to the foreground, when the connection comes back, and every 20 seconds.
+- Uploading is the umpire's choice: a match, or later changes to it, is uploaded only after they tap Upload ("Upload changes" after the first time). Receiving, importing and editing never upload anything. Publishing, or changing umpire 2, uploads that match's changes first, since both need the server.
+- Retries: once asked, a match retries by itself. Network failures and server errors back off from 5 seconds, doubling up to 15 minutes. A network failure stops the run, so it doesn't try every match. The request is stored in SQLite, so it survives restarts. Waiting uploads are retried when the connection comes back and every 20 seconds.
 - Refusals: a validation error or permission problem pauses that match and shows why, until the umpire edits it or taps Try again.
 - Conflicts: edits carry `If-Match: <revision>`. If the server copy changed meanwhile (412), the app offers "Keep mine" or "Use theirs". If an earlier upload succeeded but its reply was lost, the app sees the server already has its version and settles it without asking.
 - Tokens: kept in secure storage. Only one refresh is ever in flight, because the API treats a reused refresh token as theft. If the session ends by itself, the phone keeps its matches, since some may not be uploaded yet. Signing out deliberately clears them, with a warning if any are unsent.
-- Matches tabs: **New** means not yet opened on this phone, **Drafts** and **Published** follow the server status. Matches uploaded from elsewhere are listed from the server and downloaded when opened.
+- Matches tabs: **New** means not yet opened on this phone, **Drafts** and **Published** follow the server status. Matches uploaded from elsewhere are listed from the server and downloaded when opened. In the alpha, opened matches are simply **Saved**.
 - The sync engine and API client are plain TypeScript, tested against a fake API that can go offline, fail, or lose replies.
 - An unpublished match can still be viewed on the phone, but it gets no public link.
 - A new match stays a draft until an umpire publishes it or 2 hours pass after the final whistle, whichever comes first. The API runs the timer, so a match uploaded after the 2 hours publishes as soon as it arrives. Unpublishing a match cancels its timer.
@@ -421,17 +429,19 @@ The work runs from the server outwards, so every step can be tested end to end b
 | 3 | Website (public + admin) | Match pages, JSON/CSV/PDF downloads, dashboards, admin screens |
 | 4 | Server deployment | Running on a Linux or Windows machine behind a Cloudflare Tunnel, with backups and a deploy command |
 | 5 | Mobile app without watch | Sign in, import a match from a file, edit, publish, share by QR code or link, offline upload queue, push notifications. Expo SDK 57 with Expo Router; editing uses the same shared functions as the website. |
-| 6 | Wear OS app + Android sync | Full umpiring features. A match reaches the phone automatically. Tested at a real match. Built: the app, sync and phone receiver, tested on emulators (see below); still to do: MatchGear-style screens, a paired end-to-end test and a real match. |
-| 7 | watchOS app + iOS sync | Same features as Wear OS, including workout session, Action Button and double-tap |
-| 8 | Beta | Closed testing with 5–10 umpires through TestFlight and a Play internal test track |
+| 6 | Wear OS app + Android sync | Full umpiring features. A match reaches the phone automatically. Tested at a real match. Built: the app, sync and phone receiver, tested on emulators (see below); the match screen is now swiped pages (timing, cards, goals, phone, match), after MatchGear. Still to do: a paired end-to-end test and a real match. |
+| 7 | Alpha (Android) | Watch and phone only: no account, matches saved and exported on the phone (PDF, CSV, JSON, backups), uploads only when the umpire asks. Released to umpires through Google Play internal testing ([play-store.md](play-store.md)). |
+| 8 | watchOS app + iOS sync | Same features as Wear OS, including workout session, Action Button and double-tap |
+| 9 | Beta | The API and website in the apps: sign-in, upload, publishing. Closed testing on Google Play (Google requires 12 testers for 14 days before production) and TestFlight. |
 
-Milestones 6 and 7 don't depend on each other and can run side by side. Releasing the iOS and watchOS apps needs an Apple Developer account ($99/yr) and a Mac. Android needs a Google Play Console account ($25 once).
+The watchOS work (8) doesn't depend on the Android alpha and can run alongside it. Releasing the iOS and watchOS apps needs an Apple Developer account ($99/yr) and a Mac. The Google Play Console account is in place.
 
 ## Open questions & risks
 
 **Open questions**
 
 - [ ] Which SMTP provider? (Until one is set, emails are written to the API log.)
+- [ ] Auto-publish now that uploads are manual: the 2-hour window starts at the final whistle, so a match first uploaded more than 2 hours later publishes as soon as it arrives. Start the window at the first upload instead? (Decide before the beta.)
 - [ ] Which machine to run on? A spare Windows or Linux PC behind a Cloudflare Tunnel for now; a VPS later if needed.
 
 **Decided**

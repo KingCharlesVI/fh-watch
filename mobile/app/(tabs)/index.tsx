@@ -1,35 +1,44 @@
 import { summarizeMatch } from "@fh/shared";
-import { Link } from "expo-router";
+import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { errorMessage } from "@/core/api";
 import { StatusBadges, formatDate } from "@/features/match-view";
+import { ONLINE } from "@/config";
 import { sync } from "@/services";
+import { drainWatchInbox } from "@/services/watch";
 import { type MatchRow, useMatches } from "@/state/sync";
-import { Banner, Choice, Empty, Screen } from "@/ui/kit";
+import { Banner, Empty, Screen, Tabs, Text } from "@/ui/kit";
 import { radius, space, useColors } from "@/ui/theme";
 
-type Tab = "new" | "drafts" | "published";
+type Tab = "new" | "saved" | "drafts" | "published";
+
+/** Alpha has no server, so opened matches are simply saved; beta splits them by what the website shows. */
+const TABS: Tab[] = ONLINE ? ["new", "drafts", "published"] : ["new", "saved"];
+const TAB_NAMES: Record<Tab, string> = { new: "New", saved: "Saved", drafts: "Drafts", published: "Published" };
 
 const inTab = (row: MatchRow, tab: Tab) => {
   const m = row.match;
   if (!m.seen) return tab === "new";
+  if (!ONLINE) return tab === "saved";
   return m.server?.status === "published" ? tab === "published" : tab === "drafts";
 };
 
 export default function MatchesScreen() {
   const { rows, loaded } = useMatches();
+  const c = useColors();
   const [tab, setTab] = useState<Tab>("new");
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const counts = { new: 0, drafts: 0, published: 0 };
-  for (const r of rows) for (const t of ["new", "drafts", "published"] as const) if (inTab(r, t)) counts[t]++;
+  const counts = { new: 0, saved: 0, drafts: 0, published: 0 };
+  for (const r of rows) for (const t of TABS) if (inTab(r, t)) counts[t]++;
   const shown = rows.filter((r) => inTab(r, tab));
 
   async function refresh() {
     setRefreshing(true);
     try {
-      await sync.refresh();
+      // Alpha: check for matches from the watch. Beta: fetch the umpire's matches from the server too.
+      await (ONLINE ? Promise.all([sync.refresh(), drainWatchInbox()]) : drainWatchInbox());
       setError(null);
     } catch (err) {
       setError(errorMessage(err));
@@ -40,31 +49,30 @@ export default function MatchesScreen() {
 
   return (
     <Screen refresh={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
-      <Choice
-        value={tab}
-        onChange={setTab}
-        options={[
-          { value: "new", label: `New (${counts.new})` },
-          { value: "drafts", label: `Drafts (${counts.drafts})` },
-          { value: "published", label: `Published (${counts.published})` },
-        ]}
-      />
+      <Tabs value={tab} onChange={setTab} options={TABS.map((t) => ({ value: t, label: `${TAB_NAMES[t]} (${counts[t]})` }))} />
       {error && <Banner tone="warn" icon="cloud-offline-outline" title="Couldn't refresh">{error}</Banner>}
       {loaded && shown.length === 0 && (
         <Empty icon={tab === "new" ? "watch-outline" : "document-text-outline"} title={tab === "new" ? "Nothing new" : "No matches here"}>
-          {tab === "new" ? "Matches from your watch appear here when they arrive. You can also import one from a file in Settings." : "Pull down to check the server."}
+          {tab === "new"
+            ? "Matches from your watch appear here when they arrive. You can also import one from a file in Settings."
+            : ONLINE
+              ? "Pull down to check the server."
+              : "Matches you've opened are kept here, on this phone."}
         </Empty>
       )}
-      <View style={{ gap: space.sm }}>
-        {shown.map((r) => (
-          <MatchItem key={r.match.id} row={r} />
-        ))}
-      </View>
+      {shown.length > 0 && (
+        // One bordered list with dividers, like the website's match lists.
+        <View style={[styles.list, { borderColor: c.border, backgroundColor: c.card }]}>
+          {shown.map((r, i) => (
+            <MatchItem key={r.match.id} row={r} first={i === 0} />
+          ))}
+        </View>
+      )}
     </Screen>
   );
 }
 
-function MatchItem({ row }: { row: MatchRow }) {
+function MatchItem({ row, first }: { row: MatchRow; first: boolean }) {
   const c = useColors();
   const m = row.match;
   const doc = m.document;
@@ -74,32 +82,37 @@ function MatchItem({ row }: { row: MatchRow }) {
   const played = doc?.startedAt ?? m.server?.playedAt ?? m.receivedAt;
 
   return (
-    <Link href={`/match/${m.id}`} asChild>
-      <Pressable style={({ pressed }) => [styles.item, { backgroundColor: c.card, borderColor: c.border, opacity: pressed ? 0.85 : 1 }]}>
-        <View style={styles.itemTop}>
-          <Text style={{ color: c.muted, fontSize: 13 }}>{formatDate(played)}</Text>
-          {!m.seen && <View style={[styles.dot, { backgroundColor: c.primary }]} accessibilityLabel="New" />}
-        </View>
-        <View style={styles.teams}>
-          <Text style={[styles.team, { color: c.text }]} numberOfLines={1}>
-            {home}
-          </Text>
-          <Text style={[styles.score, { color: c.text }]}>{score ? `${score.home}–${score.away}` : "–"}</Text>
-          <Text style={[styles.team, { color: c.text, textAlign: "right" }]} numberOfLines={1}>
-            {away}
-          </Text>
-        </View>
-        <StatusBadges match={m} state={row.state} />
-      </Pressable>
-    </Link>
+    // A plain Pressable: with Link asChild, a style function is dropped and the row loses its layout.
+    <Pressable
+      accessibilityRole="link"
+      onPress={() => router.push(`/match/${m.id}`)}
+      style={({ pressed }) => [styles.item, !first && { borderTopWidth: 1, borderTopColor: c.border }, pressed && { backgroundColor: c.subtle }]}
+    >
+      <View style={styles.itemTop}>
+        <Text style={{ color: c.muted, fontSize: 14 }}>{formatDate(played)}</Text>
+        {!m.seen && <View style={[styles.dot, { backgroundColor: c.primary }]} accessibilityLabel="New" />}
+      </View>
+      <View style={styles.teams}>
+        <Text style={[styles.team, score && score.home > score.away && styles.winner]} numberOfLines={1}>
+          {home}
+        </Text>
+        <Text style={styles.score}>{score ? `${score.home}–${score.away}` : "–"}</Text>
+        <Text style={[styles.team, { textAlign: "right" }, score && score.away > score.home && styles.winner]} numberOfLines={1}>
+          {away}
+        </Text>
+      </View>
+      <StatusBadges match={m} state={row.state} />
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  item: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: space.md, gap: space.sm },
+  list: { borderWidth: 1, borderRadius: radius.xl, overflow: "hidden" },
+  item: { paddingHorizontal: space.lg, paddingVertical: space.md, gap: 6 },
   itemTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   dot: { width: 8, height: 8, borderRadius: 4 },
   teams: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  team: { flex: 1, fontSize: 16, fontWeight: "600" },
-  score: { fontSize: 18, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  team: { flex: 1, fontSize: 16 },
+  winner: { fontWeight: "600" },
+  score: { fontSize: 17, fontWeight: "700", fontVariant: ["tabular-nums"] },
 });

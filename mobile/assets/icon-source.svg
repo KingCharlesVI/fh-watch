@@ -1,0 +1,15 @@
+<!--
+  Temporary app icon (until the beta's branding): crossed hockey sticks and a ball on the
+  website's green. Drawn on a 108-unit grid like an Android adaptive icon; the artwork stays
+  inside the central 66-unit safe zone, so launchers can crop it to any shape. Rendered to
+  PNGs by scripts/render-icons.mjs; edit this file, then run that script.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">
+  <g fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Two sticks crossing, each ending in a hook that curls outwards. -->
+    <path d="M33 27 L64 66 Q70.5 74 77 69.5" />
+    <path d="M75 27 L44 66 Q37.5 74 31 69.5" />
+  </g>
+  <!-- The ball, between the hooks. -->
+  <circle cx="54" cy="78" r="6.5" fill="#FFFFFF" />
+</svg>

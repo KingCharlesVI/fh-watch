@@ -2,7 +2,7 @@
 
 Kotlin, Jetpack Compose for Wear OS (Material 3), Room. Runs on Wear OS 3 and later (API 30+). See [docs/design.md](../docs/design.md) for what it does and why.
 
-The screen layout is provisional: it works, but it will be restyled to match MatchGear's once the screenshots are in.
+During a match the screen is a row of pages, swiped left and right: **Timing** (clock, score, start/stop, injury and video stops), **Cards** (suspension timers and earlier cards, + to give one), **Goals** (score, +1 per team, penalty corners, strokes), **Phone** (whether the phone is in reach, and sending anything left over) and **Match** (clock direction, the events log, ending a period or the match). Timing is first; swiping right from it goes back home. The layout is in `ui/MatchScreen.kt`; the page order is the `Page` enum there.
 
 ## Running it
 
@@ -19,7 +19,7 @@ Or with Gradle directly, from this folder (needs a JDK 17+; Android Studio's is 
 ./gradlew :app:testDebugUnitTest   # the match engine and the document contract
 ```
 
-The emulator doesn't have a stem button, so simulate one: `adb shell input keyevent 265` (`KEYCODE_STEM_1`) starts and stops the clock. `adb shell input rotaryencoder scroll --axis SCROLL,-1` turns the crown.
+The physical button: on Galaxy watches it's the lower (Back) button; during a match it starts and stops the clock, and swiping right still goes back. On the emulator, `adb shell input keyevent 4` (Back) or `265` (`KEYCODE_STEM_1`) does the same. `adb shell input rotaryencoder scroll --axis SCROLL,-1` turns the crown.
 
 ## Layout
 

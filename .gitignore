@@ -4,6 +4,7 @@ coverage/
 *.tsbuildinfo
 .env
 .env.*
+!.env.example
 .DS_Store
 .next/
 next-env.d.ts

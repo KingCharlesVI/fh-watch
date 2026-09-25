@@ -14,14 +14,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.lifecycleScope
 import androidx.wear.ambient.AmbientLifecycleObserver
 import androidx.wear.compose.material3.AppScaffold
-import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.TimeText
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import com.fhmatchcentre.watch.engine.Phase
+import com.fhmatchcentre.watch.engine.Side
 import com.fhmatchcentre.watch.engine.toggleClock
-import com.fhmatchcentre.watch.match.Haptics
 import com.fhmatchcentre.watch.ui.CardFlow
 import com.fhmatchcentre.watch.ui.EventsScreen
 import com.fhmatchcentre.watch.ui.GoalFlow
@@ -33,11 +32,11 @@ import com.fhmatchcentre.watch.ui.SetupScreen
 import com.fhmatchcentre.watch.ui.ShootoutScreen
 import com.fhmatchcentre.watch.ui.StrokeFlow
 import com.fhmatchcentre.watch.ui.SummaryScreen
+import com.fhmatchcentre.watch.ui.WatchTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val services get() = (application as WatchApp).services
-    private lateinit var haptics: Haptics
 
     /** In ambient mode the match screen stays up in low power instead of giving way to the watch face. */
     private val ambient = mutableStateOf(false)
@@ -54,25 +53,37 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        haptics = Haptics(this)
         lifecycle.addObserver(AmbientLifecycleObserver(this, ambientCallback))
         // The match service's notification is what keeps the match on the watch face.
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {}.launch(Manifest.permission.POST_NOTIFICATIONS)
         lifecycleScope.launch { services.controller.restore() }
-        setContent { MaterialTheme { WatchNav(services, ambient.value) } }
+        setContent { WatchTheme { WatchNav(services, ambient.value) } }
     }
 
-    /** The first stem button starts and stops the clock (the main button belongs to the system). */
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_STEM_1 && event.repeatCount == 0) {
-            val phase = services.controller.active.value?.clock?.phase
-            if (phase == Phase.READY || phase == Phase.PLAYING || phase == Phase.BREAK) {
-                haptics.click()
+    /**
+     * The physical button starts and stops the clock while a match is under way, on
+     * every screen. Galaxy Watch 4 to 7 have no stem buttons: their lower button sends
+     * Back, which apps may use (the upper one, Home, belongs to the system). Watches
+     * with stem buttons use those. Swiping right still goes back.
+     */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode in CLOCK_BUTTONS && matchUnderWay()) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
                 services.controller.perform { toggleClock(it) }
-                return true
             }
+            // The release too, so the system doesn't also treat it as Back.
+            return true
         }
-        return super.onKeyDown(keyCode, event)
+        return super.dispatchKeyEvent(event)
+    }
+
+    private fun matchUnderWay(): Boolean {
+        val phase = services.controller.active.value?.clock?.phase
+        return phase == Phase.READY || phase == Phase.PLAYING || phase == Phase.BREAK
+    }
+
+    private companion object {
+        val CLOCK_BUTTONS = setOf(KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_STEM_1, KeyEvent.KEYCODE_STEM_2, KeyEvent.KEYCODE_STEM_3)
     }
 }
 
@@ -107,14 +118,17 @@ private fun WatchNav(services: Services, ambient: Boolean) {
             composable("setup") { SetupScreen(services) { nav.navigate("match") { popUpTo("home") } } }
             composable("match") {
                 MatchScreen(
-                    controller, services.prefs, ambient,
-                    onGoal = { nav.navigate("goal") },
+                    services, ambient,
+                    onGoal = { side -> nav.navigate("goal/${side.name}") },
                     onCard = { nav.navigate("card") },
                     onStroke = { nav.navigate("stroke") },
                     onEvents = { nav.navigate("events") },
                 )
             }
-            composable("goal") { GoalFlow(controller) { nav.popBackStack() } }
+            composable("goal/{side}") { entry ->
+                val side = entry.arguments?.getString("side")?.let { runCatching { Side.valueOf(it) }.getOrNull() }
+                GoalFlow(controller, side) { nav.popBackStack() }
+            }
             composable("card") { CardFlow(controller) { nav.popBackStack() } }
             composable("stroke") { StrokeFlow(controller) { nav.popBackStack() } }
             composable("events") { EventsScreen(controller) }

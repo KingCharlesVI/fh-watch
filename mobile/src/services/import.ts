@@ -2,28 +2,24 @@ import type { MatchDocument } from "@fh/shared";
 import { randomUUID } from "expo-crypto";
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
-import type { ImportResult } from "@/core/sync";
+import { type ImportSummary, importData } from "@/core/backup";
 import { sync } from "./index";
 
 /**
- * "Import from file": the fallback for getting a match onto the phone when the
- * watch can't sync, e.g. a JSON export shared by email. Null if cancelled.
+ * "Import from file": a backup from this or another phone, a match exported
+ * from the app or the website, or one shared from the watch some other way.
+ * Null if cancelled.
  */
-export async function importFromFile(): Promise<ImportResult | null> {
+export async function importFromFile(): Promise<ImportSummary | null> {
   const picked = await DocumentPicker.getDocumentAsync({ type: ["application/json", "text/plain", "*/*"], copyToCacheDirectory: true });
   if (picked.canceled || !picked.assets[0]) return null;
   let data: unknown;
   try {
     data = JSON.parse(await new File(picked.assets[0].uri).text());
   } catch {
-    return { status: "invalid", errors: ["That file isn't a match export (it isn't JSON)."] };
+    return { added: 0, duplicate: 0, invalid: ["That file isn't a match or a backup (it isn't JSON)."] };
   }
-  // The website's JSON download wraps the document with its summary.
-  const doc = data && typeof data === "object" && "document" in data ? (data as { document: unknown }).document : data;
-  const result = await sync.importMatch(doc, "file");
-  // Start uploading now rather than on the next retry tick.
-  if (result.status === "added") void sync.uploadPending().catch(() => {});
-  return result;
+  return importData(sync, data);
 }
 
 /** Development only: a realistic match that has just finished, to try the app without a watch. */

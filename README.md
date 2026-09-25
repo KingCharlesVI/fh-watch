@@ -12,6 +12,7 @@ Field hockey match system: umpire watch apps, a phone app, an API and a public w
 | `web` | Public website, dashboards and admin (Next.js, shadcn/ui) |
 | `mobile` | Phone app for umpires (Expo / React Native), with the watch-sync native module in `mobile/modules/watch-sync` |
 | `watch-wear` | Wear OS umpire app (Kotlin, Compose for Wear OS). See [watch-wear/README.md](watch-wear/README.md) |
+| `landing` | The public landing page (static, for Vercel): teasers, roadmap, download links and the privacy policy. See [landing/README.md](landing/README.md) |
 | `deploy` | Runs the server on a Linux or Windows machine behind a Cloudflare Tunnel: setup scripts, services, and the `fh` command for deploys and backups. See [docs/deployment.md](docs/deployment.md) |
 
 ## Development
@@ -65,10 +66,80 @@ Needs Android Studio (SDK and an emulator) for Android. An iPhone build needs a 
 
 The workspace uses pnpm's `node-linker=hoisted` (see `.npmrc`) for the same reason: pnpm's default symlinked layout breaks the Android native build.
 
+The app is built for a **stage**, set by `EXPO_PUBLIC_STAGE` in `mobile/.env`: `alpha` (watch and phone only: no account, matches saved and exported on the phone) or `beta` (with the API and website). See `mobile/src/config.ts`.
+
 ```sh
-cp mobile/.env.example mobile/.env    # API and website addresses; defaults suit the Android emulator
-pnpm dev:mobile                       # API, emulator and app; the first run builds and installs the app
-pnpm --filter @fh/mobile test         # sync engine and API client tests
+cp mobile/.env.example mobile/.env    # the stage, and the API and website addresses for the beta
+pnpm dev mobile                       # alpha: emulator and app; the first run builds and installs the app
+pnpm dev:mobile                       # beta: the API too
+pnpm --filter @fh/mobile test         # sync engine, watch inbox, backups and API client tests
 ```
 
 In a development build, **Settings → Add a sample match** creates a finished match to try things with.
+
+## Packaging the apps for release
+
+The phone app and the Wear OS app are packaged by one script, [scripts/release-android.mjs](scripts/release-android.mjs), with a shortcut for each app. The script makes signed release builds ready to hand out: an **App Bundle** (`.aab`) for Google Play, and optionally an **APK** (`.apk`) that installs straight onto a device.
+
+### Before the first release
+
+- **An upload key.** Release builds are signed with your upload key, which is named in `~/.gradle/gradle.properties`. How to make it and set it up is in [docs/play-store.md](docs/play-store.md), step 1. Without one, the script stops, unless you add `--debug-key`: that signs with the development key, which is fine for trying a build but Google Play refuses it.
+- **The Android SDK and a JDK.** Both come with Android Studio, and the script finds them itself (or set `ANDROID_HOME` and `JAVA_HOME`).
+- **The Play Console setup** (the listing, the Wear OS form factor and the testing tracks) is also in [docs/play-store.md](docs/play-store.md).
+
+### The commands
+
+| Command | What it builds |
+| --- | --- |
+| `pnpm release:android` | Both apps: the phone app and the Wear OS app. |
+| `pnpm release:phone` | Just the phone app. |
+| `pnpm release:watch` | Just the Wear OS app. |
+
+Each takes the same options, in any order:
+
+| Option | What it does |
+| --- | --- |
+| `--bump` | Adds 1 to the build number in `version.json` before building. Google Play refuses a build number it has already seen, so use this for every upload after the first. |
+| `--beta` | Builds the phone app for the beta (with sign-in, the API and the website) instead of the alpha (watch and phone only). It makes no difference to the watch app. See `mobile/src/config.ts`. |
+| `--apk` | Also makes an APK of each app, for installing directly on a phone or watch without Google Play. |
+| `--debug-key` | Signs with the development key when no upload key is set up. For trying a build only. |
+
+With pnpm, options go straight after the command: `pnpm release:watch --bump --apk`.
+
+### What you get
+
+Everything lands in `dist/play/` (which isn't committed), named after the version and build number in `version.json`:
+
+| File | Upload to / use for | Version code |
+| --- | --- | --- |
+| `fh-match-centre-phone-<version>-<build>-alpha.aab` (or `-beta`) | The phone tracks in Play Console | the build number |
+| `fh-match-centre-watch-<version>-<build>.aab` | The Wear OS tracks in Play Console | 1,000,000 + the build number |
+| `.apk` files with the same names (with `--apk`) | Installing directly: `adb install <file>` | as above |
+
+Both apps share one Play listing, so their version codes must never clash; the watch's is offset by a million for that. The version name (`0.1.0`) is the one users see; change it in `version.json` by hand when a release deserves a new number.
+
+### Everyday use
+
+```sh
+# The first release of both apps
+pnpm release:android
+
+# Every release after that: a new build number, both apps
+pnpm release:android --bump
+
+# A fix to just one app
+pnpm release:watch --bump
+pnpm release:phone --bump
+
+# A build to try on your own devices, without going through Google Play
+pnpm release:watch --apk
+adb -s <watch serial> install -r dist/play/fh-match-centre-watch-<version>-<build>.apk
+```
+
+(`adb devices` lists the serials. Installing over an app from Google Play only works if the APK was signed with the same key; if it wasn't, uninstall the other one first.)
+
+**Keep the two apps in step.** The watch sends matches to the phone over the Wear OS Data Layer, which only connects apps signed with the same key, and both apps read the same match format. When one app changes, it's safest to release both from the same build number, so testers never have a phone and watch from different builds. When you build only one, the script reminds you.
+
+**The phone build takes longer.** It first regenerates `mobile/android/` from `mobile/app.config.ts` (`expo prebuild`), so the version, icon, fonts and signing are always current, and then builds the JavaScript bundle into the app. Don't edit files in `mobile/android/` by hand: they're overwritten.
+
+After building, upload the bundles as described in [docs/play-store.md](docs/play-store.md) (step 4, Internal testing).

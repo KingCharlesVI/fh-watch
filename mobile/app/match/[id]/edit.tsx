@@ -17,11 +17,12 @@ import {
 } from "@fh/shared";
 import { Stack, router, useLocalSearchParams, useNavigation } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { errorMessage } from "@/core/api";
+import { ONLINE } from "@/config";
 import { api, sync } from "@/services";
 import { useMatch } from "@/state/sync";
-import { Badge, Banner, Button, Card, Choice, Field, Row, Screen, Swatch, T } from "@/ui/kit";
+import { Badge, Banner, Button, Card, Choice, Field, Row, Screen, Swatch, T, Text } from "@/ui/kit";
 import { space, useColors } from "@/ui/theme";
 
 const TEAM_COLOURS = ["#1E40AF", "#0EA5E9", "#065F46", "#16A34A", "#B91C1C", "#EA580C", "#CA8A04", "#7C3AED", "#DB2777", "#111827", "#6B7280", "#FFFFFF"];
@@ -31,14 +32,22 @@ export default function EditMatchScreen() {
   const { row } = useMatch(id);
   const saved = row?.match.document ?? null;
   const [doc, setDoc] = useState<MatchDocument | null>(null);
+  // Alpha keeps umpire names on the phone; beta has the server's umpire list instead.
+  const savedUmpires = row?.match.umpireNames ?? [];
+  const [umpires, setUmpires] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
   const navigation = useNavigation();
 
   useEffect(() => {
     if (saved && !doc) setDoc(saved);
   }, [saved, doc]);
+  useEffect(() => {
+    if (row && !umpires) setUmpires(row.match.umpireNames ?? []);
+  }, [row, umpires]);
 
-  const dirty = !!doc && !!saved && JSON.stringify(doc) !== JSON.stringify(saved);
+  const docDirty = !!doc && !!saved && JSON.stringify(doc) !== JSON.stringify(saved);
+  const umpiresDirty = !!umpires && JSON.stringify(umpires.map((u) => u.trim()).filter(Boolean)) !== JSON.stringify(savedUmpires);
+  const dirty = docDirty || umpiresDirty;
   const check = useMemo(() => (doc ? parseMatch(doc) : null), [doc]);
   const errors = check && !check.ok ? check.errors.map((e) => e.message) : [];
 
@@ -69,13 +78,15 @@ export default function EditMatchScreen() {
 
   async function save() {
     setSaving(true);
-    const res = await sync.saveEdit(id, doc!);
-    if (!res.ok) {
-      setSaving(false);
-      Alert.alert("Can't save yet", res.errors.join("\n"));
-      return;
+    if (docDirty) {
+      const res = await sync.saveEdit(id, doc!);
+      if (!res.ok) {
+        setSaving(false);
+        Alert.alert("Can't save yet", res.errors.join("\n"));
+        return;
+      }
     }
-    void sync.uploadPending({ force: true });
+    if (umpiresDirty) await sync.setUmpireNames(id, umpires!);
     router.back();
   }
 
@@ -106,7 +117,7 @@ export default function EditMatchScreen() {
         <Field label="Venue" value={doc.venue ?? ""} maxLength={120} onChangeText={(v) => update((d) => void (d.venue = v || null))} />
       </Card>
 
-      <UmpiresCard id={id} />
+      {ONLINE ? <UmpiresCard id={id} /> : <LocalUmpires names={umpires ?? []} onChange={setUmpires} />}
       <EventsCard doc={doc} saved={saved} onChange={setDoc} />
       <Button title="Save changes" icon="save-outline" onPress={save} disabled={!dirty || errors.length > 0} loading={saving} />
     </Screen>
@@ -143,24 +154,41 @@ function TeamEditor({ side, doc, update }: { side: TeamSide; doc: MatchDocument;
         maxLength={3}
         onChangeText={(v) => update((d) => void (d.teams[side].captain = v === "" ? null : Number(v)))}
       />
-      <View style={{ gap: space.xs }}>
-        <T variant="label">Club team</T>
-        {team.teamId ? (
-          <Row style={{ justifyContent: "space-between" }}>
-            <Badge label="Linked to a club team" tone="primary" icon="link-outline" />
-            <Button small variant="ghost" title="Unlink" onPress={() => update((d) => void (d.teams[side].teamId = null))} />
-          </Row>
-        ) : (
-          <TeamSearch
-            onPick={(t) =>
-              update((d) => {
-                d.teams[side].teamId = t.id;
-                d.teams[side].name = `${t.club.name} ${t.name}`;
-              })
-            }
-          />
-        )}
-      </View>
+      {ONLINE && (
+        <View style={{ gap: space.xs }}>
+          <T variant="label">Club team</T>
+          {team.teamId ? (
+            <Row style={{ justifyContent: "space-between" }}>
+              <Badge label="Linked to a club team" tone="primary" icon="link-outline" />
+              <Button small variant="ghost" title="Unlink" onPress={() => update((d) => void (d.teams[side].teamId = null))} />
+            </Row>
+          ) : (
+            <TeamSearch
+              onPick={(t) =>
+                update((d) => {
+                  d.teams[side].teamId = t.id;
+                  d.teams[side].name = `${t.club.name} ${t.name}`;
+                })
+              }
+            />
+          )}
+        </View>
+      )}
+    </Card>
+  );
+}
+
+/** Alpha: umpire names, kept on the phone and printed on the match report. */
+function LocalUmpires({ names, onChange }: { names: string[]; onChange: (names: string[]) => void }) {
+  const set = (i: number, value: string) => {
+    const next = [names[0] ?? "", names[1] ?? ""];
+    next[i] = value;
+    onChange(next);
+  };
+  return (
+    <Card title="Umpires">
+      <Field label="Umpire 1 (you)" value={names[0] ?? ""} maxLength={80} onChangeText={(v) => set(0, v)} autoCapitalize="words" />
+      <Field label="Umpire 2" value={names[1] ?? ""} maxLength={80} onChangeText={(v) => set(1, v)} autoCapitalize="words" />
     </Card>
   );
 }

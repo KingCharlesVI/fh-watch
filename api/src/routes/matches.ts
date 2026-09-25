@@ -8,6 +8,7 @@ import {
   hasRole,
   matchEventsToCsv,
   matchListToCsv,
+  renderMatchReport,
   summarizeMatch,
 } from "@fh/shared";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
@@ -25,7 +26,7 @@ import { HttpError, badRequest, forbidden, notFound } from "../lib/errors.js";
 import { parseIfMatch, revisionEtag } from "../lib/etag.js";
 import { Limit, containsPattern } from "../lib/sql.js";
 import { audit } from "../services/audit.js";
-import { renderMatchReport } from "../services/report.js";
+
 import {
   AUTO_PUBLISH_DELAY_MS,
   type MatchRow,

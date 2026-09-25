@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { matchDoc, setup, withVenue } from "./helpers";
 
 describe("receiving matches", () => {
-  it("adds a match from the watch as new and waiting to upload", async () => {
+  it("keeps a match from the watch on the phone until the umpire uploads it", async () => {
     const t = await setup();
     const doc = matchDoc();
     expect(await t.engine.importMatch(doc, "watch")).toEqual({ status: "added" });
     const row = (await t.engine.get(doc.id))!;
-    expect(row).toMatchObject({ dirty: true, seen: false, baseRevision: null, source: "watch" });
-    expect(t.engine.state(row)).toBe("pending");
+    expect(row).toMatchObject({ dirty: true, uploadRequested: false, seen: false, baseRevision: null, source: "watch" });
+    expect(t.engine.state(row)).toBe("local");
   });
 
   it("treats the match id as the key, so receiving it again changes nothing", async () => {
@@ -28,6 +28,54 @@ describe("receiving matches", () => {
     expect(res.errors?.[0]).toContain("break lengths");
     expect(await t.engine.importMatch({ not: "a match" }, "file")).toMatchObject({ status: "invalid" });
   });
+
+  it("can delete a match from the phone", async () => {
+    const t = await setup();
+    const doc = matchDoc();
+    await t.engine.importMatch(doc, "watch");
+    await t.engine.deleteLocal(doc.id);
+    expect(await t.engine.get(doc.id)).toBeNull();
+  });
+});
+
+describe("nothing uploads unless asked", () => {
+  it("doesn't upload received or edited matches by itself", async () => {
+    const t = await setup();
+    const doc = matchDoc();
+    await t.engine.importMatch(doc, "watch");
+    await t.engine.saveEdit(doc.id, withVenue(doc, "Pitch 2"));
+    await t.engine.uploadPending({ force: true });
+    await t.engine.refresh();
+    expect(t.server.count("PUT")).toBe(0);
+    expect(t.server.matches.has(doc.id)).toBe(false);
+  });
+
+  it("uploads only the match the umpire asked for", async () => {
+    const t = await setup();
+    const asked = matchDoc();
+    const notAsked = matchDoc();
+    await t.engine.importMatch(asked, "watch");
+    await t.engine.importMatch(notAsked, "watch");
+    await t.engine.requestUpload(asked.id);
+    expect([...t.server.matches.keys()]).toEqual([asked.id]);
+  });
+
+  it("waits to be asked again before uploading later edits", async () => {
+    const t = await setup();
+    const doc = matchDoc();
+    await t.engine.importMatch(doc, "watch");
+    await t.engine.requestUpload(doc.id);
+    await t.engine.saveEdit(doc.id, withVenue(doc, "Pitch 3"));
+    await t.engine.uploadPending({ force: true });
+    let row = (await t.engine.get(doc.id))!;
+    expect(t.engine.state(row)).toBe("local");
+    expect(t.server.current(doc.id)!.venue).toBeUndefined();
+
+    await t.engine.requestUpload(doc.id);
+    row = (await t.engine.get(doc.id))!;
+    expect(t.engine.state(row)).toBe("synced");
+    expect(t.server.current(doc.id)!.venue).toBe("Pitch 3");
+  });
 });
 
 describe("uploading", () => {
@@ -35,9 +83,9 @@ describe("uploading", () => {
     const t = await setup();
     const doc = matchDoc();
     await t.engine.importMatch(doc, "watch");
-    await t.engine.uploadPending();
+    await t.engine.requestUpload(doc.id);
     const row = (await t.engine.get(doc.id))!;
-    expect(row).toMatchObject({ dirty: false, baseRevision: 1, lastError: null });
+    expect(row).toMatchObject({ dirty: false, uploadRequested: false, baseRevision: 1, lastError: null });
     expect(row.server?.status).toBe("draft");
     expect(t.engine.state(row)).toBe("synced");
     expect(t.server.matches.get(doc.id)!.revisions.map((r) => r.source)).toEqual(["watch"]);
@@ -48,7 +96,7 @@ describe("uploading", () => {
     const doc = matchDoc();
     await t.engine.importMatch(doc, "watch");
     await t.engine.saveEdit(doc.id, withVenue(doc, "Pitch 2"));
-    await t.engine.uploadPending();
+    await t.engine.requestUpload(doc.id);
     const revs = t.server.matches.get(doc.id)!.revisions;
     expect(revs.map((r) => [r.source, r.document.venue])).toEqual([
       ["watch", undefined],
@@ -61,9 +109,9 @@ describe("uploading", () => {
     const t = await setup();
     const doc = matchDoc();
     await t.engine.importMatch(doc, "watch");
-    await t.engine.uploadPending();
+    await t.engine.requestUpload(doc.id);
     await t.engine.saveEdit(doc.id, withVenue(doc, "Pitch 3"));
-    await t.engine.uploadPending();
+    await t.engine.requestUpload(doc.id);
     expect(t.server.current(doc.id)!.venue).toBe("Pitch 3");
     expect((await t.engine.get(doc.id))!.baseRevision).toBe(2);
   });
@@ -76,14 +124,15 @@ describe("uploading", () => {
     expect(await t.engine.saveEdit(doc.id, bad)).toEqual({ ok: false, errors: ["The match ends before it starts."] });
   });
 
-  it("waits and retries with growing gaps while offline", async () => {
+  it("once asked, waits and retries with growing gaps while offline", async () => {
     const t = await setup();
     const doc = matchDoc();
     await t.engine.importMatch(doc, "watch");
     t.server.offline = true;
-    await t.engine.uploadPending();
+    await t.engine.requestUpload(doc.id);
     let row = (await t.engine.get(doc.id))!;
     expect(row).toMatchObject({ attempts: 1, nextAttemptAt: t.clock.now + 5_000 });
+    expect(t.engine.state(row)).toBe("pending");
 
     // Too soon: not even tried.
     const calls = t.server.calls.length;
@@ -103,11 +152,14 @@ describe("uploading", () => {
 
   it("stops after the first network failure instead of trying every match", async () => {
     const t = await setup();
-    await t.engine.importMatch(matchDoc(), "watch");
-    await t.engine.importMatch(matchDoc(), "watch");
+    const a = matchDoc();
+    const b = matchDoc();
+    await t.engine.importMatch(a, "watch");
+    await t.engine.importMatch(b, "watch");
     t.server.offline = true;
-    await t.engine.uploadPending();
-    expect(t.server.count("PUT")).toBe(1);
+    await t.engine.requestUpload(a.id);
+    await t.engine.requestUpload(b.id);
+    expect(t.server.count("PUT")).toBe(2); // one attempt per request, not one per match per request
   });
 
   it("backs off on server errors but carries on with other matches", async () => {
@@ -116,11 +168,15 @@ describe("uploading", () => {
     const b = matchDoc();
     await t.engine.importMatch(a, "watch");
     await t.engine.importMatch(b, "watch");
+    t.server.offline = true;
+    await t.engine.requestUpload(a.id);
+    await t.engine.requestUpload(b.id);
+    t.server.offline = false;
     t.server.failNext.push(503);
-    await t.engine.uploadPending();
+    await t.engine.uploadPending({ force: true });
     const rows = await t.engine.list();
     expect(rows.filter((r) => r.dirty)).toHaveLength(1);
-    expect(rows.find((r) => r.dirty)!.attempts).toBe(1);
+    expect(rows.find((r) => r.dirty)!.attempts).toBe(2); // one offline try, then the 503
   });
 
   it("pauses a match the server refuses and shows why, until retried", async () => {
@@ -128,7 +184,7 @@ describe("uploading", () => {
     const doc = matchDoc();
     await t.engine.importMatch(doc, "watch");
     t.server.failNext.push(422);
-    await t.engine.uploadPending();
+    await t.engine.requestUpload(doc.id);
     let row = (await t.engine.get(doc.id))!;
     expect(row.lastError).toBe("Failed with 422");
     expect(t.engine.state(row)).toBe("error");
@@ -137,22 +193,22 @@ describe("uploading", () => {
     expect(t.server.count("PUT")).toBe(1);
 
     await t.engine.retry(doc.id);
-    await t.engine.uploadPending();
     row = (await t.engine.get(doc.id))!;
     expect(row).toMatchObject({ dirty: false, lastError: null });
   });
 
-  it("keeps an edit made while its upload was in flight", async () => {
+  it("keeps an edit made while its upload was in flight on the phone, for the next upload", async () => {
     const t = await setup();
     const doc = matchDoc();
     await t.engine.importMatch(doc, "watch");
     t.server.duringNextPut = async () => {
       await t.engine.saveEdit(doc.id, withVenue(doc, "Edited mid-upload"));
     };
-    await t.engine.uploadPending();
+    await t.engine.requestUpload(doc.id);
     let row = (await t.engine.get(doc.id))!;
     expect(row).toMatchObject({ dirty: true, baseRevision: 1 });
-    await t.engine.uploadPending();
+    expect(t.engine.state(row)).toBe("local");
+    await t.engine.requestUpload(doc.id);
     row = (await t.engine.get(doc.id))!;
     expect(row.dirty).toBe(false);
     expect(t.server.current(doc.id)!.venue).toBe("Edited mid-upload");
@@ -166,7 +222,7 @@ describe("uploading", () => {
     // Both the original and the edit reach the server, but the edit's reply is lost,
     // so the phone still thinks nothing was uploaded.
     t.server.dropPutReply = 2;
-    await t.engine.uploadPending();
+    await t.engine.requestUpload(doc.id);
     expect((await t.engine.get(doc.id))!.baseRevision).toBeNull();
     t.advance(5_000);
     await t.engine.uploadPending();
@@ -181,10 +237,10 @@ describe("conflicts", () => {
     const t = await setup();
     const doc = matchDoc();
     await t.engine.importMatch(doc, "watch");
-    await t.engine.uploadPending();
+    await t.engine.requestUpload(doc.id);
     t.server.editOnServer(doc.id, (d) => void (d.competition = "Edited on the website"));
     await t.engine.saveEdit(doc.id, withVenue(doc, "Edited on the phone"));
-    await t.engine.uploadPending();
+    await t.engine.requestUpload(doc.id);
     return { t, doc };
   }
 
@@ -220,7 +276,7 @@ describe("refreshing from the server", () => {
     const other = await setup();
     // Uploaded from another phone.
     await other.engine.importMatch(doc, "watch");
-    await other.engine.uploadPending();
+    await other.engine.requestUpload(doc.id);
     t.server.matches.set(doc.id, other.server.matches.get(doc.id)!);
 
     await t.engine.refresh();
@@ -236,7 +292,7 @@ describe("refreshing from the server", () => {
     const t = await setup();
     const doc = matchDoc();
     await t.engine.importMatch(doc, "watch");
-    await t.engine.uploadPending();
+    await t.engine.requestUpload(doc.id);
     t.server.editOnServer(doc.id, (d) => void (d.venue = "Changed on the website"));
     await t.engine.refresh();
     expect((await t.engine.get(doc.id))!.document).toBeNull();
@@ -248,12 +304,9 @@ describe("refreshing from the server", () => {
     const uploaded = matchDoc();
     const unsent = matchDoc();
     await t.engine.importMatch(uploaded, "watch");
-    await t.engine.uploadPending();
+    await t.engine.requestUpload(uploaded.id);
     t.server.matches.delete(uploaded.id);
-    t.server.offline = true;
     await t.engine.importMatch(unsent, "watch");
-    t.server.offline = false;
-    t.server.failNext.push(503); // the unsent one stays unsent
     await t.engine.refresh();
     const ids = (await t.engine.list()).map((r) => r.id);
     expect(ids).toEqual([unsent.id]);
@@ -261,11 +314,11 @@ describe("refreshing from the server", () => {
 });
 
 describe("publishing", () => {
-  it("uploads waiting changes first, so the published version is the latest", async () => {
+  it("uploads that match's changes first, so the published version is the latest", async () => {
     const t = await setup();
     const doc = matchDoc();
     await t.engine.importMatch(doc, "watch");
-    await t.engine.uploadPending();
+    await t.engine.requestUpload(doc.id);
     await t.engine.saveEdit(doc.id, withVenue(doc, "Pitch 4"));
     const match = await t.engine.publish(doc.id, true);
     expect(match).toMatchObject({ status: "published", shareUrl: "https://fhmatchcentre.com/m/K7P2QX" });
@@ -284,13 +337,13 @@ describe("publishing", () => {
 
 describe("refreshing while uploading", () => {
   it("keeps a match uploaded after the server's list was read", async () => {
-    // The app returning to the foreground both refreshes and takes in a watch match,
-    // whose upload can finish while the list request is in flight.
+    // Tapping Upload while a refresh is in flight: the upload can finish before the
+    // list, which was read before it, comes back.
     const t = await setup();
     const doc = matchDoc();
     t.server.duringNextList = async () => {
       await t.engine.importMatch(doc, "watch");
-      await t.engine.uploadPending();
+      await t.engine.requestUpload(doc.id);
     };
     await t.engine.refresh();
     const row = await t.engine.get(doc.id);
@@ -301,7 +354,7 @@ describe("refreshing while uploading", () => {
     const t = await setup();
     const doc = matchDoc();
     await t.engine.importMatch(doc, "watch");
-    await t.engine.uploadPending();
+    await t.engine.requestUpload(doc.id);
     t.server.matches.delete(doc.id);
     await t.engine.refresh();
     expect(await t.engine.get(doc.id)).toBeNull();

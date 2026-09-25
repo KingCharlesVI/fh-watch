@@ -8,6 +8,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -34,6 +35,7 @@ import com.fhmatchcentre.watch.engine.ShootoutAttempt
 import com.fhmatchcentre.watch.engine.Side
 import com.fhmatchcentre.watch.engine.Timed
 import com.fhmatchcentre.watch.engine.VoidEvent
+import com.fhmatchcentre.watch.engine.activeEvents
 import com.fhmatchcentre.watch.engine.card
 import com.fhmatchcentre.watch.engine.durationSec
 import com.fhmatchcentre.watch.engine.endMatch
@@ -55,11 +57,11 @@ private fun PickTeam(m: MatchRecord, title: String, onPick: (Side) -> Unit) {
     }
 }
 
-/** Goal: team, then scorer (optional), then how it was scored (optional). */
+/** Goal: team (unless the Goals page's button already said), then scorer (optional), then how it was scored (optional). */
 @Composable
-fun GoalFlow(controller: MatchController, onDone: () -> Unit) {
+fun GoalFlow(controller: MatchController, forTeam: Side?, onDone: () -> Unit) {
     val m = controller.active.collectAsStateWithLifecycle().value ?: return onDone()
-    var team by rememberSaveable { mutableStateOf<Side?>(null) }
+    var team by rememberSaveable { mutableStateOf(forTeam) }
     var player by rememberSaveable { mutableStateOf<Int?>(null) }
     var pickedPlayer by rememberSaveable { mutableStateOf(false) }
     fun save(method: GoalMethod?) {
@@ -79,13 +81,23 @@ fun GoalFlow(controller: MatchController, onDone: () -> Unit) {
     }
 }
 
-/** Card: team, colour and length, then the player (required). */
+/**
+ * Card: team, colour and length, then the player (required). If the player
+ * already has a card this match, the umpire confirms before it's recorded.
+ */
 @Composable
 fun CardFlow(controller: MatchController, onDone: () -> Unit) {
     val m = controller.active.collectAsStateWithLifecycle().value ?: return onDone()
     var team by rememberSaveable { mutableStateOf<Side?>(null) }
     var kind by rememberSaveable { mutableStateOf<CardKind?>(null) }
+    var repeat by rememberSaveable { mutableStateOf<Int?>(null) }
     val s = m.settings
+    fun save(number: Int) {
+        val side = team!!
+        val k = kind!!
+        controller.perform("card") { card(side, number, k, it) }
+        onDone()
+    }
     fun mins(k: CardKind) = s.durationSec(k)?.let { "${it / 60}′" + if (it % 60 != 0) "${it % 60}″" else "" }
     when {
         team == null -> PickTeam(m, "Card") { team = it }
@@ -95,11 +107,27 @@ fun CardFlow(controller: MatchController, onDone: () -> Unit) {
             item { ChoiceButton("Yellow", mins(CardKind.YELLOW_LONG), CARD_YELLOW) { kind = CardKind.YELLOW_LONG } }
             item { ChoiceButton("Red", "Rest of match", CARD_RED) { kind = CardKind.RED } }
         }
+        repeat != null -> {
+            val number = repeat!!
+            val earlier = m.activeEvents().filterIsInstance<Card>().filter { it.team == team && it.player == number }
+            ListScreen("Card ${earlier.size + 1} for #$number") {
+                item {
+                    Text(
+                        "#$number already has " + earlier.joinToString(" and ") { c ->
+                            "a " + c.color.name.lowercase() + " card (" + periodName(c.period, s.periods) + " " + formatClock(c.clockMs) + ")"
+                        } + ".",
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                item { ChoiceButton("Continue", color = Color(0xFF106C3E)) { save(number) } }
+                item { ChoiceButton("Change card") { kind = null; repeat = null } }
+            }
+        }
         else -> NumberPicker("Player", 0..99, 10, optional = false) { number ->
-            val side = team!!
-            val k = kind!!
-            controller.perform("card") { card(side, number, k, it) }
-            onDone()
+            val n = number!!
+            val carded = m.activeEvents().any { it is Card && it.team == team && it.player == n }
+            if (carded) repeat = n else save(n)
         }
     }
 }
@@ -113,7 +141,7 @@ fun StrokeFlow(controller: MatchController, onDone: () -> Unit) {
     when {
         team == null -> PickTeam(m, "Penalty stroke") { team = it }
         !scored -> ListScreen("Stroke") {
-            item { ChoiceButton("Scored", color = Color(0xFF1F6F43)) { scored = true } }
+            item { ChoiceButton("Scored", color = Color(0xFF106C3E)) { scored = true } }
             item {
                 ChoiceButton("Missed") {
                     val side = team!!
@@ -220,7 +248,7 @@ fun ShootoutScreen(controller: MatchController) {
             }
         } else {
             item { Text("${teams[so.winner].name} win the shootout", fontSize = 14.sp) }
-            item { ChoiceButton("End match", color = Color(0xFF1F6F43)) { controller.perform { endMatch(it) } } }
+            item { ChoiceButton("End match", color = Color(0xFF106C3E)) { controller.perform { endMatch(it) } } }
         }
         if (last != null) item { ChoiceButton("Undo last attempt") { controller.perform { undo(last.seq, it) } } }
     }

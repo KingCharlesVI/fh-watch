@@ -42,8 +42,8 @@ import java.util.Date
 fun HomeScreen(services: Services, onNewMatch: () -> Unit, onResume: () -> Unit, onMatches: () -> Unit, onSettings: () -> Unit) {
     val active by services.controller.active.collectAsState()
     ListScreen("FH Match Centre") {
-        if (active != null) item { ChoiceButton("Back to match", color = Color(0xFF1F6F43)) { onResume() } }
-        else item { ChoiceButton("New match", color = Color(0xFF1F6F43)) { onNewMatch() } }
+        if (active != null) item { ChoiceButton("Back to match", color = Color(0xFF106C3E)) { onResume() } }
+        else item { ChoiceButton("New match", color = Color(0xFF106C3E)) { onNewMatch() } }
         item { ChoiceButton("Past matches") { onMatches() } }
         item { ChoiceButton("Settings") { onSettings() } }
     }
@@ -128,7 +128,7 @@ fun SetupScreen(services: Services, onStarted: () -> Unit) {
             )
         }
         item {
-            ChoiceButton("Ready", color = Color(0xFF1F6F43)) {
+            ChoiceButton("Ready", color = Color(0xFF106C3E)) {
                 services.prefs.lastSetup = setup
                 val teams = Teams(
                     home = Team(setup.homeName, null, setup.homeColor, setup.homeCaptain),
@@ -202,7 +202,7 @@ fun SummaryScreen(services: Services, id: String, onDone: () -> Unit) {
                 }
             }
         }
-        item { ChoiceButton("Done", color = Color(0xFF1F6F43)) { onDone() } }
+        item { ChoiceButton("Done", color = Color(0xFF106C3E)) { onDone() } }
     }
 }
 

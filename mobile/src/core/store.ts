@@ -14,6 +14,18 @@ export interface LocalMatch {
   server: Match | null;
   /** `document` has changes the server doesn't have yet. */
   dirty: boolean;
+  /**
+   * The umpire asked for these changes to be uploaded. Nothing leaves the phone
+   * without that; once asked, it retries by itself until it gets through. Cleared
+   * by a successful upload, so later edits wait to be asked again. Absent on rows
+   * saved by older versions of the app, which means not asked.
+   */
+  uploadRequested?: boolean;
+  /**
+   * Umpire names kept on the phone, for match reports made here. The server keeps
+   * its own list once a match is uploaded.
+   */
+  umpireNames?: string[];
   /** The server has a newer version than `baseRevision`: the umpire picks which to keep. */
   conflict: { revision: number; document: MatchDocument } | null;
   /** Why the last upload was refused (not a network problem). Uploads pause until the next edit or retry. */

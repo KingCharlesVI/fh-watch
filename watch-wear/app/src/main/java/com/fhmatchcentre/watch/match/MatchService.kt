@@ -124,7 +124,15 @@ class MatchService : LifecycleService() {
     }
 }
 
-/** Distinct patterns, so the umpire can tell alerts apart without looking. */
+/**
+ * Distinct patterns, so the umpire can tell alerts apart without looking:
+ *
+ * - clock started or stopped, a suspension over: one buzz
+ * - two minutes left in the period: two buzzes
+ * - one minute left: three buzzes
+ * - end of the period: long, short, short, long
+ * - end of a break: four quick buzzes
+ */
 class Haptics(context: Context) {
     private val vibrator: Vibrator = context.getSystemService(VibratorManager::class.java).defaultVibrator
 
@@ -132,19 +140,20 @@ class Haptics(context: Context) {
         for (a in alerts) {
             vibrate(
                 when (a) {
-                    is Alert.OneMinuteLeft -> longArrayOf(0, 200, 150, 200)
-                    is Alert.TimeUp -> longArrayOf(0, 600, 200, 600, 200, 600)
-                    is Alert.SuspensionOver -> longArrayOf(0, 120, 100, 120, 100, 120)
-                    is Alert.BreakOver -> longArrayOf(0, 500, 150, 150, 150, 500)
+                    is Alert.TwoMinutesLeft -> buzzes(2)
+                    is Alert.OneMinuteLeft -> buzzes(3)
+                    is Alert.TimeUp -> PERIOD_END
+                    is Alert.SuspensionOver -> buzzes(1)
+                    is Alert.BreakOver -> longArrayOf(0, 120, 80, 120, 80, 120, 80, 120)
                 },
             )
         }
     }
 
-    /** Confirms a button press, e.g. the physical button starting the clock. */
-    fun click() {
-        vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK))
-    }
+    /** The clock started or stopped, whichever way it was done. */
+    fun buzz() = vibrate(buzzes(1))
+
+    private fun buzzes(n: Int): LongArray = longArrayOf(0) + List(n) { listOf(BUZZ_MS, GAP_MS) }.flatten().dropLast(1).toLongArray()
 
     private fun vibrate(pattern: LongArray) {
         val effect = VibrationEffect.createWaveform(pattern, -1)
@@ -155,5 +164,11 @@ class Haptics(context: Context) {
             @Suppress("DEPRECATION")
             vibrator.vibrate(effect, AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build())
         }
+    }
+
+    private companion object {
+        const val BUZZ_MS = 300L
+        const val GAP_MS = 200L
+        val PERIOD_END = longArrayOf(0, 800, 200, 200, 150, 200, 200, 800)
     }
 }

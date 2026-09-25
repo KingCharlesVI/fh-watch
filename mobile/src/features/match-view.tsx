@@ -1,8 +1,9 @@
 import { type MatchDocument, type MatchEvent, type MatchSummary, describeEvent, eventTime, periodLabel } from "@fh/shared";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { ONLINE } from "@/config";
 import type { LocalMatch } from "@/core/store";
 import type { SyncState } from "@/core/sync";
-import { Badge, Card, Swatch, T } from "@/ui/kit";
+import { Badge, Card, Swatch, T, Text } from "@/ui/kit";
 import { CARD_COLOURS, space, useColors } from "@/ui/theme";
 
 // UK time, where the matches are played.
@@ -133,13 +134,15 @@ export function Timeline({ doc, summary }: { doc: MatchDocument; summary: MatchS
   );
 }
 
-/** Where a match stands, for lists and the match screen. */
+/** Where a match stands, for lists and the match screen. Alpha has no server, so nothing to say. */
 export function StatusBadges({ match, state }: { match: LocalMatch; state: SyncState }) {
+  if (!ONLINE) return null;
   const s = match.server;
   const doc = match.document;
   const unlinked = doc ? doc.teams.home.teamId === null || doc.teams.away.teamId === null : s ? s.home.teamId === null || s.away.teamId === null : false;
   return (
     <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
+      {state === "local" && <Badge label={match.baseRevision === null ? "Not uploaded" : "Changes not uploaded"} icon="phone-portrait-outline" />}
       {state === "pending" && <Badge label="Waiting to upload" icon="cloud-upload-outline" />}
       {state === "uploading" && <Badge label="Uploading" icon="sync-outline" />}
       {state === "conflict" && <Badge label="Changed elsewhere" tone="danger" icon="git-compare-outline" />}
