@@ -19,14 +19,13 @@ import { Stack, router, useLocalSearchParams, useNavigation } from "expo-router"
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { errorMessage } from "@/core/api";
+import { TEAM_COLOURS } from "@/core/setup";
 import { ONLINE } from "@/config";
 import { api, sync } from "@/services";
 import { useMatch } from "@/state/sync";
 import { Badge, Banner, Button, Card, Choice, Field, Row, Screen, Swatch, T, Text } from "@/ui/kit";
 import { space, useColors } from "@/ui/theme";
 
-/** The same palette as the watch (TEAM_COLOURS in watch-wear/.../ui/Common.kt). */
-const TEAM_COLOURS = ["#DC2626", "#1D4ED8", "#FACC15", "#16A34A", "#EA580C", "#7C3AED", "#38BDF8", "#EC4899", "#111111", "#FFFFFF"];
 
 export default function EditMatchScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

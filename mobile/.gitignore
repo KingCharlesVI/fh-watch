@@ -1,5 +1,7 @@
 .expo/
-android/
-ios/
+/android/
+/ios/
 expo-env.d.ts
 *.apk
+modules/*/android/build/
+modules/*/android/.cxx/

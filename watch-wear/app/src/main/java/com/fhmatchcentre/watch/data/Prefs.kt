@@ -37,7 +37,35 @@ data class Setup(
 
     val hasHalfTime get() = periods % 2 == 0 && periods > 2
 
+    /**
+     * The same setup with every value in the range the watch's own setup screen allows:
+     * for a setup that came from somewhere else (the phone), which could be anything.
+     */
+    fun sanitized(): Setup {
+        val defaults = Setup()
+        fun colour(hex: String, fallback: String) = if (HEX.matches(hex)) hex.uppercase() else fallback
+        fun name(text: String, fallback: String) = text.trim().take(80).ifEmpty { fallback }
+        return copy(
+            periods = periods.coerceIn(1, 8),
+            periodMinutes = periodMinutes.coerceIn(1, 90),
+            breakMinutes = breakMinutes.coerceIn(0, 30),
+            halfTimeMinutes = halfTimeMinutes.coerceIn(0, 30),
+            homeName = name(homeName, defaults.homeName),
+            homeColor = colour(homeColor, defaults.homeColor),
+            homeCaptain = homeCaptain?.takeIf { it in 0..99 },
+            awayName = name(awayName, defaults.awayName),
+            awayColor = colour(awayColor, defaults.awayColor),
+            awayCaptain = awayCaptain?.takeIf { it in 0..99 },
+            venue = venue?.trim()?.take(120)?.ifEmpty { null },
+        )
+    }
+
     companion object {
+        private val HEX = Regex("^#[0-9A-Fa-f]{6}$")
+
+        /** A setup sent by the phone (Setup on phone), or null if it isn't one. */
+        fun fromPhone(json: String): Setup? = runCatching { StorageJson.decodeFromString(serializer(), json).sanitized() }.getOrNull()
+
         data class Preset(val label: String, val periods: Int, val minutes: Int, val breakMinutes: Int, val halfTimeMinutes: Int)
 
         val PRESETS = listOf(

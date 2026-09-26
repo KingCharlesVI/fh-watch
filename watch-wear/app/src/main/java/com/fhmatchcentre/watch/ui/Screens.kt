@@ -2,6 +2,7 @@ package com.fhmatchcentre.watch.ui
 
 import android.app.RemoteInput
 import android.content.Intent
+import android.net.Uri
 import android.view.inputmethod.EditorInfo
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,12 +18,23 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material3.SwitchButton
 import androidx.wear.compose.material3.Text
 import androidx.wear.input.RemoteInputIntentHelper
 import androidx.wear.input.wearableExtender
+import androidx.wear.remote.interactions.RemoteActivityHelper
+import com.google.android.gms.wearable.Wearable
+import com.fhmatchcentre.watch.sync.WatchSync
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import java.util.concurrent.Executors
 import com.fhmatchcentre.watch.Services
 import com.fhmatchcentre.watch.data.MatchRow
 import com.fhmatchcentre.watch.data.Setup
@@ -40,14 +52,75 @@ import java.text.DateFormat
 import java.util.Date
 
 @Composable
-fun HomeScreen(services: Services, onNewMatch: () -> Unit, onResume: () -> Unit, onMatches: () -> Unit, onSettings: () -> Unit) {
+fun HomeScreen(services: Services, onNewMatch: () -> Unit, onPhoneSetup: () -> Unit, onResume: () -> Unit, onMatches: () -> Unit, onSettings: () -> Unit) {
     val active by services.controller.active.collectAsState()
     ListScreen("FH Match Centre") {
         if (active != null) item { ChoiceButton("Back to match", color = Color(0xFF106C3E)) { onResume() } }
-        else item { ChoiceButton("New match", color = Color(0xFF106C3E)) { onNewMatch() } }
+        else {
+            item { ChoiceButton("New match", color = Color(0xFF106C3E)) { onNewMatch() } }
+            item { ChoiceButton("Setup on phone", "Type teams and format there") { onPhoneSetup() } }
+        }
         item { ChoiceButton("Past matches") { onMatches() } }
         item { ChoiceButton("Settings") { onSettings() } }
     }
+}
+
+/**
+ * Setup on phone: opens the phone app's setup screen, then waits for the setup it
+ * sends. When it arrives, the watch's setup screen opens with it, to check and start.
+ */
+@Composable
+fun PhoneSetupScreen(services: Services, onReceived: () -> Unit, onSetUpHere: () -> Unit) {
+    val context = LocalContext.current
+    var status by remember { mutableStateOf(PhoneSetupStatus.OPENING) }
+    var attempt by remember { mutableStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        // Only a setup that arrives from now on: clear one left over from before.
+        services.phoneSetup.value = null
+        services.phoneSetup.filterNotNull().first()
+        services.phoneSetup.value = null
+        onReceived()
+    }
+    LaunchedEffect(attempt) {
+        status = PhoneSetupStatus.OPENING
+        status = openOnPhone(context, services)
+    }
+
+    ListScreen("Setup on phone") {
+        item {
+            Text(
+                when (status) {
+                    PhoneSetupStatus.OPENING -> "Opening the app on your phone…"
+                    PhoneSetupStatus.OPENED -> "Fill in the match on your phone, then tap Send to watch. It opens here to check and start."
+                    PhoneSetupStatus.NO_PHONE -> "No phone in reach. Check Bluetooth, or set up on the watch."
+                    PhoneSetupStatus.FAILED -> "Couldn't open the app on your phone. Open FH Match Centre there: Settings → Set up a match."
+                },
+                fontSize = 14.sp,
+                textAlign = TextAlign.Center,
+            )
+        }
+        if (status == PhoneSetupStatus.NO_PHONE || status == PhoneSetupStatus.FAILED) {
+            item { ChoiceButton("Try again") { attempt++ } }
+        }
+        item { ChoiceButton("Set up here instead") { onSetUpHere() } }
+    }
+}
+
+private enum class PhoneSetupStatus { OPENING, OPENED, NO_PHONE, FAILED }
+
+/** Opens the phone app's setup screen on each phone in reach. */
+private suspend fun openOnPhone(context: android.content.Context, services: Services): PhoneSetupStatus {
+    val phones = runCatching { Wearable.getNodeClient(context).connectedNodes.await() }.getOrDefault(emptyList())
+    if (phones.isEmpty()) return PhoneSetupStatus.NO_PHONE
+    val helper = RemoteActivityHelper(context, Executors.newSingleThreadExecutor())
+    val intent = Intent(Intent.ACTION_VIEW)
+        .addCategory(Intent.CATEGORY_BROWSABLE)
+        .setData(Uri.parse(WatchSync.PHONE_SETUP_URI))
+    val opened = withContext(Dispatchers.IO) {
+        phones.count { node -> runCatching { helper.startRemoteActivity(intent, node.id).get() }.isSuccess }
+    }
+    return if (opened > 0) PhoneSetupStatus.OPENED else PhoneSetupStatus.FAILED
 }
 
 /** Opens the watch keyboard (or voice) for a line of text. */

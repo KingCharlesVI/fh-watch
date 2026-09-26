@@ -1,0 +1,56 @@
+package expo.modules.watchsync
+
+import android.content.Context
+import com.google.android.gms.tasks.Tasks
+import com.google.android.gms.wearable.Wearable
+import expo.modules.kotlin.exception.Exceptions
+import expo.modules.kotlin.modules.Module
+import expo.modules.kotlin.modules.ModuleDefinition
+
+/** The JS side of watch sync. Async functions run off the main thread, so blocking calls are fine. */
+class WatchSyncModule : Module() {
+  private val context: Context
+    get() = appContext.reactContext ?: throw Exceptions.ReactContextLost()
+
+  override fun definition() = ModuleDefinition {
+    Name("WatchSync")
+
+    Events("onMatchReceived")
+
+    OnCreate {
+      WatchReceiver.onReceived = { id -> sendEvent("onMatchReceived", mapOf("id" to id)) }
+    }
+
+    OnDestroy {
+      WatchReceiver.onReceived = null
+    }
+
+    AsyncFunction("listInbox") {
+      WatchInbox.list(context).map { mapOf("id" to it.id, "json" to it.json, "receivedAt" to it.receivedAt.toDouble()) }
+    }
+
+    AsyncFunction("removeFromInbox") { id: String ->
+      WatchInbox.remove(context, id)
+    }
+
+    AsyncFunction("pullPending") {
+      WatchReceiver.pullPending(context)
+    }
+
+    AsyncFunction("connectedWatches") {
+      Tasks.await(Wearable.getNodeClient(context).connectedNodes).map { mapOf("id" to it.id, "name" to it.displayName) }
+    }
+
+    // Setup on phone: sends a match setup (JSON) to every watch in reach, as a message at
+    // /setup. The watch opens its setup screen with it. Returns how many watches got it.
+    AsyncFunction("sendSetup") { json: String ->
+      val messages = Wearable.getMessageClient(context)
+      val bytes = json.toByteArray()
+      // Without a paired watch (or the watch's companion app) the Wearable API refuses: that's no watch too.
+      val watches = runCatching { Tasks.await(Wearable.getNodeClient(context).connectedNodes) }.getOrDefault(emptyList())
+      watches.count { node ->
+        runCatching { Tasks.await(messages.sendMessage(node.id, "/setup", bytes)) }.isSuccess
+      }
+    }
+  }
+}

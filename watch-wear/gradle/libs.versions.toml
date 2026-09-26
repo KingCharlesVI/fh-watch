@@ -7,6 +7,7 @@ wearCompose = "1.7.0"
 wearOngoing = "1.1.0"
 wear = "1.4.0"
 wearInput = "1.2.0"
+wearRemoteInteractions = "1.2.0"
 room = "2.8.5"
 activityCompose = "1.13.0"
 lifecycle = "2.11.0"
@@ -36,6 +37,7 @@ wear-compose-navigation = { module = "androidx.wear.compose:compose-navigation",
 wear-ongoing = { module = "androidx.wear:wear-ongoing", version.ref = "wearOngoing" }
 wear = { module = "androidx.wear:wear", version.ref = "wear" }
 wear-input = { module = "androidx.wear:wear-input", version.ref = "wearInput" }
+wear-remote-interactions = { module = "androidx.wear:wear-remote-interactions", version.ref = "wearRemoteInteractions" }
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }

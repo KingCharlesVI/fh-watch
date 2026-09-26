@@ -45,8 +45,8 @@ export const DOWNLOADS: Download[] = [
       // Play Console → Internal testing → Testers → "Join on Android" link.
       { label: "Android and Wear OS", store: "google-play", href: null },
       // The APKs' public URLs (e.g. in the S3 bucket). Update them and `detail` for each new build.
-      { label: "Phone app (APK)", store: "apk", href: "https://fhmatchcentre.s3.eu-north-1.amazonaws.com/releases/fh-match-centre-phone-0.3.0-1-alpha.apk", detail: "0.3.0 106MB" },
-      { label: "Watch app (APK)", store: "apk", href: "https://fhmatchcentre.s3.eu-north-1.amazonaws.com/releases/fh-match-centre-watch-0.3.0-1.apk", detail: "0.3.0 4MB" },
+      { label: "Phone app (APK)", store: "apk", href: "https://fhmatchcentre.s3.eu-north-1.amazonaws.com/releases/fh-match-centre-phone-0.3.0-2-alpha.apk", detail: "0.3.0-2 106MB" },
+      { label: "Watch app (APK)", store: "apk", href: "https://fhmatchcentre.s3.eu-north-1.amazonaws.com/releases/fh-match-centre-watch-0.3.0-2.apk", detail: "0.3.0-2 4MB" },
     ],
   },
   {

@@ -68,6 +68,8 @@ function Navigator() {
         <Stack.Screen name="match/[id]/index" options={{ title: "Match" }} />
         <Stack.Screen name="match/[id]/edit" options={{ title: "Edit match" }} />
         <Stack.Screen name="match/[id]/share" options={{ title: "Share", presentation: "modal" }} />
+        {/* Setup on phone: the watch opens this (fhmatchcentre://setup). */}
+        <Stack.Screen name="setup" options={{ title: "Set up a match" }} />
       </Stack.Protected>
       <Stack.Protected guard={!open}>
         <Stack.Screen name="login" options={{ headerShown: false }} />

@@ -96,6 +96,8 @@ dependencies {
     implementation(libs.wear.ongoing)
     implementation(libs.wear)
     implementation(libs.wear.input)
+    // Opening the phone app from the watch (Setup on phone).
+    implementation(libs.wear.remote.interactions)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
