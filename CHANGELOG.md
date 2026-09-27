@@ -1,8 +1,9 @@
-## [0.3.0-alpha.7] - 2026-09-27
+## [unreleased]
 
 ### 🚀 Features
 
 - Card reasons
+- Three-digit shirt numbers
 
 ### 🐛 Bug Fixes
 
@@ -16,6 +17,7 @@
 
 - General tidying
 - Publish GitHub releases from this PC
+- Git-cliff for changelog
 
 ### 💼 Other
 
