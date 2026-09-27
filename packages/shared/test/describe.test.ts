@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeEvent, eventTime, formatDuration, periodLabel } from "../src/describe.js";
+import { CARD_REASONS, describeEvent, eventTime, formatDuration, periodLabel } from "../src/describe.js";
 import { leagueMatch, shootoutMatch } from "./fixtures.js";
 
 describe("periodLabel", () => {
@@ -55,5 +55,18 @@ describe("describeEvent and eventTime", () => {
     const m = shootoutMatch();
     const e = m.events.find((x) => x.seq === 9)!;
     expect([eventTime(e, m.settings), describeEvent(e, m.settings)]).toEqual(["SO", "Shootout round 2: missed"]);
+  });
+});
+
+describe("card reasons", () => {
+  it("adds the reason to a card's description", () => {
+    const m = leagueMatch();
+    const card = m.events.find((e) => e.type === "card")!;
+    expect(describeEvent({ ...card, reason: "dissent" } as typeof card, m.settings)).toBe("Yellow card (5 min): dissent");
+    expect(describeEvent({ ...card, color: "red", durationSec: undefined, reason: "physical" } as typeof card, m.settings)).toBe("Red card: physical misconduct");
+  });
+
+  it("has a label for every reason", () => {
+    expect(Object.keys(CARD_REASONS)).toEqual(["danger", "breakdown", "physical", "dissent", "other"]);
   });
 });

@@ -35,6 +35,16 @@ enum class CardColor {
     @SerialName("red") RED,
 }
 
+/** Why a card was given; the same codes as CardReason in packages/shared/src/schema.ts. */
+@Serializable
+enum class CardReason {
+    @SerialName("danger") DANGER,
+    @SerialName("breakdown") BREAKDOWN,
+    @SerialName("physical") PHYSICAL,
+    @SerialName("dissent") DISSENT,
+    @SerialName("other") OTHER,
+}
+
 @Serializable
 enum class GoalMethod {
     @SerialName("field") FIELD,
@@ -168,6 +178,7 @@ data class Card(
     override val team: Side,
     val player: Int? = null,
     val color: CardColor,
+    val reason: CardReason? = null,
     /** Suspension length; absent for red. */
     val durationSec: Int? = null,
 ) : MatchEvent(), Timed, ForTeam

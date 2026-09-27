@@ -226,9 +226,9 @@ fun MatchSettings.durationSec(kind: CardKind): Int? = when (kind) {
     CardKind.RED -> null
 }
 
-fun MatchRecord.card(team: Side, player: Int?, kind: CardKind, now: Moment): MatchRecord {
+fun MatchRecord.card(team: Side, player: Int?, kind: CardKind, now: Moment, reason: CardReason? = null): MatchRecord {
     requirePlaying()
-    return append({ Card(it, now.iso, clock.period, periodElapsedMs(now), team, player, kind.color, settings.durationSec(kind)) })
+    return append({ Card(it, now.iso, clock.period, periodElapsedMs(now), team, player, kind.color, reason, settings.durationSec(kind)) })
 }
 
 fun MatchRecord.penaltyCorner(team: Side, now: Moment): MatchRecord {

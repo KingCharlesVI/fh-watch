@@ -517,6 +517,17 @@
                   "red"
                 ]
               },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "danger",
+                  "breakdown",
+                  "physical",
+                  "dissent",
+                  "other"
+                ],
+                "description": "Why the card was given: danger, breakdown of play, physical misconduct, dissent, or other."
+              },
               "durationSec": {
                 "description": "Suspension length. Required for green and yellow, absent for red.",
                 "type": "integer",

@@ -1,4 +1,6 @@
 import {
+  CARD_REASONS,
+  type CardReason,
   type EventInput,
   type MatchDocument,
   type TeamSide,
@@ -11,6 +13,7 @@ import {
   parseMatch,
   periodLabel,
   restoreEvent,
+  setCardReason,
   sortChronologically,
   summarizeMatch,
   voidedSeqs,
@@ -307,6 +310,8 @@ function EventsCard({ doc, saved, onChange }: { doc: MatchDocument; saved: Match
   const c = useColors();
   const savedSeqs = useMemo(() => new Set(saved.events.map((e) => e.seq)), [saved]);
   const voided = voidedSeqs(doc);
+  // The card whose reason is being picked, if any.
+  const [reasonFor, setReasonFor] = useState<number | null>(null);
   const shown = sortChronologically(doc.events.filter((e) => e.type !== "void" && e.type !== "period_start" && e.type !== "period_end"));
 
   return (
@@ -316,27 +321,58 @@ function EventsCard({ doc, saved, onChange }: { doc: MatchDocument; saved: Match
         const isVoided = voided.has(e.seq);
         const struck = isVoided ? { textDecorationLine: "line-through" as const, color: c.muted } : null;
         return (
-          <View key={e.seq} style={[styles.event, { borderTopColor: c.border }]}>
-            <Text style={[{ width: 64, color: c.muted, fontVariant: ["tabular-nums"] }, struck]}>{eventTime(e, doc.settings)}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={[{ color: c.text }, struck]}>{describeEvent(e, doc.settings)}</Text>
-              {"team" in e && (
-                <Text style={[{ color: c.muted, fontSize: 13 }, struck]}>
-                  {doc.teams[e.team].name}
-                  {"player" in e && e.player !== undefined ? ` · #${e.player}` : ""}
-                </Text>
+          <View key={e.seq}>
+            <View style={[styles.event, { borderTopColor: c.border }]}>
+              <Text style={[{ width: 64, color: c.muted, fontVariant: ["tabular-nums"] }, struck]}>{eventTime(e, doc.settings)}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[{ color: c.text }, struck]}>{describeEvent(e, doc.settings)}</Text>
+                {"team" in e && (
+                  <Text style={[{ color: c.muted, fontSize: 13 }, struck]}>
+                    {doc.teams[e.team].name}
+                    {"player" in e && e.player !== undefined ? ` · #${e.player}` : ""}
+                  </Text>
+                )}
+              </View>
+              {e.type === "card" && !isVoided && (
+                <Button small variant="ghost" title="Reason" onPress={() => setReasonFor(reasonFor === e.seq ? null : e.seq)} />
+              )}
+              {isVoided ? (
+                <Button small variant="ghost" title="Restore" onPress={() => onChange(restoreEvent(doc, e.seq))} />
+              ) : (
+                <Button small variant="ghost" title={savedSeqs.has(e.seq) ? "Cancel" : "Remove"} onPress={() => onChange(cancelEvent(doc, e.seq, savedSeqs))} />
               )}
             </View>
-            {isVoided ? (
-              <Button small variant="ghost" title="Restore" onPress={() => onChange(restoreEvent(doc, e.seq))} />
-            ) : (
-              <Button small variant="ghost" title={savedSeqs.has(e.seq) ? "Cancel" : "Remove"} onPress={() => onChange(cancelEvent(doc, e.seq, savedSeqs))} />
+            {e.type === "card" && reasonFor === e.seq && (
+              <View style={{ paddingVertical: space.sm }}>
+                <ReasonChoice
+                  value={e.reason}
+                  onChange={(reason) => {
+                    onChange(setCardReason(doc, e.seq, reason ?? null));
+                    setReasonFor(null);
+                  }}
+                />
+              </View>
             )}
           </View>
         );
       })}
       <AddEvent doc={doc} onAdd={(ev) => onChange(addEvent(doc, ev))} />
     </Card>
+  );
+}
+
+/** Why a card was given, or "Not recorded". */
+function ReasonChoice({ value, onChange }: { value: CardReason | undefined; onChange: (reason: CardReason | undefined) => void }) {
+  return (
+    <Choice
+      label="Why"
+      value={value ?? "none"}
+      onChange={(v) => onChange(v === "none" ? undefined : v)}
+      options={[
+        { value: "none" as const, label: "Not recorded" },
+        ...(Object.entries(CARD_REASONS) as [CardReason, string][]).map(([v, label]) => ({ value: v, label })),
+      ]}
+    />
   );
 }
 
@@ -432,6 +468,7 @@ function AddEvent({ doc, onAdd }: { doc: MatchDocument; onAdd: Parameters<typeof
               ]}
             />
           )}
+          <ReasonChoice value={input.reason} onChange={(reason) => set({ reason })} />
         </>
       )}
       {input.type === "penalty_stroke" && (

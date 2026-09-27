@@ -300,6 +300,7 @@ private fun CardsPage(m: MatchRecord, now: Moment, controller: MatchController, 
     // Everything else: red cards, and suspensions that are over.
     val earlier = m.activeEvents().filterIsInstance<Card>().filter { it.seq !in suspended }.reversed()
     val teams = m.document.teams
+    val reasons = m.activeEvents().filterIsInstance<Card>().associate { it.seq to it.reason?.let(CARD_REASON_LABELS::getValue) }
     ListScreen(title = null, fromTop = true) {
         item {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
@@ -323,6 +324,7 @@ private fun CardsPage(m: MatchRecord, now: Moment, controller: MatchController, 
                     color = if (s.color == CardColor.GREEN) CARD_GREEN else CARD_YELLOW,
                     title = teams[s.team].name + (s.player?.let { " #$it" } ?: ""),
                     detail = formatClock(s.remainingMs) + if (paused) " · paused" else " left",
+                    reason = reasons[s.cardSeq],
                 )
             }
         }
@@ -334,6 +336,7 @@ private fun CardsPage(m: MatchRecord, now: Moment, controller: MatchController, 
                         color = when (c.color) { CardColor.GREEN -> CARD_GREEN; CardColor.YELLOW -> CARD_YELLOW; CardColor.RED -> CARD_RED },
                         title = teams[c.team].name + (c.player?.let { " #$it" } ?: ""),
                         detail = "${periodName(c.period, m.settings.periods)} ${formatClock(c.clockMs)}" + if (c.color == CardColor.RED) " · sent off" else " · served",
+                        reason = c.reason?.let(CARD_REASON_LABELS::getValue),
                         dim = c.color != CardColor.RED,
                     )
                 }
@@ -343,7 +346,7 @@ private fun CardsPage(m: MatchRecord, now: Moment, controller: MatchController, 
 }
 
 @Composable
-private fun CardRow(color: Color, title: String, detail: String, dim: Boolean = false) {
+private fun CardRow(color: Color, title: String, detail: String, reason: String? = null, dim: Boolean = false) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().background(SURFACE, RoundedCornerShape(16.dp)).padding(horizontal = 12.dp, vertical = 8.dp),
@@ -354,6 +357,7 @@ private fun CardRow(color: Color, title: String, detail: String, dim: Boolean = 
         Column {
             Text(title, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = if (dim) MUTED else Color.White)
             Text(detail, fontSize = 12.sp, color = MUTED, style = TABULAR)
+            if (reason != null) Text(reason, fontSize = 12.sp, color = MUTED, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }

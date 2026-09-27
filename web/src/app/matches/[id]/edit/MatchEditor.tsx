@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  CARD_REASONS,
+  type CardReason,
   type EventInput,
   type MatchDocument,
   type MatchEvent,
@@ -15,6 +17,7 @@ import {
   parseMatch,
   periodLabel,
   restoreEvent,
+  setCardReason,
   sortChronologically,
   summarizeMatch,
   voidedSeqs,
@@ -394,7 +397,20 @@ function EventsEditor({ doc, saved, update }: { doc: MatchDocument; saved: Match
               return (
                 <TableRow key={e.seq}>
                   <TableCell className={cn("tabular-nums", struck)}>{eventTime(e, doc.settings)}</TableCell>
-                  <TableCell className={cn("whitespace-normal", struck)}>{describeEvent(e, doc.settings)}</TableCell>
+                  <TableCell className={cn("whitespace-normal", struck)}>
+                    {describeEvent(e, doc.settings)}
+                    {e.type === "card" && !isVoided && (
+                      <div className="mt-2 w-52">
+                        <Choice
+                          id={`reason-${e.seq}`}
+                          label="Why"
+                          value={e.reason ?? "none"}
+                          onChange={(v) => apply(setCardReason(doc, e.seq, v === "none" ? null : v))}
+                          options={REASON_OPTIONS}
+                        />
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className={struck}>{"team" in e ? doc.teams[e.team].name : ""}</TableCell>
                   <TableCell className={struck}>{"player" in e && e.player !== undefined ? `#${e.player}` : ""}</TableCell>
                   <TableCell className="text-right">
@@ -420,6 +436,9 @@ function EventsEditor({ doc, saved, update }: { doc: MatchDocument; saved: Match
 }
 
 type NewEventType = EventInput["type"];
+
+/** Why a card was given, or "Not recorded", for the Choice selects. */
+const REASON_OPTIONS: ["none" | CardReason, string][] = [["none", "Not recorded"], ...(Object.entries(CARD_REASONS) as [CardReason, string][])];
 
 function Choice<T extends string>({ id, label, value, onChange, options }: { id: string; label: string; value: T; onChange: (v: T) => void; options: [T, string][] }) {
   return (
@@ -451,13 +470,14 @@ function AddEvent({ doc, onAdd }: { doc: MatchDocument; onAdd: (event: NewEvent)
   const [method, setMethod] = useState<"none" | "field" | "pc" | "ps">("none");
   const [color, setColor] = useState<"green" | "yellow" | "red">("green");
   const [yellowLong, setYellowLong] = useState(false);
+  const [reason, setReason] = useState<"none" | CardReason>("none");
   const [scored, setScored] = useState(true);
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   function add() {
     const built = buildEvent(
-      { type, team, period: Number(period), clock, player, method: method === "none" ? undefined : method, color, yellowLong, scored, text: note },
+      { type, team, period: Number(period), clock, player, method: method === "none" ? undefined : method, color, yellowLong, reason: reason === "none" ? undefined : reason, scored, text: note },
       settings,
     );
     if ("error" in built) return setError(built.error);
@@ -544,6 +564,9 @@ function AddEvent({ doc, onAdd }: { doc: MatchDocument; onAdd: (event: NewEvent)
                 ["red", "Red"],
               ]}
             />
+          </div>
+          <div className="w-52">
+            <Choice id="new-reason" label="Why" value={reason} onChange={setReason} options={REASON_OPTIONS} />
           </div>
           {color === "yellow" && (
             <Field orientation="horizontal" className="w-auto pb-2">

@@ -1,5 +1,5 @@
 import type { MatchDocument, MatchEvent } from "./schema.js";
-import { formatDuration } from "./describe.js";
+import { CARD_REASONS, formatDuration } from "./describe.js";
 import { formatClock, summarizeMatch } from "./summary.js";
 
 /** A cell: numbers are written as-is, text is escaped and formula-guarded. */
@@ -49,7 +49,8 @@ function eventDetail(e: MatchEvent): string | null {
       return e.method ? GOAL_METHODS[e.method] : null;
     case "card": {
       const color = e.color[0]!.toUpperCase() + e.color.slice(1);
-      return e.durationSec === undefined ? color : `${color}, ${formatDuration(e.durationSec)}`;
+      const card = e.durationSec === undefined ? color : `${color}, ${formatDuration(e.durationSec)}`;
+      return e.reason ? `${card}, ${CARD_REASONS[e.reason].toLowerCase()}` : card;
     }
     case "card_end":
       return `Suspension ended (card ${e.refSeq})`;

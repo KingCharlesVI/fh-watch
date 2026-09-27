@@ -37,7 +37,7 @@ class DocumentSchemaTest {
             .goal(Side.AWAY, null, null, t.now)
             .penaltyCorner(Side.HOME, t.now)
             .card(Side.AWAY, 4, CardKind.GREEN, t.now)
-            .card(Side.HOME, 12, CardKind.YELLOW_LONG, t.now)
+            .card(Side.HOME, 12, CardKind.YELLOW_LONG, t.now, CardReason.DISSENT)
             .card(Side.HOME, 3, CardKind.RED, t.now)
             .stopClock(t.now, StopReason.VIDEO)
         t.advance(MIN)

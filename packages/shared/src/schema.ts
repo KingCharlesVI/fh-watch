@@ -64,12 +64,20 @@ export const GoalEvent = z.strictObject({
 
 export const CardColor = z.enum(["green", "yellow", "red"]);
 
+/** Why a card was given. The labels people see are CARD_REASONS in describe.ts. */
+export const CardReason = z
+  .enum(["danger", "breakdown", "physical", "dissent", "other"])
+  .meta({
+    description: "Why the card was given: danger, breakdown of play, physical misconduct, dissent, or other.",
+  });
+
 export const CardEvent = z.strictObject({
   ...timed,
   type: z.literal("card"),
   team: TeamSide,
   player: ShirtNumber.optional(),
   color: CardColor,
+  reason: CardReason.optional(),
   durationSec: z
     .int()
     .min(1)
@@ -180,6 +188,7 @@ export const MatchDocument = z
 
 export type TeamSide = z.infer<typeof TeamSide>;
 export type CardColor = z.infer<typeof CardColor>;
+export type CardReason = z.infer<typeof CardReason>;
 export type Team = z.infer<typeof Team>;
 export type MatchSettings = z.infer<typeof MatchSettings>;
 export type MatchEvent = z.infer<typeof MatchEvent>;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addEvent, buildEvent, cancelEvent, nextSeq, parseClock, restoreEvent, voidedSeqs } from "../src/edit.js";
+import { addEvent, buildEvent, cancelEvent, nextSeq, parseClock, restoreEvent, setCardReason, voidedSeqs } from "../src/edit.js";
 import { summarizeMatch } from "../src/summary.js";
 import { parseMatch } from "../src/validate.js";
 import { leagueMatch } from "./fixtures.js";
@@ -89,5 +89,34 @@ describe("buildEvent", () => {
     expect(buildEvent({ ...base, type: "goal", player: "1.5" }, settings)).toHaveProperty("error");
     expect(buildEvent({ ...base, type: "goal", period: 5 }, settings)).toHaveProperty("error");
     expect(buildEvent({ ...base, type: "note", text: "  " }, settings)).toHaveProperty("error");
+  });
+});
+
+describe("setCardReason", () => {
+  it("sets, changes and clears a card's reason, and the match stays valid", () => {
+    const doc = leagueMatch();
+    const card = doc.events.find((e) => e.type === "card")!;
+    const withReason = setCardReason(doc, card.seq, "dissent");
+    expect(withReason.events.find((e) => e.seq === card.seq)).toMatchObject({ type: "card", reason: "dissent" });
+    expect(parseMatch(withReason).ok).toBe(true);
+    // The input is left alone.
+    expect(doc.events.find((e) => e.seq === card.seq)).not.toHaveProperty("reason");
+
+    const changed = setCardReason(withReason, card.seq, "breakdown");
+    expect(changed.events.find((e) => e.seq === card.seq)).toMatchObject({ reason: "breakdown" });
+
+    const cleared = setCardReason(changed, card.seq, null);
+    expect(cleared.events.find((e) => e.seq === card.seq)).not.toHaveProperty("reason");
+  });
+
+  it("leaves other events alone", () => {
+    const doc = leagueMatch();
+    const goal = doc.events.find((e) => e.type === "goal")!;
+    expect(setCardReason(doc, goal.seq, "dissent")).toEqual(doc);
+  });
+
+  it("builds a card with a reason from the form", () => {
+    const result = buildEvent({ type: "card", team: "home", period: 1, clock: "5:00", player: "7", color: "yellow", reason: "danger" }, leagueMatch().settings);
+    expect(result).toMatchObject({ event: { type: "card", color: "yellow", reason: "danger", durationSec: 300 } });
   });
 });

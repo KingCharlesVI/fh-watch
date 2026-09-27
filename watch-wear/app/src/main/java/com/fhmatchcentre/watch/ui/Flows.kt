@@ -20,6 +20,7 @@ import androidx.wear.compose.material3.Text
 import com.fhmatchcentre.watch.engine.Card
 import com.fhmatchcentre.watch.engine.CardEnd
 import com.fhmatchcentre.watch.engine.CardKind
+import com.fhmatchcentre.watch.engine.CardReason
 import com.fhmatchcentre.watch.engine.ClockResume
 import com.fhmatchcentre.watch.engine.ClockStop
 import com.fhmatchcentre.watch.engine.Goal
@@ -82,8 +83,8 @@ fun GoalFlow(controller: MatchController, forTeam: Side?, onDone: () -> Unit) {
 }
 
 /**
- * Card: team, colour and length, then the player (required). If the player
- * already has a card this match, the umpire confirms before it's recorded.
+ * Card: team, colour and length, the player (required), then why (optional). If the
+ * player already has a card this match, the umpire confirms before going on.
  */
 @Composable
 fun CardFlow(controller: MatchController, onDone: () -> Unit) {
@@ -91,11 +92,13 @@ fun CardFlow(controller: MatchController, onDone: () -> Unit) {
     var team by rememberSaveable { mutableStateOf<Side?>(null) }
     var kind by rememberSaveable { mutableStateOf<CardKind?>(null) }
     var repeat by rememberSaveable { mutableStateOf<Int?>(null) }
+    var player by rememberSaveable { mutableStateOf<Int?>(null) }
     val s = m.settings
-    fun save(number: Int) {
+    fun save(reason: CardReason?) {
         val side = team!!
         val k = kind!!
-        controller.perform("card") { card(side, number, k, it) }
+        val number = player!!
+        controller.perform("card") { card(side, number, k, it, reason) }
         onDone()
     }
     fun mins(k: CardKind) = s.durationSec(k)?.let { "${it / 60}′" + if (it % 60 != 0) "${it % 60}″" else "" }
@@ -106,6 +109,10 @@ fun CardFlow(controller: MatchController, onDone: () -> Unit) {
             item { ChoiceButton("Yellow", mins(CardKind.YELLOW_SHORT), CARD_YELLOW) { kind = CardKind.YELLOW_SHORT } }
             item { ChoiceButton("Yellow", mins(CardKind.YELLOW_LONG), CARD_YELLOW) { kind = CardKind.YELLOW_LONG } }
             item { ChoiceButton("Red", "Rest of match", CARD_RED) { kind = CardKind.RED } }
+        }
+        player != null -> ListScreen("Why?") {
+            item { ChoiceButton("Skip") { save(null) } }
+            CardReason.entries.forEach { r -> item { ChoiceButton(CARD_REASON_LABELS.getValue(r)) { save(r) } } }
         }
         repeat != null -> {
             val number = repeat!!
@@ -120,14 +127,14 @@ fun CardFlow(controller: MatchController, onDone: () -> Unit) {
                         textAlign = TextAlign.Center,
                     )
                 }
-                item { ChoiceButton("Continue", color = Color(0xFF106C3E)) { save(number) } }
+                item { ChoiceButton("Continue", color = Color(0xFF106C3E)) { player = number; repeat = null } }
                 item { ChoiceButton("Change card") { kind = null; repeat = null } }
             }
         }
         else -> NumberPad("Player", 0..99, null, optional = false) { number ->
             val n = number!!
             val carded = m.activeEvents().any { it is Card && it.team == team && it.player == n }
-            if (carded) repeat = n else save(n)
+            if (carded) repeat = n else player = n
         }
     }
 }
@@ -204,7 +211,8 @@ fun describe(m: MatchRecord, e: MatchEvent): String {
     fun who(side: Side, player: Int?) = t[side].name + (player?.let { " #$it" } ?: "")
     return when (e) {
         is Goal -> "Goal " + who(e.team, e.player) + when (e.method) { GoalMethod.PC -> " (PC)"; GoalMethod.PS -> " (PS)"; else -> "" }
-        is Card -> e.color.name.lowercase().replaceFirstChar(Char::uppercase) + " card " + who(e.team, e.player)
+        is Card -> e.color.name.lowercase().replaceFirstChar(Char::uppercase) + " card " + who(e.team, e.player) +
+            (e.reason?.let { ": " + CARD_REASON_LABELS.getValue(it).lowercase() } ?: "")
         is CardEnd -> "Suspension over"
         is PenaltyCorner -> "PC " + t[e.team].name
         is PenaltyStroke -> "Stroke " + t[e.team].name + if (e.scored) " scored" else " missed"

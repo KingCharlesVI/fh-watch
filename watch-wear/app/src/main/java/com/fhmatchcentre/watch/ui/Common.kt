@@ -25,6 +25,7 @@ import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
+import com.fhmatchcentre.watch.engine.CardReason
 import com.fhmatchcentre.watch.engine.Moment
 import com.fhmatchcentre.watch.engine.Side
 import com.fhmatchcentre.watch.engine.Team
@@ -63,6 +64,15 @@ val COLOUR_NAMES = mapOf(
     "#DC2626" to "Red", "#1D4ED8" to "Blue", "#FACC15" to "Yellow",
     "#16A34A" to "Green", "#EA580C" to "Orange", "#7C3AED" to "Purple", "#38BDF8" to "Sky blue",
     "#EC4899" to "Pink", "#111111" to "Black", "#FFFFFF" to "White",
+)
+
+/** What each card reason is called: the same as CARD_REASONS in packages/shared/src/describe.ts. */
+val CARD_REASON_LABELS = mapOf(
+    CardReason.DANGER to "Danger",
+    CardReason.BREAKDOWN to "Breakdown of play",
+    CardReason.PHYSICAL to "Physical misconduct",
+    CardReason.DISSENT to "Dissent",
+    CardReason.OTHER to "Other",
 )
 
 val CARD_GREEN = Color(0xFF2E9E44)
