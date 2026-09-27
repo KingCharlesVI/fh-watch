@@ -19,14 +19,7 @@ Or with Gradle directly, from this folder (needs a JDK 17+; Android Studio's is 
 ./gradlew :app:testDebugUnitTest   # the match engine and the document contract
 ```
 
-The physical button: on Galaxy watches it's the lower (Back) button; during a match it starts and stops the clock, and swiping right still goes back. Only presses from a real button count: on Wear OS 6 a swipe back also arrives as a Back key, and `adb shell input keyevent 4` is the same kind of made-up key, so both just navigate. To press a real button on the emulator, use the Wear OS 5 image (`Wear_OS_Large_Round`, which allows root) and send it through the emulator's keyboard device:
-
-```sh
-adb root
-adb shell "sendevent /dev/input/event1 1 158 1; sendevent /dev/input/event1 0 0 0; sendevent /dev/input/event1 1 158 0; sendevent /dev/input/event1 0 0 0"
-```
-
-(158 is Back; `adb shell getevent -il` lists the devices if `event1` isn't the "AT Translated Set 2 keyboard".) `Wear_OS_6_Large_Round` shows how Wear OS 6 behaves, but its image doesn't allow root. `adb shell input rotaryencoder scroll --axis SCROLL,-1` turns the crown.
+The physical button: on Galaxy watches it's the lower (Back) button; during a match it starts and stops the clock, and swiping right still goes back. On Wear OS 6 a swipe back also arrives as a Back key; it's told apart from the button by its "virtual key" flag and the touch just before it (see `dispatchKeyEvent` in `MainActivity.kt`, which has the values measured on a Galaxy Watch7). `adb logcat -s FHKey` shows each Back key and what was decided. On the emulator, `adb shell input keyevent 4` acts as the button. `adb shell input rotaryencoder scroll --axis SCROLL,-1` turns the crown.
 
 ## Layout
 

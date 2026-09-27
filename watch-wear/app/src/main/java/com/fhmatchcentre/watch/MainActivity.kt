@@ -4,7 +4,6 @@ import android.Manifest
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
-import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.WindowManager
@@ -82,12 +81,15 @@ class MainActivity : ComponentActivity() {
      * Back, which apps may use (the upper one, Home, belongs to the system). Watches
      * with stem buttons use those.
      *
-     * Swiping right must still go back, and on some watches the swipe arrives as a Back
-     * key too. On Wear OS 6 it's made up by the system (device -1, no scan code,
-     * FLAG_VIRTUAL_HARD_KEY). So a key only counts if it comes from a real button (an
-     * input device, with a scan code) and the screen isn't being touched, in case a
-     * watch turns the swipe into a key that looks real. Anything else goes back.
-     * (`adb shell input keyevent` is made up too, so it navigates rather than starting the clock.)
+     * Swiping right must still go back, and on Wear OS 6 the swipe arrives as a Back key
+     * too. Neither can be told apart by where it comes from: on a Galaxy Watch7 both are
+     * sent by the system (device -1, no scan code). What differs, measured on a Watch7:
+     *
+     *   side button   flags 0x8  (FLAG_FROM_SYSTEM)                          no touch around it
+     *   swipe back    flags 0x48 (FLAG_FROM_SYSTEM | FLAG_VIRTUAL_HARD_KEY)  a touch ~10 ms before
+     *
+     * So a Back key works the clock unless it's marked virtual or follows a touch; either
+     * means a swipe, which goes back.
      *
      * `adb logcat -s FHKey` shows each Back key and what was decided, to check a new watch.
      */
@@ -96,10 +98,10 @@ class MainActivity : ComponentActivity() {
             Log.d(
                 "FHKey",
                 "key=${event.keyCode} device=${event.deviceId} scan=${event.scanCode} flags=0x${Integer.toHexString(event.flags)} " +
-                    "touching=$touching sinceTouch=${event.eventTime - lastTouchAt}ms clock=${event.isPhysicalButton() && !touchedRecently(event)}",
+                    "touching=$touching sinceTouch=${event.eventTime - lastTouchAt}ms clock=${event.isButtonPress()}",
             )
         }
-        if (event.keyCode in CLOCK_BUTTONS && event.isPhysicalButton() && !touchedRecently(event) && matchUnderWay()) {
+        if (event.keyCode in CLOCK_BUTTONS && event.isButtonPress() && matchUnderWay()) {
             if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
                 services.controller.perform { toggleClock(it) }
             }
@@ -122,8 +124,8 @@ class MainActivity : ComponentActivity() {
     /** A swipe ends just before its Back key; a button press has no touch around it. */
     private fun touchedRecently(event: KeyEvent): Boolean = touching || event.eventTime - lastTouchAt < SWIPE_KEY_WINDOW_MS
 
-    private fun KeyEvent.isPhysicalButton(): Boolean =
-        deviceId != KeyCharacterMap.VIRTUAL_KEYBOARD && scanCode != 0 && (flags and KeyEvent.FLAG_VIRTUAL_HARD_KEY) == 0
+    /** A press of the side button, not a swipe that arrived as a key (see dispatchKeyEvent). */
+    private fun KeyEvent.isButtonPress(): Boolean = (flags and KeyEvent.FLAG_VIRTUAL_HARD_KEY) == 0 && !touchedRecently(this)
 
     private fun matchUnderWay(): Boolean {
         val phase = services.controller.active.value?.clock?.phase
