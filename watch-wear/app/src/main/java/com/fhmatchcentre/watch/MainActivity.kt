@@ -35,7 +35,6 @@ import com.fhmatchcentre.watch.ui.PhoneSetupScreen
 import com.fhmatchcentre.watch.ui.SettingsScreen
 import com.fhmatchcentre.watch.ui.SetupScreen
 import com.fhmatchcentre.watch.ui.ShootoutScreen
-import com.fhmatchcentre.watch.ui.StrokeFlow
 import com.fhmatchcentre.watch.ui.SummaryScreen
 import com.fhmatchcentre.watch.ui.WatchTheme
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -177,7 +176,6 @@ private fun WatchNav(services: Services, ambient: Boolean) {
                     services, ambient,
                     onGoal = { side -> nav.navigate("goal/${side.name}") },
                     onCard = { nav.navigate("card") },
-                    onStroke = { nav.navigate("stroke") },
                     onEvents = { nav.navigate("events") },
                 )
             }
@@ -186,7 +184,6 @@ private fun WatchNav(services: Services, ambient: Boolean) {
                 GoalFlow(controller, side) { nav.popBackStack() }
             }
             composable("card") { CardFlow(controller) { nav.popBackStack() } }
-            composable("stroke") { StrokeFlow(controller) { nav.popBackStack() } }
             composable("events") { EventsScreen(controller) }
             composable("shootout") { ShootoutScreen(controller) }
             composable("matches") { MatchesScreen(services) { id -> nav.navigate("summary/$id") } }

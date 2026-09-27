@@ -2,7 +2,7 @@
 
 Kotlin, Jetpack Compose for Wear OS (Material 3), Room. Runs on Wear OS 3 and later (API 30+). See [docs/design.md](../docs/design.md) for what it does and why.
 
-During a match the screen is a row of pages, swiped left and right: **Timing** (clock, score, start/stop, injury and video stops), **Cards** (suspension timers and earlier cards, + to give one), **Goals** (score, +1 per team, penalty corners, strokes), **Phone** (whether the phone is in reach, and sending anything left over) and **Match** (clock direction, the events log, ending a period or the match). Timing is first; swiping right from it goes back home. The layout is in `ui/MatchScreen.kt`; the page order is the `Page` enum there.
+During a match the screen is a row of pages, swiped left and right: **Timing** (period, clock, score and suspension timers; the side button starts and stops time), **Goals** (score and +1 per team; the goal flow asks the scorer and whether it came from a penalty corner or stroke), **Cards** (+ to give one, suspension timers and earlier cards) and **Settings** (clock direction, on-screen start/stop, the events log, whether the phone is in reach, ending a period or the match). Penalty corners and strokes aren't recorded on their own, only as how a goal was scored. Timing is first; swiping right from it goes back home. The layout is in `ui/MatchScreen.kt`; the page order is the `Page` enum there.
 
 ## Running it
 

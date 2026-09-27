@@ -88,6 +88,9 @@ val CARD_REASON_LABELS = mapOf(
     CardReason.OTHER to "Other",
 )
 
+/** For ending the match: it can't be undone. */
+val END_RED = Color(0xFF8A2B20)
+
 val CARD_GREEN = Color(0xFF2E9E44)
 val CARD_YELLOW = Color(0xFFF2C230)
 val CARD_RED = Color(0xFFD93A2B)

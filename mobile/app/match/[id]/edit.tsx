@@ -379,7 +379,7 @@ function ReasonChoice({ value, onChange }: { value: CardReason | undefined; onCh
 function AddEvent({ doc, onAdd }: { doc: MatchDocument; onAdd: Parameters<typeof addEvent>[1] extends infer E ? (e: E) => void : never }) {
   const { settings } = doc;
   const c = useColors();
-  const [input, setInput] = useState<EventInput>({ type: "goal", team: "home", period: 1, clock: "", player: "", color: "green", scored: true });
+  const [input, setInput] = useState<EventInput>({ type: "goal", team: "home", period: 1, clock: "", player: "", color: "green" });
   const [error, setError] = useState<string | null>(null);
   const set = (patch: Partial<EventInput>) => setInput((i) => ({ ...i, ...patch }));
 
@@ -400,8 +400,6 @@ function AddEvent({ doc, onAdd }: { doc: MatchDocument; onAdd: Parameters<typeof
         options={[
           { value: "goal", label: "Goal" },
           { value: "card", label: "Card" },
-          { value: "penalty_corner", label: "Corner" },
-          { value: "penalty_stroke", label: "Stroke" },
           { value: "note", label: "Note" },
         ]}
       />
@@ -470,17 +468,6 @@ function AddEvent({ doc, onAdd }: { doc: MatchDocument; onAdd: Parameters<typeof
           )}
           <ReasonChoice value={input.reason} onChange={(reason) => set({ reason })} />
         </>
-      )}
-      {input.type === "penalty_stroke" && (
-        <Choice
-          label="Result"
-          value={input.scored ? "scored" : "missed"}
-          onChange={(v) => set({ scored: v === "scored" })}
-          options={[
-            { value: "scored", label: "Scored (add the goal too)" },
-            { value: "missed", label: "Missed" },
-          ]}
-        />
       )}
       {input.type === "note" && <Field label="Note" value={input.text ?? ""} onChangeText={(text) => set({ text })} multiline maxLength={1000} />}
       {error && <T variant="small" style={{ color: c.danger }}>{error}</T>}

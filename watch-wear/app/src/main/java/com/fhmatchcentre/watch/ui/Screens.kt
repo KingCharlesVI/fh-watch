@@ -252,7 +252,8 @@ fun SummaryScreen(services: Services, id: String, onDone: () -> Unit) {
     ListScreen("Full time") {
         item { Text("${t.home.name} ${s.home} – ${s.away} ${t.away.name}", fontSize = 15.sp) }
         if (so.home.isNotEmpty()) item { Text("Shootout ${so.homeScore} – ${so.awayScore}", fontSize = 13.sp) }
-        item { Text("PCs ${pcs.home} – ${pcs.away}", fontSize = 13.sp) }
+        // Only in matches from before penalty corners stopped being recorded on the watch.
+        if (pcs.home + pcs.away > 0) item { Text("PCs ${pcs.home} – ${pcs.away}", fontSize = 13.sp) }
         item {
             Text(
                 "Cards: " + CardColor.entries.joinToString(", ") { c -> "${cards.count { it.color == c }} ${c.name.lowercase()}" },
@@ -316,5 +317,16 @@ fun SettingsScreen(services: Services) {
                 scope.launch { resent = runCatching { services.sync.resendPending() }.getOrDefault(0) }
             }
         }
+        item { Text(versionText(LocalContext.current), fontSize = 12.sp, color = Color(0xFFB5B5B5)) }
     }
+}
+
+/**
+ * "Version 0.3.0 (7)", as the phone's Settings shows it. The watch's version code is
+ * 1,000,000 above the shared build number (see app/build.gradle.kts), so this shows
+ * the same build number as the phone.
+ */
+private fun versionText(context: android.content.Context): String {
+    val info = context.packageManager.getPackageInfo(context.packageName, 0)
+    return "Version ${info.versionName} (${info.longVersionCode - 1_000_000})"
 }

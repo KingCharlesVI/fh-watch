@@ -42,7 +42,6 @@ import com.fhmatchcentre.watch.engine.durationSec
 import com.fhmatchcentre.watch.engine.endMatch
 import com.fhmatchcentre.watch.engine.goal
 import com.fhmatchcentre.watch.engine.isUndoable
-import com.fhmatchcentre.watch.engine.missedStroke
 import com.fhmatchcentre.watch.engine.shootout
 import com.fhmatchcentre.watch.engine.shootoutAttempt
 import com.fhmatchcentre.watch.engine.undo
@@ -139,32 +138,6 @@ fun CardFlow(controller: MatchController, onDone: () -> Unit) {
     }
 }
 
-/** Penalty stroke: team, then scored (with optional scorer) or missed. */
-@Composable
-fun StrokeFlow(controller: MatchController, onDone: () -> Unit) {
-    val m = controller.active.collectAsStateWithLifecycle().value ?: return onDone()
-    var team by rememberSaveable { mutableStateOf<Side?>(null) }
-    var scored by rememberSaveable { mutableStateOf(false) }
-    when {
-        team == null -> PickTeam(m, "Penalty stroke") { team = it }
-        !scored -> ListScreen("Stroke") {
-            item { ChoiceButton("Scored", color = Color(0xFF106C3E)) { scored = true } }
-            item {
-                ChoiceButton("Missed") {
-                    val side = team!!
-                    controller.perform("stroke") { missedStroke(side, it) }
-                    onDone()
-                }
-            }
-        }
-        else -> NumberPad("Scorer", 0..99, null, optional = true) { player ->
-            val side = team!!
-            controller.perform("goal") { goal(side, player, GoalMethod.PS, it) }
-            onDone()
-        }
-    }
-}
-
 /** The log, newest first. Recorded events can be cancelled; cancelled ones are struck through. */
 @Composable
 fun EventsScreen(controller: MatchController) {
@@ -256,7 +229,7 @@ fun ShootoutScreen(controller: MatchController) {
             }
         } else {
             item { Text("${teams[so.winner].name} win the shootout", fontSize = 14.sp) }
-            item { ChoiceButton("End match", color = Color(0xFF106C3E)) { controller.perform { endMatch(it) } } }
+            item { ChoiceButton("End match", color = END_RED) { controller.perform { endMatch(it) } } }
         }
         if (last != null) item { ChoiceButton("Undo last attempt") { controller.perform { undo(last.seq, it) } } }
     }

@@ -101,12 +101,17 @@ export function MatchView({ data, downloadBase }: { data: FullMatch; downloadBas
             <CardContent>
               <Table>
                 <TableBody>
-                  <Stat label="Penalty corners" home={s.penaltyCorners.home} away={s.penaltyCorners.away} />
-                  <Stat
-                    label="Penalty strokes (scored)"
-                    home={`${s.penaltyStrokes.home.awarded} (${s.penaltyStrokes.home.scored})`}
-                    away={`${s.penaltyStrokes.away.awarded} (${s.penaltyStrokes.away.scored})`}
-                  />
+                  {/* Corners and strokes aren't recorded any more; only older matches have them. */}
+                  {s.penaltyCorners.home + s.penaltyCorners.away > 0 && (
+                    <Stat label="Penalty corners" home={s.penaltyCorners.home} away={s.penaltyCorners.away} />
+                  )}
+                  {s.penaltyStrokes.home.awarded + s.penaltyStrokes.away.awarded > 0 && (
+                    <Stat
+                      label="Penalty strokes (scored)"
+                      home={`${s.penaltyStrokes.home.awarded} (${s.penaltyStrokes.home.scored})`}
+                      away={`${s.penaltyStrokes.away.awarded} (${s.penaltyStrokes.away.scored})`}
+                    />
+                  )}
                   <Stat label="Green cards" home={s.cards.home.green} away={s.cards.away.green} />
                   <Stat label="Yellow cards" home={s.cards.home.yellow} away={s.cards.away.yellow} />
                   <Stat label="Red cards" home={s.cards.home.red} away={s.cards.away.red} />

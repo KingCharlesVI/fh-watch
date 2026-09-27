@@ -471,13 +471,12 @@ function AddEvent({ doc, onAdd }: { doc: MatchDocument; onAdd: (event: NewEvent)
   const [color, setColor] = useState<"green" | "yellow" | "red">("green");
   const [yellowLong, setYellowLong] = useState(false);
   const [reason, setReason] = useState<"none" | CardReason>("none");
-  const [scored, setScored] = useState(true);
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   function add() {
     const built = buildEvent(
-      { type, team, period: Number(period), clock, player, method: method === "none" ? undefined : method, color, yellowLong, reason: reason === "none" ? undefined : reason, scored, text: note },
+      { type, team, period: Number(period), clock, player, method: method === "none" ? undefined : method, color, yellowLong, reason: reason === "none" ? undefined : reason, text: note },
       settings,
     );
     if ("error" in built) return setError(built.error);
@@ -499,8 +498,6 @@ function AddEvent({ doc, onAdd }: { doc: MatchDocument; onAdd: (event: NewEvent)
           options={[
             ["goal", "Goal"],
             ["card", "Card"],
-            ["penalty_corner", "Penalty corner"],
-            ["penalty_stroke", "Penalty stroke"],
             ["note", "Note"],
           ]}
         />
@@ -577,14 +574,6 @@ function AddEvent({ doc, onAdd }: { doc: MatchDocument; onAdd: (event: NewEvent)
             </Field>
           )}
         </div>
-      )}
-      {type === "penalty_stroke" && (
-        <Field orientation="horizontal">
-          <Checkbox id="new-scored" checked={scored} onCheckedChange={(v) => setScored(v === true)} />
-          <FieldLabel htmlFor="new-scored" className="font-normal">
-            Scored (also add the goal, with “Penalty stroke” as how)
-          </FieldLabel>
-        </Field>
       )}
       {type === "note" && (
         <Field>
