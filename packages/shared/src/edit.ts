@@ -1,4 +1,4 @@
-import type { CardColor, MatchDocument, MatchEvent, MatchSettings, TeamSide } from "./schema.js";
+import type { CardColor, CardReason, MatchDocument, MatchEvent, MatchSettings, TeamSide } from "./schema.js";
 
 /**
  * Edits umpires make after the match, shared by the website and phone app.
@@ -44,6 +44,22 @@ export function restoreEvent(doc: MatchDocument, seq: number): MatchDocument {
   return next;
 }
 
+/**
+ * Sets or clears the reason on a card (null clears it). Unlike other corrections,
+ * this edits the card itself: the reason is a detail of the card, not a separate
+ * event, and a new revision keeps the old one in the history.
+ */
+export function setCardReason(doc: MatchDocument, seq: number, reason: CardReason | null): MatchDocument {
+  return {
+    ...doc,
+    events: doc.events.map((e) => {
+      if (e.seq !== seq || e.type !== "card") return e;
+      const { reason: _old, ...rest } = e;
+      return reason ? { ...rest, reason } : rest;
+    }),
+  };
+}
+
 /** "12:30" or "12" (minutes) → milliseconds. Null if unreadable. */
 export function parseClock(value: string): number | null {
   const m = /^\s*(\d{1,3})(?::([0-5]\d))?\s*$/.exec(value);
@@ -63,6 +79,8 @@ export interface EventInput {
   color?: CardColor;
   /** Yellow cards: the longer suspension. */
   yellowLong?: boolean;
+  /** Cards: why it was given, if known. */
+  reason?: CardReason;
   scored?: boolean;
   text?: string;
 }
@@ -89,7 +107,9 @@ export function buildEvent(input: EventInput, settings: MatchSettings): { event:
     case "card": {
       const color = input.color ?? "green";
       const durationSec = color === "green" ? d.green : color === "yellow" ? (input.yellowLong ? d.yellowLong : d.yellowShort) : undefined;
-      return { event: { type: "card", team: input.team, ...at, ...shirt, color, ...(durationSec ? { durationSec } : {}) } };
+      return {
+        event: { type: "card", team: input.team, ...at, ...shirt, color, ...(input.reason ? { reason: input.reason } : {}), ...(durationSec ? { durationSec } : {}) },
+      };
     }
     case "penalty_corner":
       return { event: { type: "penalty_corner", team: input.team, ...at } };

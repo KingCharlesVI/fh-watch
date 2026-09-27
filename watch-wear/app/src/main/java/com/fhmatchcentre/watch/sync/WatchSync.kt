@@ -5,6 +5,7 @@ import android.net.Uri
 import android.util.Log
 import com.fhmatchcentre.watch.WatchApp
 import com.fhmatchcentre.watch.data.MatchDao
+import com.fhmatchcentre.watch.data.Setup
 import com.fhmatchcentre.watch.data.decode
 import com.fhmatchcentre.watch.engine.DocumentJson
 import com.fhmatchcentre.watch.engine.MatchDocument
@@ -63,16 +64,37 @@ class WatchSync(private val context: Context, private val dao: MatchDao) {
         const val TAG = "WatchSync"
         const val MATCH_PATH = "/match/"
         const val ACK_PATH = "/ack/"
+        const val SETUP_PATH = "/setup"
+
+        /** The phone app's setup screen (expo-router route `setup`), opened from the watch. */
+        const val PHONE_SETUP_URI = "fhmatchcentre://setup"
         const val INLINE_LIMIT = 90_000
     }
 }
 
-/** Receives the phone's acknowledgements, even when the app isn't open. */
-class AckListenerService : WearableListenerService() {
+/**
+ * Messages from the phone, even when the app isn't open: receipts for matches it has
+ * stored (`/ack/{id}`), and match setups filled in on the phone (`/setup`, JSON).
+ */
+class PhoneListenerService : WearableListenerService() {
     override fun onMessageReceived(event: MessageEvent) {
-        if (!event.path.startsWith(WatchSync.ACK_PATH)) return
-        val id = event.path.removePrefix(WatchSync.ACK_PATH)
-        // Called on a background thread; the work is a small database update.
-        runBlocking { (application as WatchApp).services.sync.acknowledged(id) }
+        val services = (application as WatchApp).services
+        when {
+            event.path.startsWith(WatchSync.ACK_PATH) -> {
+                val id = event.path.removePrefix(WatchSync.ACK_PATH)
+                // Called on a background thread; the work is a small database update.
+                runBlocking { services.sync.acknowledged(id) }
+            }
+            event.path == WatchSync.SETUP_PATH -> {
+                val setup = Setup.fromPhone(event.data.decodeToString())
+                if (setup == null) {
+                    Log.w(WatchSync.TAG, "Ignored a setup from the phone that couldn't be read")
+                    return
+                }
+                Log.i(WatchSync.TAG, "Match setup from the phone: ${setup.homeName} v ${setup.awayName}")
+                services.prefs.lastSetup = setup
+                services.phoneSetup.value = setup
+            }
+        }
     }
 }

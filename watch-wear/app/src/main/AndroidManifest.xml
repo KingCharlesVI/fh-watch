@@ -47,15 +47,20 @@
                 android:value="Running a field hockey match clock, suspension timers and alerts for the umpire during a match." />
         </service>
 
-        <!-- The phone's receipts for matches it has stored; delivered even when the app isn't open. -->
+        <!-- Messages from the phone, delivered even when the app isn't open: receipts for
+             matches it has stored, and match setups filled in on the phone. -->
         <service
-            android:name=".sync.AckListenerService"
+            android:name=".sync.PhoneListenerService"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
                 <data
                     android:host="*"
                     android:pathPrefix="/ack/"
+                    android:scheme="wear" />
+                <data
+                    android:host="*"
+                    android:path="/setup"
                     android:scheme="wear" />
             </intent-filter>
         </service>

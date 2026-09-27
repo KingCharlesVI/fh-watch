@@ -143,3 +143,50 @@ adb -s <watch serial> install -r dist/play/fh-match-centre-watch-<version>-<buil
 **The phone build takes longer.** It first regenerates `mobile/android/` from `mobile/app.config.ts` (`expo prebuild`), so the version, icon, fonts and signing are always current, and then builds the JavaScript bundle into the app. Don't edit files in `mobile/android/` by hand: they're overwritten.
 
 After building, upload the bundles as described in [docs/play-store.md](docs/play-store.md) (step 4, Internal testing).
+
+### Publishing a GitHub release
+
+`pnpm release:github` ([scripts/github-release.mjs](scripts/github-release.mjs)) builds both apps' APKs on this PC and publishes them as a release on GitHub, with patch notes written by [git-cliff](https://git-cliff.org) from the commit messages. The branch you're on decides the kind of release:
+
+| Branch | Release | Tag | Notes cover |
+| --- | --- | --- | --- |
+| `dev` | A **pre-release**, for testing | `v<version>-alpha.<build>`, e.g. `v0.3.0-alpha.7` | Commits since the last tag (the previous pre-release) |
+| `main` | A full release, marked **Latest** | `v<version>`, e.g. `v0.3.0` | Commits since the last full release, so every pre-release of that version together |
+
+Each release has the phone and watch APKs from the same build attached. On GitHub: **Releases**.
+
+| Option | What it does |
+| --- | --- |
+| `--dry-run` | Builds the APKs and writes the notes, but publishes nothing. Use it to check the notes first. |
+| `--skip-build` | Publishes the APKs already in `dist/play/` for this version and build, instead of building them again. |
+| `--beta` | As for the packaging commands: the phone app for the beta. The tag then says `beta`. |
+
+**Once, before the first release.** Install the GitHub CLI and sign in to it (it asks for the account in the browser):
+
+```powershell
+winget install GitHub.cli
+# then, in a new terminal:
+gh auth login
+```
+
+git-cliff reads the repository's `cliff.toml`. The script writes the notes to `dist/play/release-notes-<tag>.md` and leaves `CHANGELOG.md` as it is; regenerate that with `git-cliff` when you want it updated.
+
+**A pre-release from `dev`:**
+
+1. Set the build in `version.json` to one more than the last release (each pre-release needs a new build number, so its APKs install over the last ones), and commit.
+2. Push `dev`. The script checks that what you have is what's on GitHub, because the tag goes on the pushed commit.
+3. `pnpm release:github`
+
+**A full release from `main`:**
+
+1. Merge `dev` into `main` (a pull request on GitHub), then check out `main` and pull.
+2. `pnpm release:github`. The build is the one last tested as a pre-release, so there's nothing to change first.
+3. For the next version, change `version` in `version.json` on `dev` (e.g. 0.3.0 → 0.4.0).
+
+The script stops before building if anything is out of order: another branch, uncommitted changes, a commit that isn't pushed, or a tag that already exists (it then says which number to change). It never pushes commits; `gh` makes the tag on GitHub at the pushed commit, and the script fetches it afterwards.
+
+**Commit messages make the notes.** git-cliff groups commits by their [conventional commit](https://www.conventionalcommits.org) type (`feat:` under Features, `fix:` under Bug Fixes, and so on). Commits without a type land under Other, as written.
+
+#### Getting the APKs to testers
+
+The landing page's APK buttons link to the newest release's APKs, pre-releases included, so a new release reaches testers as soon as it's published, without redeploying the landing page (see [landing/README.md](landing/README.md)). This needs the repository to be public: a private repository's releases need a GitHub login with access to it.

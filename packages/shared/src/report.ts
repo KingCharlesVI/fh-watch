@@ -90,8 +90,8 @@ export function renderMatchReport({ document: doc, umpires, revision, shareUrl, 
 
 <h2>Match statistics</h2>
 <table class="stats"><tbody>
-${stat("Penalty corners", s.penaltyCorners.home, s.penaltyCorners.away)}
-${stat("Penalty strokes (scored)", `${s.penaltyStrokes.home.awarded} (${s.penaltyStrokes.home.scored})`, `${s.penaltyStrokes.away.awarded} (${s.penaltyStrokes.away.scored})`)}
+${s.penaltyCorners.home + s.penaltyCorners.away > 0 ? stat("Penalty corners", s.penaltyCorners.home, s.penaltyCorners.away) : ""}
+${s.penaltyStrokes.home.awarded + s.penaltyStrokes.away.awarded > 0 ? stat("Penalty strokes (scored)", `${s.penaltyStrokes.home.awarded} (${s.penaltyStrokes.home.scored})`, `${s.penaltyStrokes.away.awarded} (${s.penaltyStrokes.away.scored})`) : ""}
 ${stat("Green cards", s.cards.home.green, s.cards.away.green)}
 ${stat("Yellow cards", s.cards.home.yellow, s.cards.away.yellow)}
 ${stat("Red cards", s.cards.home.red, s.cards.away.red)}

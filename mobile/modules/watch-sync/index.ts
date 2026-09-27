@@ -20,6 +20,8 @@ interface WatchSyncNative {
   /** Stores matches the Data Layer holds that weren't delivered as they arrived. Returns how many. */
   pullPending(): Promise<number>;
   connectedWatches(): Promise<Watch[]>;
+  /** Sends a match setup (JSON) to every watch in reach. Returns how many got it. */
+  sendSetup(json: string): Promise<number>;
   addListener(event: "onMatchReceived", listener: (e: { id: string }) => void): { remove(): void };
 }
 
@@ -33,6 +35,7 @@ export const WatchSync = {
   removeFromInbox: (id: string) => native?.removeFromInbox(id) ?? Promise.resolve(),
   pullPending: () => native?.pullPending() ?? Promise.resolve(0),
   connectedWatches: () => native?.connectedWatches() ?? Promise.resolve([]),
+  sendSetup: (json: string) => native?.sendSetup(json) ?? Promise.resolve(0),
   onMatchReceived(listener: (id: string) => void): () => void {
     const sub = native?.addListener("onMatchReceived", (e) => listener(e.id));
     return () => sub?.remove();

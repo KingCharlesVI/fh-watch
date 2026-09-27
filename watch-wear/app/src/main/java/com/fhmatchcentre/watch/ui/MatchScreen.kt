@@ -1,9 +1,7 @@
 package com.fhmatchcentre.watch.ui
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,7 +52,6 @@ import com.fhmatchcentre.watch.engine.MatchRecord
 import com.fhmatchcentre.watch.engine.Moment
 import com.fhmatchcentre.watch.engine.Phase
 import com.fhmatchcentre.watch.engine.Side
-import com.fhmatchcentre.watch.engine.StopReason
 import com.fhmatchcentre.watch.engine.Suspension
 import com.fhmatchcentre.watch.engine.activeEvents
 import com.fhmatchcentre.watch.engine.breakRemainingMs
@@ -62,12 +59,9 @@ import com.fhmatchcentre.watch.engine.endMatch
 import com.fhmatchcentre.watch.engine.endPeriod
 import com.fhmatchcentre.watch.engine.isTimeUp
 import com.fhmatchcentre.watch.engine.matchTimeMs
-import com.fhmatchcentre.watch.engine.penaltyCorner
-import com.fhmatchcentre.watch.engine.penaltyCorners
 import com.fhmatchcentre.watch.engine.periodElapsedMs
 import com.fhmatchcentre.watch.engine.score
 import com.fhmatchcentre.watch.engine.startShootout
-import com.fhmatchcentre.watch.engine.stopClock
 import com.fhmatchcentre.watch.engine.suspensions
 import com.fhmatchcentre.watch.engine.toggleClock
 import com.fhmatchcentre.watch.match.MatchController
@@ -75,7 +69,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** The match pages, swiped left and right. Timing comes first; swiping right from it goes back home. */
-private enum class Page { TIMING, CARDS, GOALS, SYNC, SETTINGS }
+private enum class Page { TIMING, GOALS, CARDS, SETTINGS }
 
 private val BRAND = Color(0xFF106C3E)
 private val STOP_RED = Color(0xFF8A2B20)
@@ -93,7 +87,6 @@ fun MatchScreen(
     ambient: Boolean,
     onGoal: (Side) -> Unit,
     onCard: () -> Unit,
-    onStroke: () -> Unit,
     onEvents: () -> Unit,
 ) {
     val controller = services.controller
@@ -102,6 +95,7 @@ fun MatchScreen(
     val now = rememberNow()
     // Held here so the Settings page's switch changes the Timing page straight away.
     var countDown by remember { mutableStateOf(services.prefs.clockCountsDown) }
+    var clockButton by remember { mutableStateOf(services.prefs.clockButtonOnScreen) }
     // Ending a period early, the match, or cancelling it can't be undone, so they ask first.
     var confirm by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
 
@@ -115,13 +109,14 @@ fun MatchScreen(
         HorizontalPager(state = pager) { index ->
             AnimatedPage(pageIndex = index, pagerState = pager) {
                 when (Page.entries[index]) {
-                    Page.TIMING -> TimingPage(m, now, countDown, controller)
+                    Page.TIMING -> TimingPage(m, now, countDown, clockButton, controller)
+                    Page.GOALS -> GoalsPage(m, now, controller, onGoal)
                     Page.CARDS -> CardsPage(m, now, controller, onCard)
-                    Page.GOALS -> GoalsPage(m, now, controller, onGoal, onStroke)
-                    Page.SYNC -> SyncPage(services)
                     Page.SETTINGS -> SettingsPage(
-                        m, now, countDown,
+                        services, m, now, countDown,
                         onCountDown = { countDown = it; services.prefs.clockCountsDown = it },
+                        clockButton = clockButton,
+                        onClockButton = { clockButton = it; services.prefs.clockButtonOnScreen = it },
                         onEvents = onEvents,
                         controller = controller,
                         onConfirm = { confirm = it },
@@ -148,67 +143,54 @@ fun MatchScreen(
 
 // ---- Timing ------------------------------------------------------------------
 
+/**
+ * The clock and score. Time is started and stopped with the side button; an
+ * on-screen button can be turned on in Settings for watches without one.
+ */
 @Composable
-private fun TimingPage(m: MatchRecord, now: Moment, countDown: Boolean, controller: MatchController) {
-    // No undo offer here: it would push the Stop button off the screen. It's on the Cards and Goals pages.
+private fun TimingPage(m: MatchRecord, now: Moment, countDown: Boolean, clockButton: Boolean, controller: MatchController) {
+    // No undo offer here: it would push the clock controls off the screen. It's on the Cards and Goals pages.
     val (label, clock, clockColor) = clockDisplay(m, now, countDown)
     val toggle: () -> Unit = { controller.perform { toggleClock(it) } }
-    ListScreen(title = null, fromTop = true) {
-        item {
-            // Tapping the clock does the same as the physical button.
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth().clickable(onClick = toggle).padding(top = 4.dp),
-            ) {
-                // The match minute (time played in all periods) sits beside the period, like a referee's second watch.
-                val played = if (m.clock.phase == Phase.PLAYING) " · ${m.matchTimeMs(now) / 60_000}′" else ""
-                Text(label + played, fontSize = 14.sp, color = MUTED)
-                if (clock.isNotEmpty()) Text(clock, fontSize = 46.sp, fontWeight = FontWeight.Bold, color = clockColor, style = TABULAR)
+    // Not a list: the clock sits in the middle of the screen, with the score and timers just below.
+    Box(Modifier.fillMaxSize().padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // The match minute (time played in all periods) sits beside the period, like a referee's second watch.
+            val played = if (m.clock.phase == Phase.PLAYING) " · ${m.matchTimeMs(now) / 60_000}′" else ""
+            Text(label + played, fontSize = 14.sp, color = MUTED)
+            if (clock.isNotEmpty()) Text(clock, fontSize = 50.sp, fontWeight = FontWeight.Bold, color = clockColor, style = TABULAR)
+            MiniScore(m)
+            val suspensions = m.suspensions(now)
+            if (suspensions.isNotEmpty() && (m.clock.phase == Phase.PLAYING || m.clock.phase == Phase.BREAK)) {
+                SuspensionChips(m, suspensions)
             }
-        }
-        item { MiniScore(m) }
-        val suspensions = m.suspensions(now)
-        if (suspensions.isNotEmpty() && (m.clock.phase == Phase.PLAYING || m.clock.phase == Phase.BREAK)) {
-            item { SuspensionChips(m, suspensions) }
-        }
-        when (m.clock.phase) {
-            Phase.READY, Phase.BREAK -> {
-                val next = if (m.clock.phase == Phase.READY) 1 else m.clock.period + 1
-                item { PillButton("Start ${periodName(next, m.settings.periods)}", BRAND, onClick = toggle) }
-                if (m.clock.phase == Phase.READY) {
-                    item { Hint("The side button (Back on Galaxy watches) or a tap on the clock starts and stops time. Swipe left for cards, goals and more.") }
+            when (m.clock.phase) {
+                Phase.READY, Phase.BREAK -> {
+                    val next = periodName(if (m.clock.phase == Phase.READY) 1 else m.clock.period + 1, m.settings.periods)
+                    if (clockButton) PillButton("Start $next", BRAND, onClick = toggle)
                 }
-            }
-            Phase.PLAYING -> {
-                val timeUp = m.isTimeUp(now)
-                item {
-                    PillButton(
-                        when {
-                            timeUp -> "End ${periodName(m.clock.period, m.settings.periods)}"
-                            m.clock.running -> "Stop"
-                            else -> "Restart"
-                        },
-                        if (m.clock.running && !timeUp) STOP_RED else BRAND,
-                        onClick = toggle,
-                    )
-                }
-                // A stop with a reason, so the report shows why time was stopped.
-                if (m.clock.running && !timeUp) {
-                    item {
-                        ButtonPair(
-                            { mod -> SmallButton("Injury", mod) { controller.perform { stopClock(it, StopReason.INJURY) } } },
-                            { mod -> SmallButton("Video", mod) { controller.perform { stopClock(it, StopReason.VIDEO) } } },
+                Phase.PLAYING -> {
+                    val timeUp = m.isTimeUp(now)
+                    val period = periodName(m.clock.period, m.settings.periods)
+                    if (clockButton) {
+                        PillButton(
+                            when {
+                                timeUp -> "End $period"
+                                m.clock.running -> "Stop"
+                                else -> "Restart"
+                            },
+                            if (m.clock.running && !timeUp) STOP_RED else BRAND,
+                            onClick = toggle,
                         )
                     }
                 }
+                Phase.FULL_TIME -> {
+                    val s = m.score()
+                    if (m.settings.shootoutIfDrawn && s.home == s.away) PillButton("Shootout", BRAND) { controller.perform { startShootout() }; Unit }
+                    PillButton("End match", END_RED) { controller.perform { endMatch(it) }; Unit }
+                }
+                else -> {}
             }
-            Phase.FULL_TIME -> {
-                val s = m.score()
-                val shootout = m.settings.shootoutIfDrawn && s.home == s.away
-                if (shootout) item { PillButton("Shootout", BRAND) { controller.perform { startShootout() }; Unit } }
-                item { PillButton("End match", if (shootout) SURFACE else BRAND) { controller.perform { endMatch(it) }; Unit } }
-            }
-            else -> {}
         }
     }
 }
@@ -302,6 +284,7 @@ private fun CardsPage(m: MatchRecord, now: Moment, controller: MatchController, 
     // Everything else: red cards, and suspensions that are over.
     val earlier = m.activeEvents().filterIsInstance<Card>().filter { it.seq !in suspended }.reversed()
     val teams = m.document.teams
+    val reasons = m.activeEvents().filterIsInstance<Card>().associate { it.seq to it.reason?.let(CARD_REASON_LABELS::getValue) }
     ListScreen(title = null, fromTop = true) {
         item {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
@@ -325,6 +308,7 @@ private fun CardsPage(m: MatchRecord, now: Moment, controller: MatchController, 
                     color = if (s.color == CardColor.GREEN) CARD_GREEN else CARD_YELLOW,
                     title = teams[s.team].name + (s.player?.let { " #$it" } ?: ""),
                     detail = formatClock(s.remainingMs) + if (paused) " · paused" else " left",
+                    reason = reasons[s.cardSeq],
                 )
             }
         }
@@ -336,6 +320,7 @@ private fun CardsPage(m: MatchRecord, now: Moment, controller: MatchController, 
                         color = when (c.color) { CardColor.GREEN -> CARD_GREEN; CardColor.YELLOW -> CARD_YELLOW; CardColor.RED -> CARD_RED },
                         title = teams[c.team].name + (c.player?.let { " #$it" } ?: ""),
                         detail = "${periodName(c.period, m.settings.periods)} ${formatClock(c.clockMs)}" + if (c.color == CardColor.RED) " · sent off" else " · served",
+                        reason = c.reason?.let(CARD_REASON_LABELS::getValue),
                         dim = c.color != CardColor.RED,
                     )
                 }
@@ -345,7 +330,7 @@ private fun CardsPage(m: MatchRecord, now: Moment, controller: MatchController, 
 }
 
 @Composable
-private fun CardRow(color: Color, title: String, detail: String, dim: Boolean = false) {
+private fun CardRow(color: Color, title: String, detail: String, reason: String? = null, dim: Boolean = false) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().background(SURFACE, RoundedCornerShape(16.dp)).padding(horizontal = 12.dp, vertical = 8.dp),
@@ -356,6 +341,7 @@ private fun CardRow(color: Color, title: String, detail: String, dim: Boolean = 
         Column {
             Text(title, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = if (dim) MUTED else Color.White)
             Text(detail, fontSize = 12.sp, color = MUTED, style = TABULAR)
+            if (reason != null) Text(reason, fontSize = 12.sp, color = MUTED, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -363,11 +349,10 @@ private fun CardRow(color: Color, title: String, detail: String, dim: Boolean = 
 // ---- Goals -------------------------------------------------------------------
 
 @Composable
-private fun GoalsPage(m: MatchRecord, now: Moment, controller: MatchController, onGoal: (Side) -> Unit, onStroke: () -> Unit) {
+private fun GoalsPage(m: MatchRecord, now: Moment, controller: MatchController, onGoal: (Side) -> Unit) {
     val undo by controller.undoOffer.collectAsStateWithLifecycle()
     val playing = m.clock.phase == Phase.PLAYING
     val teams = m.document.teams
-    val pcs = m.penaltyCorners()
     ListScreen(title = null, fromTop = true) {
         item { PageTitle("Goals") }
         item { MiniScore(m, fontSize = 34) }
@@ -378,27 +363,12 @@ private fun GoalsPage(m: MatchRecord, now: Moment, controller: MatchController, 
                 Text(teams.away.name, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
             }
         }
-        if (!playing) item { Hint("Goals and corners can be recorded while a period is on.") }
+        if (!playing) item { Hint("Goals can be recorded while a period is on.") }
         undoItem(undo, now, controller)
         item {
             ButtonPair(
                 { mod -> TeamActionButton(teams.home.color, "+1", mod, playing, big = true) { onGoal(Side.HOME) } },
                 { mod -> TeamActionButton(teams.away.color, "+1", mod, playing, big = true) { onGoal(Side.AWAY) } },
-            )
-        }
-        item {
-            ButtonPair(
-                { mod -> CornerButton(teams.home.color, pcs.home, mod, playing) { controller.perform("corner") { penaltyCorner(Side.HOME, it) } } },
-                { mod -> CornerButton(teams.away.color, pcs.away, mod, playing) { controller.perform("corner") { penaltyCorner(Side.AWAY, it) } } },
-            )
-        }
-        item {
-            Button(
-                onClick = onStroke,
-                enabled = playing,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.filledTonalButtonColors(),
-                label = { Text("Penalty stroke", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
             )
         }
     }
@@ -414,22 +384,23 @@ private fun TeamActionButton(color: String, label: String, modifier: Modifier, e
     ) { Text(label, fontSize = if (big) 22.sp else 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
 }
 
-/** A penalty corner for one team: outlined in its colour, with the count so far. */
-@Composable
-private fun CornerButton(color: String, count: Int, modifier: Modifier, enabled: Boolean, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier.height(44.dp),
-        colors = ButtonDefaults.outlinedButtonColors(),
-        border = BorderStroke(2.dp, if (enabled) parseColor(color) else parseColor(color).copy(alpha = 0.4f)),
-    ) { Text("PC · $count", fontSize = 14.sp, style = TABULAR, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
-}
-
-// ---- Sync --------------------------------------------------------------------
+// ---- Settings ----------------------------------------------------------------
 
 @Composable
-private fun SyncPage(services: Services) {
+private fun SettingsPage(
+    services: Services,
+    m: MatchRecord,
+    now: Moment,
+    countDown: Boolean,
+    onCountDown: (Boolean) -> Unit,
+    clockButton: Boolean,
+    onClockButton: (Boolean) -> Unit,
+    onEvents: () -> Unit,
+    controller: MatchController,
+    onConfirm: (Pair<String, () -> Unit>) -> Unit,
+) {
+    val s = m.settings
+    val period = periodName(m.clock.period, s.periods)
     var phones by remember { mutableStateOf<List<String>?>(null) }
     var pending by remember { mutableIntStateOf(0) }
     var sent by remember { mutableStateOf<Int?>(null) }
@@ -443,51 +414,7 @@ private fun SyncPage(services: Services) {
         }
     }
     ListScreen(title = null, fromTop = true) {
-        item { PageTitle("Phone") }
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-                val connected = !phones.isNullOrEmpty()
-                Box(Modifier.size(10.dp).background(if (phones == null) MUTED else if (connected) CARD_GREEN else CARD_RED, CircleShape))
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    when {
-                        phones == null -> "Looking…"
-                        phones!!.isEmpty() -> "No phone in reach"
-                        else -> phones!!.joinToString()
-                    },
-                    fontSize = 15.sp,
-                    maxLines = 2,
-                )
-            }
-        }
-        item { Hint("The match goes to your phone when it ends, or later by itself if the phone is out of reach.") }
-        if (pending > 0) {
-            item { Hint("$pending earlier ${if (pending == 1) "match" else "matches"} still to send.") }
-            item {
-                ChoiceButton("Send them now", sent?.let { "$it sent" }) {
-                    scope.launch { sent = runCatching { services.sync.resendPending() }.getOrDefault(0) }
-                }
-            }
-        }
-    }
-}
-
-// ---- Settings ----------------------------------------------------------------
-
-@Composable
-private fun SettingsPage(
-    m: MatchRecord,
-    now: Moment,
-    countDown: Boolean,
-    onCountDown: (Boolean) -> Unit,
-    onEvents: () -> Unit,
-    controller: MatchController,
-    onConfirm: (Pair<String, () -> Unit>) -> Unit,
-) {
-    val s = m.settings
-    val period = periodName(m.clock.period, s.periods)
-    ListScreen(title = null, fromTop = true) {
-        item { PageTitle("Match") }
+        item { PageTitle("Settings") }
         item {
             Hint(
                 "${s.periods} × ${s.periodLengthSec / 60} min · " +
@@ -502,19 +429,46 @@ private fun SettingsPage(
                 label = { Text("Clock counts down") },
             )
         }
+        item { ClockButtonSwitch(clockButton, onClockButton) }
         item { ChoiceButton("Events", "Everything so far; cancel mistakes") { onEvents() } }
+        item { PhoneStatus(phones) }
+        if (pending > 0) {
+            item {
+                ChoiceButton("Send $pending to phone", sent?.let { "$it sent" } ?: "Earlier matches not sent yet") {
+                    scope.launch { sent = runCatching { services.sync.resendPending() }.getOrDefault(0) }
+                }
+            }
+        }
         when (m.clock.phase) {
             Phase.READY -> item { ChoiceButton("Cancel match") { onConfirm("Cancel this match? Nothing is kept." to { controller.discard() }) } }
             Phase.PLAYING -> if (!m.isTimeUp(now)) item { ChoiceButton("End $period early") { onConfirm("End $period now?" to { controller.perform { endPeriod(it) } }) } }
             else -> {}
         }
         if (m.clock.phase == Phase.PLAYING || m.clock.phase == Phase.BREAK) {
-            item { ChoiceButton("End match") { onConfirm("End the match now?" to { controller.perform { endMatch(it) } }) } }
+            item { ChoiceButton("End match", color = END_RED) { onConfirm("End the match now?" to { controller.perform { endMatch(it) } }) } }
         }
     }
 }
 
 // ---- Shared ------------------------------------------------------------------
+
+/** Whether the phone is in reach: matches go to it when they end. */
+@Composable
+private fun PhoneStatus(phones: List<String>?) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Box(Modifier.size(10.dp).background(if (phones == null) MUTED else if (phones.isNotEmpty()) CARD_GREEN else CARD_RED, CircleShape))
+        Spacer(Modifier.width(8.dp))
+        Text(
+            when {
+                phones == null -> "Looking for your phone…"
+                phones.isEmpty() -> "No phone in reach"
+                else -> "Phone: " + phones.joinToString()
+            },
+            fontSize = 13.sp,
+            maxLines = 2,
+        )
+    }
+}
 
 @Composable
 private fun PageTitle(text: String) {
@@ -533,15 +487,6 @@ private fun PillButton(label: String, color: Color, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth().height(52.dp),
         colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Color.White),
     ) { Text(label, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
-}
-
-@Composable
-private fun SmallButton(label: String, modifier: Modifier, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = modifier.height(40.dp),
-        colors = ButtonDefaults.filledTonalButtonColors(),
-    ) { Text(label, fontSize = 13.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
 }
 
 /** For a few seconds after a goal, card or corner, a way to take it back. */

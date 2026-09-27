@@ -20,6 +20,7 @@ import androidx.wear.compose.material3.Text
 import com.fhmatchcentre.watch.engine.Card
 import com.fhmatchcentre.watch.engine.CardEnd
 import com.fhmatchcentre.watch.engine.CardKind
+import com.fhmatchcentre.watch.engine.CardReason
 import com.fhmatchcentre.watch.engine.ClockResume
 import com.fhmatchcentre.watch.engine.ClockStop
 import com.fhmatchcentre.watch.engine.Goal
@@ -31,6 +32,7 @@ import com.fhmatchcentre.watch.engine.PenaltyCorner
 import com.fhmatchcentre.watch.engine.PenaltyStroke
 import com.fhmatchcentre.watch.engine.PeriodEnd
 import com.fhmatchcentre.watch.engine.PeriodStart
+import com.fhmatchcentre.watch.engine.SHIRT_NUMBERS
 import com.fhmatchcentre.watch.engine.ShootoutAttempt
 import com.fhmatchcentre.watch.engine.Side
 import com.fhmatchcentre.watch.engine.Timed
@@ -41,7 +43,6 @@ import com.fhmatchcentre.watch.engine.durationSec
 import com.fhmatchcentre.watch.engine.endMatch
 import com.fhmatchcentre.watch.engine.goal
 import com.fhmatchcentre.watch.engine.isUndoable
-import com.fhmatchcentre.watch.engine.missedStroke
 import com.fhmatchcentre.watch.engine.shootout
 import com.fhmatchcentre.watch.engine.shootoutAttempt
 import com.fhmatchcentre.watch.engine.undo
@@ -71,7 +72,7 @@ fun GoalFlow(controller: MatchController, forTeam: Side?, onDone: () -> Unit) {
     }
     when {
         team == null -> PickTeam(m, "Goal") { team = it }
-        !pickedPlayer -> NumberPicker("Scorer", 0..99, 10, optional = true) { player = it; pickedPlayer = true }
+        !pickedPlayer -> NumberPad("Scorer", SHIRT_NUMBERS, null, optional = true) { player = it; pickedPlayer = true }
         else -> ListScreen("How?") {
             item { ChoiceButton("Field goal") { save(GoalMethod.FIELD) } }
             item { ChoiceButton("Penalty corner") { save(GoalMethod.PC) } }
@@ -82,8 +83,8 @@ fun GoalFlow(controller: MatchController, forTeam: Side?, onDone: () -> Unit) {
 }
 
 /**
- * Card: team, colour and length, then the player (required). If the player
- * already has a card this match, the umpire confirms before it's recorded.
+ * Card: team, colour and length, the player (required), then why (optional). If the
+ * player already has a card this match, the umpire confirms before going on.
  */
 @Composable
 fun CardFlow(controller: MatchController, onDone: () -> Unit) {
@@ -91,11 +92,13 @@ fun CardFlow(controller: MatchController, onDone: () -> Unit) {
     var team by rememberSaveable { mutableStateOf<Side?>(null) }
     var kind by rememberSaveable { mutableStateOf<CardKind?>(null) }
     var repeat by rememberSaveable { mutableStateOf<Int?>(null) }
+    var player by rememberSaveable { mutableStateOf<Int?>(null) }
     val s = m.settings
-    fun save(number: Int) {
+    fun save(reason: CardReason?) {
         val side = team!!
         val k = kind!!
-        controller.perform("card") { card(side, number, k, it) }
+        val number = player!!
+        controller.perform("card") { card(side, number, k, it, reason) }
         onDone()
     }
     fun mins(k: CardKind) = s.durationSec(k)?.let { "${it / 60}′" + if (it % 60 != 0) "${it % 60}″" else "" }
@@ -106,6 +109,10 @@ fun CardFlow(controller: MatchController, onDone: () -> Unit) {
             item { ChoiceButton("Yellow", mins(CardKind.YELLOW_SHORT), CARD_YELLOW) { kind = CardKind.YELLOW_SHORT } }
             item { ChoiceButton("Yellow", mins(CardKind.YELLOW_LONG), CARD_YELLOW) { kind = CardKind.YELLOW_LONG } }
             item { ChoiceButton("Red", "Rest of match", CARD_RED) { kind = CardKind.RED } }
+        }
+        player != null -> ListScreen("Why?") {
+            item { ChoiceButton("Skip") { save(null) } }
+            CardReason.entries.forEach { r -> item { ChoiceButton(CARD_REASON_LABELS.getValue(r)) { save(r) } } }
         }
         repeat != null -> {
             val number = repeat!!
@@ -120,40 +127,14 @@ fun CardFlow(controller: MatchController, onDone: () -> Unit) {
                         textAlign = TextAlign.Center,
                     )
                 }
-                item { ChoiceButton("Continue", color = Color(0xFF106C3E)) { save(number) } }
+                item { ChoiceButton("Continue", color = Color(0xFF106C3E)) { player = number; repeat = null } }
                 item { ChoiceButton("Change card") { kind = null; repeat = null } }
             }
         }
-        else -> NumberPicker("Player", 0..99, 10, optional = false) { number ->
+        else -> NumberPad("Player", SHIRT_NUMBERS, null, optional = false) { number ->
             val n = number!!
             val carded = m.activeEvents().any { it is Card && it.team == team && it.player == n }
-            if (carded) repeat = n else save(n)
-        }
-    }
-}
-
-/** Penalty stroke: team, then scored (with optional scorer) or missed. */
-@Composable
-fun StrokeFlow(controller: MatchController, onDone: () -> Unit) {
-    val m = controller.active.collectAsStateWithLifecycle().value ?: return onDone()
-    var team by rememberSaveable { mutableStateOf<Side?>(null) }
-    var scored by rememberSaveable { mutableStateOf(false) }
-    when {
-        team == null -> PickTeam(m, "Penalty stroke") { team = it }
-        !scored -> ListScreen("Stroke") {
-            item { ChoiceButton("Scored", color = Color(0xFF106C3E)) { scored = true } }
-            item {
-                ChoiceButton("Missed") {
-                    val side = team!!
-                    controller.perform("stroke") { missedStroke(side, it) }
-                    onDone()
-                }
-            }
-        }
-        else -> NumberPicker("Scorer", 0..99, 10, optional = true) { player ->
-            val side = team!!
-            controller.perform("goal") { goal(side, player, GoalMethod.PS, it) }
-            onDone()
+            if (carded) repeat = n else player = n
         }
     }
 }
@@ -204,7 +185,8 @@ fun describe(m: MatchRecord, e: MatchEvent): String {
     fun who(side: Side, player: Int?) = t[side].name + (player?.let { " #$it" } ?: "")
     return when (e) {
         is Goal -> "Goal " + who(e.team, e.player) + when (e.method) { GoalMethod.PC -> " (PC)"; GoalMethod.PS -> " (PS)"; else -> "" }
-        is Card -> e.color.name.lowercase().replaceFirstChar(Char::uppercase) + " card " + who(e.team, e.player)
+        is Card -> e.color.name.lowercase().replaceFirstChar(Char::uppercase) + " card " + who(e.team, e.player) +
+            (e.reason?.let { ": " + CARD_REASON_LABELS.getValue(it).lowercase() } ?: "")
         is CardEnd -> "Suspension over"
         is PenaltyCorner -> "PC " + t[e.team].name
         is PenaltyStroke -> "Stroke " + t[e.team].name + if (e.scored) " scored" else " missed"
@@ -248,7 +230,7 @@ fun ShootoutScreen(controller: MatchController) {
             }
         } else {
             item { Text("${teams[so.winner].name} win the shootout", fontSize = 14.sp) }
-            item { ChoiceButton("End match", color = Color(0xFF106C3E)) { controller.perform { endMatch(it) } } }
+            item { ChoiceButton("End match", color = END_RED) { controller.perform { endMatch(it) } } }
         }
         if (last != null) item { ChoiceButton("Undo last attempt") { controller.perform { undo(last.seq, it) } } }
     }

@@ -2,6 +2,7 @@ package com.fhmatchcentre.watch.ui
 
 import android.app.RemoteInput
 import android.content.Intent
+import android.net.Uri
 import android.view.inputmethod.EditorInfo
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,17 +18,30 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material3.SwitchButton
 import androidx.wear.compose.material3.Text
 import androidx.wear.input.RemoteInputIntentHelper
 import androidx.wear.input.wearableExtender
+import androidx.wear.remote.interactions.RemoteActivityHelper
+import com.google.android.gms.wearable.Wearable
+import com.fhmatchcentre.watch.sync.WatchSync
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import java.util.concurrent.Executors
 import com.fhmatchcentre.watch.Services
 import com.fhmatchcentre.watch.data.MatchRow
 import com.fhmatchcentre.watch.data.Setup
 import com.fhmatchcentre.watch.data.SyncState
 import com.fhmatchcentre.watch.data.decode
 import com.fhmatchcentre.watch.engine.CardColor
+import com.fhmatchcentre.watch.engine.SHIRT_NUMBERS
 import com.fhmatchcentre.watch.engine.Team
 import com.fhmatchcentre.watch.engine.Teams
 import com.fhmatchcentre.watch.engine.activeEvents
@@ -39,14 +53,75 @@ import java.text.DateFormat
 import java.util.Date
 
 @Composable
-fun HomeScreen(services: Services, onNewMatch: () -> Unit, onResume: () -> Unit, onMatches: () -> Unit, onSettings: () -> Unit) {
+fun HomeScreen(services: Services, onNewMatch: () -> Unit, onPhoneSetup: () -> Unit, onResume: () -> Unit, onMatches: () -> Unit, onSettings: () -> Unit) {
     val active by services.controller.active.collectAsState()
     ListScreen("FH Match Centre") {
         if (active != null) item { ChoiceButton("Back to match", color = Color(0xFF106C3E)) { onResume() } }
-        else item { ChoiceButton("New match", color = Color(0xFF106C3E)) { onNewMatch() } }
+        else {
+            item { ChoiceButton("New match", color = Color(0xFF106C3E)) { onNewMatch() } }
+            item { ChoiceButton("Setup on phone", "Type teams and format there") { onPhoneSetup() } }
+        }
         item { ChoiceButton("Past matches") { onMatches() } }
         item { ChoiceButton("Settings") { onSettings() } }
     }
+}
+
+/**
+ * Setup on phone: opens the phone app's setup screen, then waits for the setup it
+ * sends. When it arrives, the watch's setup screen opens with it, to check and start.
+ */
+@Composable
+fun PhoneSetupScreen(services: Services, onReceived: () -> Unit, onSetUpHere: () -> Unit) {
+    val context = LocalContext.current
+    var status by remember { mutableStateOf(PhoneSetupStatus.OPENING) }
+    var attempt by remember { mutableStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        // Only a setup that arrives from now on: clear one left over from before.
+        services.phoneSetup.value = null
+        services.phoneSetup.filterNotNull().first()
+        services.phoneSetup.value = null
+        onReceived()
+    }
+    LaunchedEffect(attempt) {
+        status = PhoneSetupStatus.OPENING
+        status = openOnPhone(context, services)
+    }
+
+    ListScreen("Setup on phone") {
+        item {
+            Text(
+                when (status) {
+                    PhoneSetupStatus.OPENING -> "Opening the app on your phone…"
+                    PhoneSetupStatus.OPENED -> "Fill in the match on your phone, then tap Send to watch. It opens here to check and start."
+                    PhoneSetupStatus.NO_PHONE -> "No phone in reach. Check Bluetooth, or set up on the watch."
+                    PhoneSetupStatus.FAILED -> "Couldn't open the app on your phone. Open FH Match Centre there: Settings → Set up a match."
+                },
+                fontSize = 14.sp,
+                textAlign = TextAlign.Center,
+            )
+        }
+        if (status == PhoneSetupStatus.NO_PHONE || status == PhoneSetupStatus.FAILED) {
+            item { ChoiceButton("Try again") { attempt++ } }
+        }
+        item { ChoiceButton("Set up here instead") { onSetUpHere() } }
+    }
+}
+
+private enum class PhoneSetupStatus { OPENING, OPENED, NO_PHONE, FAILED }
+
+/** Opens the phone app's setup screen on each phone in reach. */
+private suspend fun openOnPhone(context: android.content.Context, services: Services): PhoneSetupStatus {
+    val phones = runCatching { Wearable.getNodeClient(context).connectedNodes.await() }.getOrDefault(emptyList())
+    if (phones.isEmpty()) return PhoneSetupStatus.NO_PHONE
+    val helper = RemoteActivityHelper(context, Executors.newSingleThreadExecutor())
+    val intent = Intent(Intent.ACTION_VIEW)
+        .addCategory(Intent.CATEGORY_BROWSABLE)
+        .setData(Uri.parse(WatchSync.PHONE_SETUP_URI))
+    val opened = withContext(Dispatchers.IO) {
+        phones.count { node -> runCatching { helper.startRemoteActivity(intent, node.id).get() }.isSuccess }
+    }
+    return if (opened > 0) PhoneSetupStatus.OPENED else PhoneSetupStatus.FAILED
 }
 
 /** Opens the watch keyboard (or voice) for a line of text. */
@@ -68,13 +143,15 @@ fun rememberTextInput(label: String, onText: (String) -> Unit): () -> Unit {
     }
 }
 
-private enum class Editing { PERIODS, LENGTH, BREAK, HALF_TIME, HOME_CAPTAIN, AWAY_CAPTAIN }
+private enum class Editing { PERIODS, LENGTH, BREAK, HALF_TIME, HOME_CAPTAIN, AWAY_CAPTAIN, HOME_COLOUR, AWAY_COLOUR }
 
 /** Match setup, starting from the last match's choices. */
 @Composable
 fun SetupScreen(services: Services, onStarted: () -> Unit) {
     var setup by remember { mutableStateOf(services.prefs.lastSetup) }
     var editing by rememberSaveable { mutableStateOf<Editing?>(null) }
+    // Kept out here so the list is where it was after a number or colour is picked.
+    val listState = rememberScalingLazyListState(initialCenterItemIndex = 1)
     val scope = rememberCoroutineScope()
     val homeName = rememberTextInput("Home team") { setup = setup.copy(homeName = it.take(80)) }
     val awayName = rememberTextInput("Away team") { setup = setup.copy(awayName = it.take(80)) }
@@ -83,22 +160,23 @@ fun SetupScreen(services: Services, onStarted: () -> Unit) {
     editing?.let { field ->
         val done = { editing = null }
         when (field) {
-            Editing.PERIODS -> NumberPicker("Periods", 1..8, setup.periods, false) { setup = setup.copy(periods = it!!); done() }
-            Editing.LENGTH -> NumberPicker("Minutes each", 1..90, setup.periodMinutes, false) { setup = setup.copy(periodMinutes = it!!); done() }
-            Editing.BREAK -> NumberPicker("Break minutes", 0..30, setup.breakMinutes, false) { setup = setup.copy(breakMinutes = it!!); done() }
-            Editing.HALF_TIME -> NumberPicker("Half-time minutes", 0..30, setup.halfTimeMinutes, false) { setup = setup.copy(halfTimeMinutes = it!!); done() }
-            Editing.HOME_CAPTAIN -> NumberPicker("Home captain", 0..99, setup.homeCaptain ?: 1, true) { setup = setup.copy(homeCaptain = it); done() }
-            Editing.AWAY_CAPTAIN -> NumberPicker("Away captain", 0..99, setup.awayCaptain ?: 1, true) { setup = setup.copy(awayCaptain = it); done() }
+            Editing.PERIODS -> NumberPad("Periods", 1..8, setup.periods, false) { setup = setup.copy(periods = it!!); done() }
+            Editing.LENGTH -> NumberPad("Minutes", 1..90, setup.periodMinutes, false) { setup = setup.copy(periodMinutes = it!!); done() }
+            Editing.BREAK -> NumberPad("Break", 0..30, setup.breakMinutes, false) { setup = setup.copy(breakMinutes = it!!); done() }
+            Editing.HALF_TIME -> NumberPad("Half-time", 0..30, setup.halfTimeMinutes, false) { setup = setup.copy(halfTimeMinutes = it!!); done() }
+            Editing.HOME_CAPTAIN -> NumberPad("Captain", SHIRT_NUMBERS, setup.homeCaptain, true) { setup = setup.copy(homeCaptain = it); done() }
+            Editing.AWAY_CAPTAIN -> NumberPad("Captain", SHIRT_NUMBERS, setup.awayCaptain, true) { setup = setup.copy(awayCaptain = it); done() }
+            Editing.HOME_COLOUR -> ColourPalette("Home colour", setup.homeColor) { setup = setup.copy(homeColor = it); done() }
+            Editing.AWAY_COLOUR -> ColourPalette("Away colour", setup.awayColor) { setup = setup.copy(awayColor = it); done() }
         }
         return
     }
 
-    fun nextColor(current: String) = TEAM_COLOURS[(TEAM_COLOURS.indexOf(current) + 1).mod(TEAM_COLOURS.size)]
     val preset = Setup.PRESETS.firstOrNull {
         it.periods == setup.periods && it.minutes == setup.periodMinutes && it.breakMinutes == setup.breakMinutes && it.halfTimeMinutes == setup.halfTimeMinutes
     }
 
-    ListScreen("New match") {
+    ListScreen("New match", state = listState) {
         item {
             ChoiceButton("Format", preset?.label ?: "Custom") {
                 val i = Setup.PRESETS.indexOf(preset)
@@ -113,10 +191,10 @@ fun SetupScreen(services: Services, onStarted: () -> Unit) {
             if (setup.hasHalfTime) item { ChoiceButton("Half-time", "${setup.halfTimeMinutes} min") { editing = Editing.HALF_TIME } }
         }
         item { TeamButton(Team(setup.homeName, null, setup.homeColor), secondary = "Home · tap to rename") { homeName() } }
-        item { ChoiceButton("Home colour", color = parseColor(setup.homeColor)) { setup = setup.copy(homeColor = nextColor(setup.homeColor)) } }
+        item { ChoiceButton("Home colour", COLOUR_NAMES[setup.homeColor], color = parseColor(setup.homeColor)) { editing = Editing.HOME_COLOUR } }
         item { ChoiceButton("Home captain", setup.homeCaptain?.let { "#$it" } ?: "None") { editing = Editing.HOME_CAPTAIN } }
         item { TeamButton(Team(setup.awayName, null, setup.awayColor), secondary = "Away · tap to rename") { awayName() } }
-        item { ChoiceButton("Away colour", color = parseColor(setup.awayColor)) { setup = setup.copy(awayColor = nextColor(setup.awayColor)) } }
+        item { ChoiceButton("Away colour", COLOUR_NAMES[setup.awayColor], color = parseColor(setup.awayColor)) { editing = Editing.AWAY_COLOUR } }
         item { ChoiceButton("Away captain", setup.awayCaptain?.let { "#$it" } ?: "None") { editing = Editing.AWAY_CAPTAIN } }
         item { ChoiceButton("Venue", setup.venue ?: "None") { venue() } }
         item {
@@ -175,7 +253,8 @@ fun SummaryScreen(services: Services, id: String, onDone: () -> Unit) {
     ListScreen("Full time") {
         item { Text("${t.home.name} ${s.home} – ${s.away} ${t.away.name}", fontSize = 15.sp) }
         if (so.home.isNotEmpty()) item { Text("Shootout ${so.homeScore} – ${so.awayScore}", fontSize = 13.sp) }
-        item { Text("PCs ${pcs.home} – ${pcs.away}", fontSize = 13.sp) }
+        // Only in matches from before penalty corners stopped being recorded on the watch.
+        if (pcs.home + pcs.away > 0) item { Text("PCs ${pcs.home} – ${pcs.away}", fontSize = 13.sp) }
         item {
             Text(
                 "Cards: " + CardColor.entries.joinToString(", ") { c -> "${cards.count { it.color == c }} ${c.name.lowercase()}" },
@@ -209,6 +288,7 @@ fun SummaryScreen(services: Services, id: String, onDone: () -> Unit) {
 @Composable
 fun SettingsScreen(services: Services) {
     var countDown by remember { mutableStateOf(services.prefs.clockCountsDown) }
+    var clockButton by remember { mutableStateOf(services.prefs.clockButtonOnScreen) }
     var phones by remember { mutableStateOf<List<String>?>(null) }
     var resent by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
@@ -222,6 +302,7 @@ fun SettingsScreen(services: Services) {
                 label = { Text("Clock counts down") },
             )
         }
+        item { ClockButtonSwitch(clockButton) { clockButton = it; services.prefs.clockButtonOnScreen = it } }
         item {
             Text(
                 when {
@@ -237,5 +318,16 @@ fun SettingsScreen(services: Services) {
                 scope.launch { resent = runCatching { services.sync.resendPending() }.getOrDefault(0) }
             }
         }
+        item { Text(versionText(LocalContext.current), fontSize = 12.sp, color = Color(0xFFB5B5B5)) }
     }
+}
+
+/**
+ * "Version 0.3.0 (7)", as the phone's Settings shows it. The watch's version code is
+ * 1,000,000 above the shared build number (see app/build.gradle.kts), so this shows
+ * the same build number as the phone.
+ */
+private fun versionText(context: android.content.Context): String {
+    val info = context.packageManager.getPackageInfo(context.packageName, 0)
+    return "Version ${info.versionName} (${info.longVersionCode - 1_000_000})"
 }

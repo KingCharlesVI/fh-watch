@@ -117,7 +117,7 @@ export default function Home() {
                     {d.links.map((link) => (
                       <StoreButton key={link.label} link={link} />
                     ))}
-                    {d.links.some((l) => l.store === "apk" && l.href) && <ApkInstructions />}
+                    {d.links.some((l) => l.store === "apk" && (l.href || l.latest)) && <ApkInstructions />}
                     {isCurrent && <RequestAccess stage={d.title.toLowerCase()} />}
                   </div>
                 </div>

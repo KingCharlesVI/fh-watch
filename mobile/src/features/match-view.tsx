@@ -90,9 +90,13 @@ export function PeriodTable({ doc, summary }: { doc: MatchDocument; summary: Mat
 
 export function StatsCard({ summary }: { summary: MatchSummary }) {
   const c = useColors();
+  const { penaltyCorners: pcs, penaltyStrokes: ps } = summary;
   const rows: [string, string | number, string | number][] = [
-    ["Penalty corners", summary.penaltyCorners.home, summary.penaltyCorners.away],
-    ["Strokes (scored)", `${summary.penaltyStrokes.home.awarded} (${summary.penaltyStrokes.home.scored})`, `${summary.penaltyStrokes.away.awarded} (${summary.penaltyStrokes.away.scored})`],
+    // Corners and strokes aren't recorded any more; only older matches have them.
+    ...(pcs.home + pcs.away > 0 ? [["Penalty corners", pcs.home, pcs.away] as [string, number, number]] : []),
+    ...(ps.home.awarded + ps.away.awarded > 0
+      ? [["Strokes (scored)", `${ps.home.awarded} (${ps.home.scored})`, `${ps.away.awarded} (${ps.away.scored})`] as [string, string, string]]
+      : []),
     ["Green cards", summary.cards.home.green, summary.cards.away.green],
     ["Yellow cards", summary.cards.home.yellow, summary.cards.away.yellow],
     ["Red cards", summary.cards.home.red, summary.cards.away.red],

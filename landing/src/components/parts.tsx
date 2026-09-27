@@ -2,6 +2,7 @@ import { ArrowUpRight, Download, Mail } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { SITE, type StoreLink } from "@/content";
+import { LatestApk } from "./LatestApk";
 
 export function Container({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <div className={`mx-auto w-full max-w-5xl px-5 ${className}`}>{children}</div>;
@@ -40,6 +41,7 @@ const STORE_NAMES = { "google-play": "Google Play", "app-store": "App Store", te
 
 /** A store button, or a quiet "Coming soon" when there's no link yet. */
 export function StoreButton({ link }: { link: StoreLink }) {
+  if (link.latest) return <LatestApk app={link.latest} label={link.label} />;
   if (!link.href) {
     return (
       <span className="flex h-11 items-center justify-between gap-3 rounded-lg border border-dashed px-4 text-sm text-muted-foreground">
@@ -49,7 +51,7 @@ export function StoreButton({ link }: { link: StoreLink }) {
     );
   }
   if (link.store === "apk") {
-    // A file on this site, downloaded rather than opened.
+    // A file, downloaded rather than opened.
     return (
       <a
         href={link.href}

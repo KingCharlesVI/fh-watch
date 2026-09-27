@@ -11,6 +11,9 @@ plugins {
 @Suppress("UNCHECKED_CAST")
 val release = JsonSlurper().parse(rootProject.file("../version.json")) as Map<String, Any>
 
+/** CI builds number themselves (FH_BUILD_NUMBER, the workflow's run number), so each APK installs over the last. */
+val buildNumber = providers.environmentVariable("FH_BUILD_NUMBER").orNull?.toInt() ?: (release["build"] as Number).toInt()
+
 /** The upload key, from Gradle properties outside the repository; see mobile/plugins/with-release-signing.js. */
 val uploadKey = providers.gradleProperty("FH_UPLOAD_STORE_FILE").orNull
 
@@ -25,7 +28,7 @@ android {
         minSdk = 30
         targetSdk = 36
         // 1,000,000 above the phone app's: they share one Play listing, and version codes must be unique in it.
-        versionCode = 1_000_000 + (release["build"] as Number).toInt()
+        versionCode = 1_000_000 + buildNumber
         versionName = release["version"] as String
     }
 
@@ -93,6 +96,8 @@ dependencies {
     implementation(libs.wear.ongoing)
     implementation(libs.wear)
     implementation(libs.wear.input)
+    // Opening the phone app from the watch (Setup on phone).
+    implementation(libs.wear.remote.interactions)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)

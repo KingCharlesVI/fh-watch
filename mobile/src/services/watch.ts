@@ -3,7 +3,7 @@ import { type Watch, WatchSync, watchSyncAvailable } from "../../modules/watch-s
 import { type InboxProblem, drainInbox } from "@/core/watch-inbox";
 import { sync } from "./index";
 
-export { watchSyncAvailable };
+export { WatchSync, watchSyncAvailable };
 
 let problems: InboxProblem[] = [];
 const listeners = new Set<() => void>();

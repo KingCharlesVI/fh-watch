@@ -17,7 +17,8 @@
     "dev:watch": "node scripts/dev.mjs watch",
     "release:android": "node scripts/release-android.mjs",
     "release:phone": "node scripts/release-android.mjs phone",
-    "release:watch": "node scripts/release-android.mjs watch"
+    "release:watch": "node scripts/release-android.mjs watch",
+    "release:github": "node scripts/github-release.mjs"
   },
   "pnpm": {
     "overrides": {

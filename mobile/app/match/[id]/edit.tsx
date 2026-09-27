@@ -1,4 +1,6 @@
 import {
+  CARD_REASONS,
+  type CardReason,
   type EventInput,
   type MatchDocument,
   type TeamSide,
@@ -11,6 +13,7 @@ import {
   parseMatch,
   periodLabel,
   restoreEvent,
+  setCardReason,
   sortChronologically,
   summarizeMatch,
   voidedSeqs,
@@ -19,13 +22,13 @@ import { Stack, router, useLocalSearchParams, useNavigation } from "expo-router"
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { errorMessage } from "@/core/api";
+import { TEAM_COLOURS } from "@/core/setup";
 import { ONLINE } from "@/config";
 import { api, sync } from "@/services";
 import { useMatch } from "@/state/sync";
 import { Badge, Banner, Button, Card, Choice, Field, Row, Screen, Swatch, T, Text } from "@/ui/kit";
 import { space, useColors } from "@/ui/theme";
 
-const TEAM_COLOURS = ["#1E40AF", "#0EA5E9", "#065F46", "#16A34A", "#B91C1C", "#EA580C", "#CA8A04", "#7C3AED", "#DB2777", "#111827", "#6B7280", "#FFFFFF"];
 
 export default function EditMatchScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -307,6 +310,8 @@ function EventsCard({ doc, saved, onChange }: { doc: MatchDocument; saved: Match
   const c = useColors();
   const savedSeqs = useMemo(() => new Set(saved.events.map((e) => e.seq)), [saved]);
   const voided = voidedSeqs(doc);
+  // The card whose reason is being picked, if any.
+  const [reasonFor, setReasonFor] = useState<number | null>(null);
   const shown = sortChronologically(doc.events.filter((e) => e.type !== "void" && e.type !== "period_start" && e.type !== "period_end"));
 
   return (
@@ -316,21 +321,37 @@ function EventsCard({ doc, saved, onChange }: { doc: MatchDocument; saved: Match
         const isVoided = voided.has(e.seq);
         const struck = isVoided ? { textDecorationLine: "line-through" as const, color: c.muted } : null;
         return (
-          <View key={e.seq} style={[styles.event, { borderTopColor: c.border }]}>
-            <Text style={[{ width: 64, color: c.muted, fontVariant: ["tabular-nums"] }, struck]}>{eventTime(e, doc.settings)}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={[{ color: c.text }, struck]}>{describeEvent(e, doc.settings)}</Text>
-              {"team" in e && (
-                <Text style={[{ color: c.muted, fontSize: 13 }, struck]}>
-                  {doc.teams[e.team].name}
-                  {"player" in e && e.player !== undefined ? ` · #${e.player}` : ""}
-                </Text>
+          <View key={e.seq}>
+            <View style={[styles.event, { borderTopColor: c.border }]}>
+              <Text style={[{ width: 64, color: c.muted, fontVariant: ["tabular-nums"] }, struck]}>{eventTime(e, doc.settings)}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[{ color: c.text }, struck]}>{describeEvent(e, doc.settings)}</Text>
+                {"team" in e && (
+                  <Text style={[{ color: c.muted, fontSize: 13 }, struck]}>
+                    {doc.teams[e.team].name}
+                    {"player" in e && e.player !== undefined ? ` · #${e.player}` : ""}
+                  </Text>
+                )}
+              </View>
+              {e.type === "card" && !isVoided && (
+                <Button small variant="ghost" title="Reason" onPress={() => setReasonFor(reasonFor === e.seq ? null : e.seq)} />
+              )}
+              {isVoided ? (
+                <Button small variant="ghost" title="Restore" onPress={() => onChange(restoreEvent(doc, e.seq))} />
+              ) : (
+                <Button small variant="ghost" title={savedSeqs.has(e.seq) ? "Cancel" : "Remove"} onPress={() => onChange(cancelEvent(doc, e.seq, savedSeqs))} />
               )}
             </View>
-            {isVoided ? (
-              <Button small variant="ghost" title="Restore" onPress={() => onChange(restoreEvent(doc, e.seq))} />
-            ) : (
-              <Button small variant="ghost" title={savedSeqs.has(e.seq) ? "Cancel" : "Remove"} onPress={() => onChange(cancelEvent(doc, e.seq, savedSeqs))} />
+            {e.type === "card" && reasonFor === e.seq && (
+              <View style={{ paddingVertical: space.sm }}>
+                <ReasonChoice
+                  value={e.reason}
+                  onChange={(reason) => {
+                    onChange(setCardReason(doc, e.seq, reason ?? null));
+                    setReasonFor(null);
+                  }}
+                />
+              </View>
             )}
           </View>
         );
@@ -340,10 +361,25 @@ function EventsCard({ doc, saved, onChange }: { doc: MatchDocument; saved: Match
   );
 }
 
+/** Why a card was given, or "Not recorded". */
+function ReasonChoice({ value, onChange }: { value: CardReason | undefined; onChange: (reason: CardReason | undefined) => void }) {
+  return (
+    <Choice
+      label="Why"
+      value={value ?? "none"}
+      onChange={(v) => onChange(v === "none" ? undefined : v)}
+      options={[
+        { value: "none" as const, label: "Not recorded" },
+        ...(Object.entries(CARD_REASONS) as [CardReason, string][]).map(([v, label]) => ({ value: v, label })),
+      ]}
+    />
+  );
+}
+
 function AddEvent({ doc, onAdd }: { doc: MatchDocument; onAdd: Parameters<typeof addEvent>[1] extends infer E ? (e: E) => void : never }) {
   const { settings } = doc;
   const c = useColors();
-  const [input, setInput] = useState<EventInput>({ type: "goal", team: "home", period: 1, clock: "", player: "", color: "green", scored: true });
+  const [input, setInput] = useState<EventInput>({ type: "goal", team: "home", period: 1, clock: "", player: "", color: "green" });
   const [error, setError] = useState<string | null>(null);
   const set = (patch: Partial<EventInput>) => setInput((i) => ({ ...i, ...patch }));
 
@@ -364,8 +400,6 @@ function AddEvent({ doc, onAdd }: { doc: MatchDocument; onAdd: Parameters<typeof
         options={[
           { value: "goal", label: "Goal" },
           { value: "card", label: "Card" },
-          { value: "penalty_corner", label: "Corner" },
-          { value: "penalty_stroke", label: "Stroke" },
           { value: "note", label: "Note" },
         ]}
       />
@@ -432,18 +466,8 @@ function AddEvent({ doc, onAdd }: { doc: MatchDocument; onAdd: Parameters<typeof
               ]}
             />
           )}
+          <ReasonChoice value={input.reason} onChange={(reason) => set({ reason })} />
         </>
-      )}
-      {input.type === "penalty_stroke" && (
-        <Choice
-          label="Result"
-          value={input.scored ? "scored" : "missed"}
-          onChange={(v) => set({ scored: v === "scored" })}
-          options={[
-            { value: "scored", label: "Scored (add the goal too)" },
-            { value: "missed", label: "Missed" },
-          ]}
-        />
       )}
       {input.type === "note" && <Field label="Note" value={input.text ?? ""} onChangeText={(text) => set({ text })} multiline maxLength={1000} />}
       {error && <T variant="small" style={{ color: c.danger }}>{error}</T>}

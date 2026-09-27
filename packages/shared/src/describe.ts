@@ -1,4 +1,4 @@
-import type { MatchEvent, MatchSettings } from "./schema.js";
+import type { CardReason, MatchEvent, MatchSettings } from "./schema.js";
 import { formatClock } from "./summary.js";
 
 /** "Q2" for quarters, "H1"/"H2" for halves, "P3" otherwise. */
@@ -15,6 +15,15 @@ export function formatDuration(sec: number): string {
 
 const capitalize = (s: string) => s[0]!.toUpperCase() + s.slice(1);
 
+/** What each card reason is called, in the order the apps offer them. */
+export const CARD_REASONS: Record<CardReason, string> = {
+  danger: "Danger",
+  breakdown: "Breakdown of play",
+  physical: "Physical misconduct",
+  dissent: "Dissent",
+  other: "Other",
+};
+
 /** Plain-English description of an event, for timelines and reports. Team and player are shown separately. */
 export function describeEvent(event: MatchEvent, settings: Pick<MatchSettings, "periods">): string {
   switch (event.type) {
@@ -28,10 +37,10 @@ export function describeEvent(event: MatchEvent, settings: Pick<MatchSettings, "
       return "Clock restarted";
     case "goal":
       return event.method === "pc" ? "Goal (penalty corner)" : event.method === "ps" ? "Goal (penalty stroke)" : "Goal";
-    case "card":
-      return event.durationSec === undefined
-        ? `${capitalize(event.color)} card`
-        : `${capitalize(event.color)} card (${formatDuration(event.durationSec)})`;
+    case "card": {
+      const card = event.durationSec === undefined ? `${capitalize(event.color)} card` : `${capitalize(event.color)} card (${formatDuration(event.durationSec)})`;
+      return event.reason ? `${card}: ${CARD_REASONS[event.reason].toLowerCase()}` : card;
+    }
     case "card_end":
       return "Suspension ended";
     case "penalty_corner":

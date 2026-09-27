@@ -165,7 +165,7 @@ The watch app does everything MatchGear does and works fully offline. The only e
 
 | Platform | What third-party apps can use | Plan |
 | --- | --- | --- |
-| Wear OS | The main (Home) button is reserved by the system. Galaxy Watch 4 to 7 have a second, lower button that sends Back, which apps receive as a key press. Some other watches have extra "stem" buttons (`KEYCODE_STEM_1` to `3`). Rotary crown or bezel input is available. | While a match is under way (before kickoff, in a period or a break), Back and the stem buttons start and stop the clock on every screen; swiping right still navigates. Predictive back is turned off for the activity so the Back key reaches the app. Tapping the clock does the same. Needs checking on a real Galaxy Watch: behaviour with the screen dimmed (ambient). |
+| Wear OS | The main (Home) button is reserved by the system. Galaxy Watch 4 to 7 have a second, lower button that sends Back, which apps receive as a key press. Some other watches have extra "stem" buttons (`KEYCODE_STEM_1` to `3`). Rotary crown or bezel input is available. | While a match is under way (before kickoff, in a period or a break), Back and the stem buttons start and stop the clock on every screen. The Timing page has no on-screen Start/Stop button unless the umpire turns it on in Settings ("Start/stop on screen", off by default), for watches whose buttons the app can't use, such as a Pixel Watch. Predictive back is turned off for the activity so the Back key reaches the app. On Wear OS 6 swiping right also arrives as a Back key. On a Galaxy Watch7 both it and the button come from the system (device -1, no scan code); the swipe's key has FLAG_VIRTUAL_HARD_KEY and follows a touch within milliseconds, so those two go back and anything else works the clock. Checked on a Galaxy Watch7 (Wear OS 6). The screen stays on during a match, so ambient mode doesn't come into it. |
 | watchOS | The side button and a Digital Crown press are reserved by the system. Crown rotation is available. The Action Button (Ultra models) and double-tap (Series 9+ / Ultra 2+) can trigger an app's main action. | Start/stop on the Action Button and double-tap. Crown rotation scrolls. On-screen button everywhere else. |
 
 **Local storage**
@@ -194,6 +194,7 @@ When a match ends, the watch queues the whole match document with the platform's
 | Phone receiver | Native Swift module, activated in `AppDelegate` at launch so no delivery is missed | `WearableListenerService`, which runs even when the app is closed |
 | Confirmation to watch | `sendMessage` `{ack: id, rev}`, falling back to `transferUserInfo` | `MessageClient` at `/ack/{id}` |
 | Bridge to the JS app | Expo module event `onMatchReceived` plus a native inbox the JS side drains at startup | Same |
+| Setup on phone (phone → watch) | Not built yet | The watch's **Setup on phone** opens the phone app's setup screen (`fhmatchcentre://setup`) with `RemoteActivityHelper`. The phone sends the setup as JSON with `MessageClient` at `/setup` to each watch in reach. The watch checks every value (`Setup.fromPhone`), saves it as the last setup, and opens its own setup screen with it, where the umpire checks it and taps Ready. |
 
 ```mermaid
 sequenceDiagram
@@ -429,7 +430,7 @@ The work runs from the server outwards, so every step can be tested end to end b
 | 3 | Website (public + admin) | Match pages, JSON/CSV/PDF downloads, dashboards, admin screens |
 | 4 | Server deployment | Running on a Linux or Windows machine behind a Cloudflare Tunnel, with backups and a deploy command |
 | 5 | Mobile app without watch | Sign in, import a match from a file, edit, publish, share by QR code or link, offline upload queue, push notifications. Expo SDK 57 with Expo Router; editing uses the same shared functions as the website. |
-| 6 | Wear OS app + Android sync | Full umpiring features. A match reaches the phone automatically. Tested at a real match. Built: the app, sync and phone receiver, tested on emulators (see below); the match screen is now swiped pages (timing, cards, goals, phone, match), after MatchGear. Still to do: a paired end-to-end test and a real match. |
+| 6 | Wear OS app + Android sync | Full umpiring features. A match reaches the phone automatically. Tested at a real match. Built: the app, sync and phone receiver, tested on emulators (see below); the match screen is now swiped pages (timing, goals, cards, settings), after MatchGear. Still to do: a paired end-to-end test and a real match. |
 | 7 | Alpha (Android) | Watch and phone only: no account, matches saved and exported on the phone (PDF, CSV, JSON, backups), uploads only when the umpire asks. Released to umpires through Google Play internal testing ([play-store.md](play-store.md)). |
 | 8 | watchOS app + iOS sync | Same features as Wear OS, including workout session, Action Button and double-tap |
 | 9 | Beta | The API and website in the apps: sign-in, upload, publishing. Closed testing on Google Play (Google requires 12 testers for 14 days before production) and TestFlight. |

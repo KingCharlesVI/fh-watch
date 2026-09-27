@@ -1,0 +1,20 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.fhmatchcentre'
+version = '0.1.0'
+
+android {
+  namespace "expo.modules.watchsync"
+  defaultConfig {
+    versionCode 1
+    versionName '0.1.0'
+  }
+}
+
+dependencies {
+  // The Wearable Data Layer: how matches arrive from a Wear OS watch.
+  implementation "com.google.android.gms:play-services-wearable:19.0.0"
+}

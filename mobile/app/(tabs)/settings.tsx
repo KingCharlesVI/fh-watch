@@ -63,6 +63,9 @@ export default function SettingsScreen() {
 
       <Card title="Watch">
         <WatchStatus />
+        {watchSyncAvailable && (
+          <Button title="Set up a match" variant="secondary" icon="create-outline" onPress={() => router.push("/setup")} />
+        )}
         {__DEV__ && (
           <Button
             title="Add a sample match (development)"
