@@ -8,7 +8,7 @@ import { errorMessage } from "@/core/api";
 import type { LocalMatch } from "@/core/store";
 import { PeriodTable, ScoreCard, StatsCard, StatusBadges, Timeline, formatDateTime } from "@/features/match-view";
 import { sync } from "@/services";
-import { type ExportKind, saveMatch, shareMatch } from "@/services/export";
+import { type ExportKind, saveMatch, shareMatch, shareReport } from "@/services/export";
 import { useMatch } from "@/state/sync";
 import { Banner, Button, Card, Empty, Row, Screen, T } from "@/ui/kit";
 import { space, useColors } from "@/ui/theme";
@@ -210,9 +210,20 @@ const EXPORTS: { kind: ExportKind; title: string; detail: string; icon: "documen
   { kind: "json", title: "Match data (JSON)", detail: "Everything, for importing on another phone.", icon: "code-slash-outline" },
 ];
 
-/** Getting the match off the phone: saved to a folder, or shared. */
+/** Getting the match off the phone: the report shared in one tap, or any file saved or shared. */
 function ExportCard({ match }: { match: LocalMatch }) {
-  const [busy, setBusy] = useState<ExportKind | null>(null);
+  const [busy, setBusy] = useState<ExportKind | "report" | null>(null);
+
+  async function sendReport() {
+    setBusy("report");
+    try {
+      await shareReport(match);
+    } catch (err) {
+      Alert.alert("Couldn't share the report", errorMessage(err));
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function run(kind: ExportKind, how: "save" | "share") {
     setBusy(kind);
@@ -236,6 +247,10 @@ function ExportCard({ match }: { match: LocalMatch }) {
 
   return (
     <Card title="Save or share">
+      <View style={{ gap: 2 }}>
+        <Button title="Share report" icon="share-social-outline" loading={busy === "report"} onPress={() => void sendReport()} />
+        <T variant="small">The PDF, by WhatsApp, email, Quick Share or any app.</T>
+      </View>
       {EXPORTS.map((e) => (
         <View key={e.kind} style={{ gap: 2 }}>
           <Button title={e.title} variant="outline" icon={e.icon} loading={busy === e.kind} onPress={() => choose(e.kind, e.title)} />
