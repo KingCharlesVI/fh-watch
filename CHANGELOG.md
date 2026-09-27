@@ -1,3 +1,24 @@
+## [0.4.0-alpha.8] - 2026-09-27
+
+### 🚀 Features
+
+- *(landing)* APK buttons link to the newest GitHub release
+- *(phone)* Share the match report in one tap
+- *(watch)* Delete a past match from the watch
+- Update notices from GitHub releases
+
+### 🐛 Bug Fixes
+
+- *(watch)* Screen doesn't dim while the app is open
+
+### ⚙️ Miscellaneous Tasks
+
+- *(landing)* Stop tracking the build output
+- Start 0.4.0
+
+### 💼 Other
+
+- Update CHANGELOG.md
 ## [0.3.0-alpha.7] - 2026-09-27
 
 ### 🚀 Features
@@ -31,10 +52,9 @@
 - Delete android.yml
 - Update content.ts
 - Some fixes
-
--Ensure screen stays on
--Optionally allow setup on mobile
--Fix button/swipe timer control
+- Ensure screen stays on
+- Optionally allow setup on mobile
+- Fix button/swipe timer control
 - Update CHANGELOG.md
 ## [0.2.0] - 2026-09-25
 
