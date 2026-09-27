@@ -84,6 +84,14 @@ class Prefs(context: Context) {
         get() = prefs.getString("setup", null)?.let { runCatching { StorageJson.decodeFromString(Setup.serializer(), it) }.getOrNull() } ?: Setup()
         set(value) = prefs.edit().putString("setup", StorageJson.encodeToString(Setup.serializer(), value)).apply()
 
+    /**
+     * Whether the Timing page has an on-screen Start/Stop button. Off by default: time
+     * is started and stopped with the side button. For watches without a usable one.
+     */
+    var clockButtonOnScreen: Boolean
+        get() = prefs.getBoolean("clockButton", false)
+        set(value) = prefs.edit().putBoolean("clockButton", value).apply()
+
     /** Whether the match clock shows time left (the default) or time played. */
     var clockCountsDown: Boolean
         get() = prefs.getBoolean("countDown", true)

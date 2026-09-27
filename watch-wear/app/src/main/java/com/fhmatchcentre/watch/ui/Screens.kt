@@ -286,6 +286,7 @@ fun SummaryScreen(services: Services, id: String, onDone: () -> Unit) {
 @Composable
 fun SettingsScreen(services: Services) {
     var countDown by remember { mutableStateOf(services.prefs.clockCountsDown) }
+    var clockButton by remember { mutableStateOf(services.prefs.clockButtonOnScreen) }
     var phones by remember { mutableStateOf<List<String>?>(null) }
     var resent by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
@@ -299,6 +300,7 @@ fun SettingsScreen(services: Services) {
                 label = { Text("Clock counts down") },
             )
         }
+        item { ClockButtonSwitch(clockButton) { clockButton = it; services.prefs.clockButtonOnScreen = it } }
         item {
             Text(
                 when {

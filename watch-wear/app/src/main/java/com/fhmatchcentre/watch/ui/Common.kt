@@ -24,6 +24,7 @@ import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.ScreenScaffold
+import androidx.wear.compose.material3.SwitchButton
 import androidx.wear.compose.material3.Text
 import com.fhmatchcentre.watch.engine.CardReason
 import com.fhmatchcentre.watch.engine.Moment
@@ -31,6 +32,18 @@ import com.fhmatchcentre.watch.engine.Side
 import com.fhmatchcentre.watch.engine.Team
 import com.fhmatchcentre.watch.match.moment
 import kotlinx.coroutines.delay
+
+/** The Settings switch for the on-screen Start/Stop button (Prefs.clockButtonOnScreen). */
+@Composable
+fun ClockButtonSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
+    SwitchButton(
+        checked = checked,
+        onCheckedChange = onChange,
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text("Start/stop on screen") },
+        secondaryLabel = { Text("For watches without a side button") },
+    )
+}
 
 /** "Q2" with quarters, "H1" with halves, otherwise "P3". */
 fun periodName(period: Int, periods: Int): String = when (periods) {

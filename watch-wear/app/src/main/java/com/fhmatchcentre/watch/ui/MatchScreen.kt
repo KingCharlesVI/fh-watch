@@ -53,7 +53,6 @@ import com.fhmatchcentre.watch.engine.MatchRecord
 import com.fhmatchcentre.watch.engine.Moment
 import com.fhmatchcentre.watch.engine.Phase
 import com.fhmatchcentre.watch.engine.Side
-import com.fhmatchcentre.watch.engine.StopReason
 import com.fhmatchcentre.watch.engine.Suspension
 import com.fhmatchcentre.watch.engine.activeEvents
 import com.fhmatchcentre.watch.engine.breakRemainingMs
@@ -66,7 +65,6 @@ import com.fhmatchcentre.watch.engine.penaltyCorners
 import com.fhmatchcentre.watch.engine.periodElapsedMs
 import com.fhmatchcentre.watch.engine.score
 import com.fhmatchcentre.watch.engine.startShootout
-import com.fhmatchcentre.watch.engine.stopClock
 import com.fhmatchcentre.watch.engine.suspensions
 import com.fhmatchcentre.watch.engine.toggleClock
 import com.fhmatchcentre.watch.match.MatchController
@@ -101,6 +99,7 @@ fun MatchScreen(
     val now = rememberNow()
     // Held here so the Settings page's switch changes the Timing page straight away.
     var countDown by remember { mutableStateOf(services.prefs.clockCountsDown) }
+    var clockButton by remember { mutableStateOf(services.prefs.clockButtonOnScreen) }
     // Ending a period early, the match, or cancelling it can't be undone, so they ask first.
     var confirm by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
 
@@ -114,13 +113,15 @@ fun MatchScreen(
         HorizontalPager(state = pager) { index ->
             AnimatedPage(pageIndex = index, pagerState = pager) {
                 when (Page.entries[index]) {
-                    Page.TIMING -> TimingPage(m, now, countDown, controller)
+                    Page.TIMING -> TimingPage(m, now, countDown, clockButton, controller)
                     Page.CARDS -> CardsPage(m, now, controller, onCard)
                     Page.GOALS -> GoalsPage(m, now, controller, onGoal, onStroke)
                     Page.SYNC -> SyncPage(services)
                     Page.SETTINGS -> SettingsPage(
                         m, now, countDown,
                         onCountDown = { countDown = it; services.prefs.clockCountsDown = it },
+                        clockButton = clockButton,
+                        onClockButton = { clockButton = it; services.prefs.clockButtonOnScreen = it },
                         onEvents = onEvents,
                         controller = controller,
                         onConfirm = { confirm = it },
@@ -147,9 +148,13 @@ fun MatchScreen(
 
 // ---- Timing ------------------------------------------------------------------
 
+/**
+ * The clock and score. Time is started and stopped with the side button; an
+ * on-screen button can be turned on in Settings for watches without one.
+ */
 @Composable
-private fun TimingPage(m: MatchRecord, now: Moment, countDown: Boolean, controller: MatchController) {
-    // No undo offer here: it would push the Stop button off the screen. It's on the Cards and Goals pages.
+private fun TimingPage(m: MatchRecord, now: Moment, countDown: Boolean, clockButton: Boolean, controller: MatchController) {
+    // No undo offer here: it would push the clock controls off the screen. It's on the Cards and Goals pages.
     val (label, clock, clockColor) = clockDisplay(m, now, countDown)
     val toggle: () -> Unit = { controller.perform { toggleClock(it) } }
     ListScreen(title = null, fromTop = true) {
@@ -171,31 +176,22 @@ private fun TimingPage(m: MatchRecord, now: Moment, countDown: Boolean, controll
         }
         when (m.clock.phase) {
             Phase.READY, Phase.BREAK -> {
-                val next = if (m.clock.phase == Phase.READY) 1 else m.clock.period + 1
-                item { PillButton("Start ${periodName(next, m.settings.periods)}", BRAND, onClick = toggle) }
-                if (m.clock.phase == Phase.READY) {
-                    item { Hint("The side button (the lower one on Galaxy watches) also starts and stops time. Swipe left for cards, goals and more.") }
-                }
+                val next = periodName(if (m.clock.phase == Phase.READY) 1 else m.clock.period + 1, m.settings.periods)
+                if (clockButton) item { PillButton("Start $next", BRAND, onClick = toggle) }
             }
             Phase.PLAYING -> {
                 val timeUp = m.isTimeUp(now)
-                item {
-                    PillButton(
-                        when {
-                            timeUp -> "End ${periodName(m.clock.period, m.settings.periods)}"
-                            m.clock.running -> "Stop"
-                            else -> "Restart"
-                        },
-                        if (m.clock.running && !timeUp) STOP_RED else BRAND,
-                        onClick = toggle,
-                    )
-                }
-                // A stop with a reason, so the report shows why time was stopped.
-                if (m.clock.running && !timeUp) {
+                val period = periodName(m.clock.period, m.settings.periods)
+                if (clockButton) {
                     item {
-                        ButtonPair(
-                            { mod -> SmallButton("Injury", mod) { controller.perform { stopClock(it, StopReason.INJURY) } } },
-                            { mod -> SmallButton("Video", mod) { controller.perform { stopClock(it, StopReason.VIDEO) } } },
+                        PillButton(
+                            when {
+                                timeUp -> "End $period"
+                                m.clock.running -> "Stop"
+                                else -> "Restart"
+                            },
+                            if (m.clock.running && !timeUp) STOP_RED else BRAND,
+                            onClick = toggle,
                         )
                     }
                 }
@@ -482,6 +478,8 @@ private fun SettingsPage(
     now: Moment,
     countDown: Boolean,
     onCountDown: (Boolean) -> Unit,
+    clockButton: Boolean,
+    onClockButton: (Boolean) -> Unit,
     onEvents: () -> Unit,
     controller: MatchController,
     onConfirm: (Pair<String, () -> Unit>) -> Unit,
@@ -504,6 +502,7 @@ private fun SettingsPage(
                 label = { Text("Clock counts down") },
             )
         }
+        item { ClockButtonSwitch(clockButton, onClockButton) }
         item { ChoiceButton("Events", "Everything so far; cancel mistakes") { onEvents() } }
         when (m.clock.phase) {
             Phase.READY -> item { ChoiceButton("Cancel match") { onConfirm("Cancel this match? Nothing is kept." to { controller.discard() }) } }
@@ -535,15 +534,6 @@ private fun PillButton(label: String, color: Color, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth().height(52.dp),
         colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Color.White),
     ) { Text(label, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
-}
-
-@Composable
-private fun SmallButton(label: String, modifier: Modifier, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = modifier.height(40.dp),
-        colors = ButtonDefaults.filledTonalButtonColors(),
-    ) { Text(label, fontSize = 13.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
 }
 
 /** For a few seconds after a goal, card or corner, a way to take it back. */
