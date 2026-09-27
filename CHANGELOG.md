@@ -1,4 +1,4 @@
-## [unreleased]
+## [0.3.0-alpha.7] - 2026-09-27
 
 ### 🚀 Features
 
@@ -35,6 +35,7 @@
 -Ensure screen stays on
 -Optionally allow setup on mobile
 -Fix button/swipe timer control
+- Update CHANGELOG.md
 ## [0.2.0] - 2026-09-25
 
 ### 💼 Other
