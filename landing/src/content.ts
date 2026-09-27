@@ -11,6 +11,8 @@ export const SITE = {
   description: "A field hockey umpiring app for Wear OS and Apple Watch, with a phone app for match reports and, soon, published results for clubs.",
   /** Where people ask to join a test. Null hides the request buttons. */
   contactEmail: null as string | null,
+  /** The public GitHub repository whose releases hold the APKs (see `pnpm release:github`). */
+  githubRepo: "KingCharlesVI/fh-watch",
 };
 
 export type Stage = "alpha" | "beta" | "release";
@@ -24,6 +26,8 @@ export interface StoreLink {
   href: string | null;
   /** Shown beside the label, e.g. an APK's version and size: "0.2.0 · 112 MB". */
   detail?: string;
+  /** For an APK: that app's file from the newest GitHub release, found when the page opens. Replaces `href` and `detail`. */
+  latest?: "phone" | "watch";
 }
 
 export interface Download {
@@ -44,9 +48,9 @@ export const DOWNLOADS: Download[] = [
     links: [
       // Play Console → Internal testing → Testers → "Join on Android" link.
       { label: "Android and Wear OS", store: "google-play", href: null },
-      // The APKs' public URLs (e.g. in the S3 bucket). Update them and `detail` for each new build.
-      { label: "Phone app (APK)", store: "apk", href: "https://fhmatchcentre.s3.eu-north-1.amazonaws.com/releases/fh-match-centre-phone-0.3.0-2-alpha.apk", detail: "0.3.0-2 106MB" },
-      { label: "Watch app (APK)", store: "apk", href: "https://fhmatchcentre.s3.eu-north-1.amazonaws.com/releases/fh-match-centre-watch-0.3.0-2.apk", detail: "0.3.0-2 4MB" },
+      // From the newest GitHub release, so a new release needs no change here.
+      { label: "Phone app (APK)", store: "apk", href: null, latest: "phone" },
+      { label: "Watch app (APK)", store: "apk", href: null, latest: "watch" },
     ],
   },
   {

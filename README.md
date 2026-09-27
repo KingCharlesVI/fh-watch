@@ -189,4 +189,4 @@ The script stops before building if anything is out of order: another branch, un
 
 #### Getting the APKs to testers
 
-The repository is private, so releases need a GitHub login with access to it. For testers, download the APKs from the release and put them wherever the landing page links to (e.g. the S3 bucket), then update the links and `detail` in `landing/src/content.ts`.
+The landing page's APK buttons link to the newest release's APKs, pre-releases included, so a new release reaches testers as soon as it's published, without redeploying the landing page (see [landing/README.md](landing/README.md)). This needs the repository to be public: a private repository's releases need a GitHub login with access to it.
