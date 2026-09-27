@@ -190,3 +190,5 @@ The script stops before building if anything is out of order: another branch, un
 #### Getting the APKs to testers
 
 The landing page's APK buttons link to the newest release's APKs, pre-releases included, so a new release reaches testers as soon as it's published, without redeploying the landing page (see [landing/README.md](landing/README.md)). This needs the repository to be public: a private repository's releases need a GitHub login with access to it.
+
+The phone app tells testers about new releases itself. It checks the releases when it opens (and every six hours while in use), and shows a notice on the match list when there's a newer phone app, or a newer watch app than the one on the paired watch (which tells the phone its build number). The phone APK downloads from the notice; the watch app links to the release page, as it goes on from a computer. **Settings → About → Include pre-releases** (on by default) decides whether pre-releases from `dev` count, or only full releases from `main`. Builds are compared by the build number in the APK names, so each release needs a higher build than the last one it should replace.

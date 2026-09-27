@@ -2,7 +2,7 @@ import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, Share, View } from "react-native";
+import { Alert, Share, Switch, View } from "react-native";
 import { API_URL, ONLINE, WEB_URL } from "@/config";
 import { errorMessage } from "@/core/api";
 import { sync } from "@/services";
@@ -11,6 +11,8 @@ import { importFromFile, sampleMatch } from "@/services/import";
 import { useConnectedWatches, useWatchProblems, watchSyncAvailable } from "@/services/watch";
 import { useAuth } from "@/state/auth";
 import { useMatches } from "@/state/sync";
+import { checkForUpdates, setIncludePreReleases, useUpdates } from "@/state/updates";
+import { UpdateNotice } from "@/features/update-notice";
 import { Badge, Banner, Button, Card, Row, Screen, T } from "@/ui/kit";
 
 const ROLE_NAMES = { admin: "Admin", umpire: "Umpire", club_admin: "Club admin" } as const;
@@ -102,8 +104,32 @@ export default function SettingsScreen() {
           Version {Constants.expoConfig?.version} ({Constants.expoConfig?.android?.versionCode ?? "development"}) ·{" "}
           {ONLINE ? API_URL : "Alpha: watch and phone only"}
         </T>
+        <Updates />
       </Card>
     </Screen>
+  );
+}
+
+/** Whether there's a newer phone or watch app, and whether to hear about pre-releases. */
+function Updates() {
+  const { update, checking, checkedAt, error, includePreReleases } = useUpdates();
+  if (__DEV__) return <T variant="small">Development build: no update checks.</T>;
+  return (
+    <>
+      {update ? (
+        <UpdateNotice update={update} />
+      ) : (
+        <T variant="muted">{checking ? "Checking for updates…" : error ? `Couldn't check for updates: ${error}` : checkedAt ? "Up to date." : ""}</T>
+      )}
+      <Row style={{ alignItems: "center" }}>
+        <View style={{ flex: 1 }}>
+          <T>Include pre-releases</T>
+          <T variant="small">Test builds, before they become a full release.</T>
+        </View>
+        <Switch value={includePreReleases} onValueChange={(on) => void setIncludePreReleases(on)} />
+      </Row>
+      <Button title="Check for updates" variant="outline" icon="refresh-outline" loading={checking} onPress={() => void checkForUpdates()} />
+    </>
   );
 }
 

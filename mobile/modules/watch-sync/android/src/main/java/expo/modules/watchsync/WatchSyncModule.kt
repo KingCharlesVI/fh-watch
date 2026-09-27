@@ -1,7 +1,9 @@
 package expo.modules.watchsync
 
 import android.content.Context
+import android.net.Uri
 import com.google.android.gms.tasks.Tasks
+import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.Wearable
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.modules.Module
@@ -39,6 +41,22 @@ class WatchSyncModule : Module() {
 
     AsyncFunction("connectedWatches") {
       Tasks.await(Wearable.getNodeClient(context).connectedNodes).map { mapOf("id" to it.id, "name" to it.displayName) }
+    }
+
+    // The watch app's version on each watch that has told the phone (at /watch-info), for
+    // update notices. Empty without a paired watch.
+    AsyncFunction("watchVersions") {
+      val items = runCatching {
+        Tasks.await(Wearable.getDataClient(context).getDataItems(Uri.Builder().scheme("wear").path("/watch-info").build()))
+      }.getOrNull() ?: return@AsyncFunction emptyList<Map<String, Any?>>()
+      try {
+        items.map { item ->
+          val info = DataMapItem.fromDataItem(item).dataMap
+          mapOf("watchId" to item.uri.host, "version" to info.getString("version"), "build" to info.getInt("build"))
+        }
+      } finally {
+        items.release()
+      }
     }
 
     // Setup on phone: sends a match setup (JSON) to every watch in reach, as a message at

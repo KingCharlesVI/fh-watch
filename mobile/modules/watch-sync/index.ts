@@ -14,6 +14,13 @@ export interface Watch {
   name: string;
 }
 
+/** The watch app installed on a watch, as it last told the phone. */
+export interface WatchVersion {
+  watchId: string;
+  version: string;
+  build: number;
+}
+
 interface WatchSyncNative {
   listInbox(): Promise<InboxItem[]>;
   removeFromInbox(id: string): Promise<void>;
@@ -22,6 +29,7 @@ interface WatchSyncNative {
   connectedWatches(): Promise<Watch[]>;
   /** Sends a match setup (JSON) to every watch in reach. Returns how many got it. */
   sendSetup(json: string): Promise<number>;
+  watchVersions(): Promise<WatchVersion[]>;
   addListener(event: "onMatchReceived", listener: (e: { id: string }) => void): { remove(): void };
 }
 
@@ -36,6 +44,7 @@ export const WatchSync = {
   pullPending: () => native?.pullPending() ?? Promise.resolve(0),
   connectedWatches: () => native?.connectedWatches() ?? Promise.resolve([]),
   sendSetup: (json: string) => native?.sendSetup(json) ?? Promise.resolve(0),
+  watchVersions: () => native?.watchVersions() ?? Promise.resolve([]),
   onMatchReceived(listener: (id: string) => void): () => void {
     const sub = native?.addListener("onMatchReceived", (e) => listener(e.id));
     return () => sub?.remove();

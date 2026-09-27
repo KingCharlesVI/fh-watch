@@ -194,6 +194,7 @@ When a match ends, the watch queues the whole match document with the platform's
 | Phone receiver | Native Swift module, activated in `AppDelegate` at launch so no delivery is missed | `WearableListenerService`, which runs even when the app is closed |
 | Confirmation to watch | `sendMessage` `{ack: id, rev}`, falling back to `transferUserInfo` | `MessageClient` at `/ack/{id}` |
 | Bridge to the JS app | Expo module event `onMatchReceived` plus a native inbox the JS side drains at startup | Same |
+| Watch app version (watch → phone) | Not built yet | The watch puts its version and build number as a DataItem at `/watch-info` when the app starts. The phone reads it (`getDataItems`) to tell the umpire when a newer watch app is out (below). |
 | Setup on phone (phone → watch) | Not built yet | The watch's **Setup on phone** opens the phone app's setup screen (`fhmatchcentre://setup`) with `RemoteActivityHelper`. The phone sends the setup as JSON with `MessageClient` at `/setup` to each watch in reach. The watch checks every value (`Setup.fromPhone`), saves it as the last setup, and opens its own setup screen with it, where the umpire checks it and taps Ready. |
 
 ```mermaid

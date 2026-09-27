@@ -26,6 +26,8 @@ import kotlinx.coroutines.tasks.await
  * - The phone replies with a message at `/ack/{id}` once it has stored the match;
  *   only then is it marked Synced here and the DataItem removed.
  * - Resending is always safe: the phone treats the match ID as the key.
+ * - The watch app's version is kept at `/watch-info`, so the phone can tell when
+ *   there's a newer watch app to install.
  */
 class WatchSync(private val context: Context, private val dao: MatchDao) {
     private val data by lazy { Wearable.getDataClient(context) }
@@ -65,6 +67,17 @@ class WatchSync(private val context: Context, private val dao: MatchDao) {
         runCatching { data.deleteDataItems(Uri.Builder().scheme("wear").path("$MATCH_PATH$id").build()).await() }
     }
 
+    /** Puts this app's version and build number where the phone can read them. */
+    suspend fun announceVersion() {
+        val info = context.packageManager.getPackageInfo(context.packageName, 0)
+        val request = PutDataMapRequest.create(WATCH_INFO_PATH).apply {
+            dataMap.putString("version", info.versionName ?: "")
+            // The watch's version code is 1,000,000 + the build number (see build.gradle.kts).
+            dataMap.putInt("build", (info.longVersionCode - 1_000_000).toInt())
+        }.asPutDataRequest()
+        data.putDataItem(request).await()
+    }
+
     /** Names of the phones in reach, for the settings screen. */
     suspend fun connectedPhones(): List<String> =
         runCatching { Wearable.getNodeClient(context).connectedNodes.await().map { it.displayName } }.getOrDefault(emptyList())
@@ -74,6 +87,7 @@ class WatchSync(private val context: Context, private val dao: MatchDao) {
         const val MATCH_PATH = "/match/"
         const val ACK_PATH = "/ack/"
         const val SETUP_PATH = "/setup"
+        const val WATCH_INFO_PATH = "/watch-info"
 
         /** The phone app's setup screen (expo-router route `setup`), opened from the watch. */
         const val PHONE_SETUP_URI = "fhmatchcentre://setup"

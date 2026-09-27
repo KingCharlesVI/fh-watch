@@ -39,5 +39,7 @@ class WatchApp : Application() {
             // Synced matches are kept for 30 days, then deleted.
             services.db.matches().deleteSyncedBefore(System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000)
         }
+        // So the phone can say when there's a newer watch app. Without a phone paired, it waits.
+        services.scope.launch { runCatching { services.sync.announceVersion() } }
     }
 }
