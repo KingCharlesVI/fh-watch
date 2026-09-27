@@ -8,3 +8,5 @@ coverage/
 .DS_Store
 .next/
 next-env.d.ts
+# The landing page's static build (Vercel builds its own).
+landing/out/
