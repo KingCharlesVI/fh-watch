@@ -154,7 +154,7 @@ The watch app does everything MatchGear does and works fully offline. The only e
 | Penalty corners and strokes | One tap per team. The count shows on the summary screen. |
 | Shootout | Offered when a match ends drawn, if enabled. Tracks rounds per team with sudden death. |
 | Haptics | One buzz when the clock starts or stops (however it was done) and when a suspension ends; two buzzes at 2 minutes left in a period; three at 1 minute left; long–short–short–long at the end of a period; four quick buzzes at the end of a break. |
-| Match list | Past matches are stored on the watch, each with a sync status (Not synced / Synced). |
+| Match list | Past matches are stored on the watch, each with a sync status (Not synced / Synced). A match can be deleted from its summary; one the phone already has stays on the phone. |
 
 **Keeping the app running during a match**
 

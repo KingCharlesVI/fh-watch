@@ -207,7 +207,13 @@ private fun WatchNav(services: Services, ambient: Boolean) {
             composable("shootout") { ShootoutScreen(controller) }
             composable("matches") { MatchesScreen(services) { id -> nav.navigate("summary/$id") } }
             composable("summary/{id}") { entry ->
-                SummaryScreen(services, entry.arguments?.getString("id") ?: "") { nav.popBackStack("home", inclusive = false) }
+                SummaryScreen(
+                    services,
+                    entry.arguments?.getString("id") ?: "",
+                    onDone = { nav.popBackStack("home", inclusive = false) },
+                    // Back to Past matches, or home for a match that has only just ended.
+                    onDeleted = { nav.popBackStack() },
+                )
             }
             composable("settings") { SettingsScreen(services) }
         }

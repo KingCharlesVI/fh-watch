@@ -56,6 +56,15 @@ class WatchSync(private val context: Context, private val dao: MatchDao) {
         data.deleteDataItems(Uri.Builder().scheme("wear").path("$MATCH_PATH$id").build()).await()
     }
 
+    /**
+     * Deletes a match from the watch. One the phone hasn't got yet is taken out of the Data
+     * Layer too, so it doesn't turn up on the phone later. Matches on the phone stay there.
+     */
+    suspend fun delete(id: String) {
+        dao.delete(id)
+        runCatching { data.deleteDataItems(Uri.Builder().scheme("wear").path("$MATCH_PATH$id").build()).await() }
+    }
+
     /** Names of the phones in reach, for the settings screen. */
     suspend fun connectedPhones(): List<String> =
         runCatching { Wearable.getNodeClient(context).connectedNodes.await().map { it.displayName } }.getOrDefault(emptyList())
