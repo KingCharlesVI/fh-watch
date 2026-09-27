@@ -4,6 +4,7 @@ import android.content.Context
 import com.fhmatchcentre.watch.engine.CardDurations
 import com.fhmatchcentre.watch.engine.Engine
 import com.fhmatchcentre.watch.engine.MatchSettings
+import com.fhmatchcentre.watch.engine.SHIRT_NUMBERS
 import kotlinx.serialization.Serializable
 
 /** What the setup screen starts from: the last match's choices. */
@@ -52,10 +53,10 @@ data class Setup(
             halfTimeMinutes = halfTimeMinutes.coerceIn(0, 30),
             homeName = name(homeName, defaults.homeName),
             homeColor = colour(homeColor, defaults.homeColor),
-            homeCaptain = homeCaptain?.takeIf { it in 0..99 },
+            homeCaptain = homeCaptain?.takeIf { it in SHIRT_NUMBERS },
             awayName = name(awayName, defaults.awayName),
             awayColor = colour(awayColor, defaults.awayColor),
-            awayCaptain = awayCaptain?.takeIf { it in 0..99 },
+            awayCaptain = awayCaptain?.takeIf { it in SHIRT_NUMBERS },
             venue = venue?.trim()?.take(120)?.ifEmpty { null },
         )
     }

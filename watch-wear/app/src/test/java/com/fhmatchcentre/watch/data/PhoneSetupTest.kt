@@ -30,7 +30,7 @@ class PhoneSetupTest {
     @Test
     fun `values out of range are brought into range`() {
         val setup = Setup.fromPhone(
-            """{"periods":20,"periodMinutes":0,"breakMinutes":-1,"homeName":"  ","homeColor":"red","homeCaptain":150,"venue":" "}""",
+            """{"periods":20,"periodMinutes":0,"breakMinutes":-1,"homeName":"  ","homeColor":"red","homeCaptain":1000,"venue":" "}""",
         )!!
         assertEquals(8, setup.periods)
         assertEquals(1, setup.periodMinutes)
@@ -39,6 +39,13 @@ class PhoneSetupTest {
         assertEquals(Setup().homeColor, setup.homeColor)
         assertNull(setup.homeCaptain)
         assertNull(setup.venue)
+    }
+
+    @Test
+    fun `three-digit shirt numbers are kept`() {
+        val setup = Setup.fromPhone("""{"homeCaptain":150,"awayCaptain":999}""")!!
+        assertEquals(150, setup.homeCaptain)
+        assertEquals(999, setup.awayCaptain)
     }
 
     @Test

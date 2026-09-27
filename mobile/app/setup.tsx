@@ -48,7 +48,8 @@ export default function SetupScreen() {
   const numberField = (key: "periods" | "periodMinutes" | "breakMinutes" | "halfTimeMinutes" | "homeCaptain" | "awayCaptain") => ({
     value: typed[key] ?? (setup[key] == null ? "" : String(setup[key])),
     keyboardType: "number-pad" as const,
-    maxLength: 2,
+    // Shirt numbers go up to 999; the match numbers to 90.
+    maxLength: key === "homeCaptain" || key === "awayCaptain" ? 3 : 2,
     onChangeText: (v: string) => {
       const digits = v.replace(/\D/g, "");
       setTyped({ ...typed, [key]: digits });

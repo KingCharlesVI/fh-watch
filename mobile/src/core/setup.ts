@@ -78,7 +78,7 @@ export const LIMITS = {
   periodMinutes: [1, 90],
   breakMinutes: [0, 30],
   halfTimeMinutes: [0, 30],
-  captain: [0, 99],
+  captain: [0, 999],
 } as const;
 
 type NumberField = "periods" | "periodMinutes" | "breakMinutes" | "halfTimeMinutes";
@@ -96,7 +96,8 @@ export function setupErrors(s: WatchSetup): Partial<Record<keyof WatchSetup, str
   if (hasHalfTime(s.periods)) range("halfTimeMinutes", LIMITS.halfTimeMinutes);
   for (const side of ["home", "away"] as const) {
     const captain = s[`${side}Captain`];
-    if (captain != null && (!Number.isInteger(captain) || captain < 0 || captain > 99)) errors[`${side}Captain`] = "A shirt number, 0 to 99";
+    const [low, high] = LIMITS.captain;
+    if (captain != null && (!Number.isInteger(captain) || captain < low || captain > high)) errors[`${side}Captain`] = `A shirt number, ${low} to ${high}`;
     if (!s[`${side}Name`].trim()) errors[`${side}Name`] = "Give the team a name";
   }
   return errors;

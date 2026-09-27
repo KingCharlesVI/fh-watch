@@ -83,6 +83,9 @@ data class Team(
     val captain: Int? = null,
 )
 
+/** The shirt numbers a player can have, as in the match format (0 to 999). */
+val SHIRT_NUMBERS = 0..999
+
 @Serializable
 data class Teams(val home: Team, val away: Team) {
     operator fun get(side: Side): Team = if (side == Side.HOME) home else away

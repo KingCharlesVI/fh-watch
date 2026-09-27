@@ -41,6 +41,7 @@ import com.fhmatchcentre.watch.data.Setup
 import com.fhmatchcentre.watch.data.SyncState
 import com.fhmatchcentre.watch.data.decode
 import com.fhmatchcentre.watch.engine.CardColor
+import com.fhmatchcentre.watch.engine.SHIRT_NUMBERS
 import com.fhmatchcentre.watch.engine.Team
 import com.fhmatchcentre.watch.engine.Teams
 import com.fhmatchcentre.watch.engine.activeEvents
@@ -163,8 +164,8 @@ fun SetupScreen(services: Services, onStarted: () -> Unit) {
             Editing.LENGTH -> NumberPad("Minutes", 1..90, setup.periodMinutes, false) { setup = setup.copy(periodMinutes = it!!); done() }
             Editing.BREAK -> NumberPad("Break", 0..30, setup.breakMinutes, false) { setup = setup.copy(breakMinutes = it!!); done() }
             Editing.HALF_TIME -> NumberPad("Half-time", 0..30, setup.halfTimeMinutes, false) { setup = setup.copy(halfTimeMinutes = it!!); done() }
-            Editing.HOME_CAPTAIN -> NumberPad("Captain", 0..99, setup.homeCaptain, true) { setup = setup.copy(homeCaptain = it); done() }
-            Editing.AWAY_CAPTAIN -> NumberPad("Captain", 0..99, setup.awayCaptain, true) { setup = setup.copy(awayCaptain = it); done() }
+            Editing.HOME_CAPTAIN -> NumberPad("Captain", SHIRT_NUMBERS, setup.homeCaptain, true) { setup = setup.copy(homeCaptain = it); done() }
+            Editing.AWAY_CAPTAIN -> NumberPad("Captain", SHIRT_NUMBERS, setup.awayCaptain, true) { setup = setup.copy(awayCaptain = it); done() }
             Editing.HOME_COLOUR -> ColourPalette("Home colour", setup.homeColor) { setup = setup.copy(homeColor = it); done() }
             Editing.AWAY_COLOUR -> ColourPalette("Away colour", setup.awayColor) { setup = setup.copy(awayColor = it); done() }
         }

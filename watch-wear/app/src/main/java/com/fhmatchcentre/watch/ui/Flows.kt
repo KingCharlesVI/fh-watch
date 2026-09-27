@@ -32,6 +32,7 @@ import com.fhmatchcentre.watch.engine.PenaltyCorner
 import com.fhmatchcentre.watch.engine.PenaltyStroke
 import com.fhmatchcentre.watch.engine.PeriodEnd
 import com.fhmatchcentre.watch.engine.PeriodStart
+import com.fhmatchcentre.watch.engine.SHIRT_NUMBERS
 import com.fhmatchcentre.watch.engine.ShootoutAttempt
 import com.fhmatchcentre.watch.engine.Side
 import com.fhmatchcentre.watch.engine.Timed
@@ -71,7 +72,7 @@ fun GoalFlow(controller: MatchController, forTeam: Side?, onDone: () -> Unit) {
     }
     when {
         team == null -> PickTeam(m, "Goal") { team = it }
-        !pickedPlayer -> NumberPad("Scorer", 0..99, null, optional = true) { player = it; pickedPlayer = true }
+        !pickedPlayer -> NumberPad("Scorer", SHIRT_NUMBERS, null, optional = true) { player = it; pickedPlayer = true }
         else -> ListScreen("How?") {
             item { ChoiceButton("Field goal") { save(GoalMethod.FIELD) } }
             item { ChoiceButton("Penalty corner") { save(GoalMethod.PC) } }
@@ -130,7 +131,7 @@ fun CardFlow(controller: MatchController, onDone: () -> Unit) {
                 item { ChoiceButton("Change card") { kind = null; repeat = null } }
             }
         }
-        else -> NumberPad("Player", 0..99, null, optional = false) { number ->
+        else -> NumberPad("Player", SHIRT_NUMBERS, null, optional = false) { number ->
             val n = number!!
             val carded = m.activeEvents().any { it is Card && it.team == team && it.player == n }
             if (carded) repeat = n else player = n

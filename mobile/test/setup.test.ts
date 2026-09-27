@@ -9,8 +9,12 @@ describe("setup on phone", () => {
   });
 
   it("points out values the watch wouldn't take", () => {
-    const errors = setupErrors({ ...DEFAULT_SETUP, periods: 9, periodMinutes: 0, homeName: "  ", awayCaptain: 100 });
+    const errors = setupErrors({ ...DEFAULT_SETUP, periods: 9, periodMinutes: 0, homeName: "  ", awayCaptain: 1000 });
     expect(Object.keys(errors).sort()).toEqual(["awayCaptain", "homeName", "periodMinutes", "periods"]);
+  });
+
+  it("takes three-digit shirt numbers", () => {
+    expect(setupErrors({ ...DEFAULT_SETUP, homeCaptain: 999, awayCaptain: 100 })).toEqual({});
   });
 
   it("ignores break lengths that don't apply", () => {
