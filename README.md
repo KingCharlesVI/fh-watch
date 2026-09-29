@@ -56,7 +56,7 @@ pnpm --filter @fh/api db:generate   # after changing api/src/db/schema.ts
 
 ## Phone app
 
-Needs Android Studio (SDK and an emulator) for Android. An iPhone build needs a Mac with Xcode.
+Needs Android Studio (SDK and an emulator) for Android. iPhone builds are made in the cloud by EAS Build, so they don't need a Mac: see [iPhone builds](#iphone-builds-testflight).
 
 **Building for Android on Windows.** React Native's generated native code has paths over 260 characters, so:
 
@@ -192,3 +192,24 @@ The script stops before building if anything is out of order: another branch, un
 The landing page's APK buttons link to the newest release's APKs, pre-releases included, so a new release reaches testers as soon as it's published, without redeploying the landing page (see [landing/README.md](landing/README.md)). This needs the repository to be public: a private repository's releases need a GitHub login with access to it.
 
 The phone app tells testers about new releases itself. It checks the releases when it opens (and every six hours while in use), and shows a notice on the match list when there's a newer phone app, or a newer watch app than the one on the paired watch (which tells the phone its build number). The phone APK downloads from the notice; the watch app links to the release page, as it goes on from a computer. **Settings → About → Include pre-releases** (on by default) decides whether pre-releases from `dev` count, or only full releases from `main`. Builds are compared by the build number in the APK names, so each release needs a higher build than the last one it should replace.
+
+### iPhone builds (TestFlight)
+
+iOS apps can't be built on Windows, so the iPhone app is built by [EAS Build](https://docs.expo.dev/build/introduction/) (Expo's cloud builders) and handed to testers through **TestFlight**. There's no APK-style install on an iPhone, and GitHub update notices are Android only: TestFlight tells testers about new builds itself.
+
+The iPhone app is the same app as on Android, without watch sync for now (Wear OS watches don't pair with iPhones). Matches get onto it by importing a file.
+
+**Once, before the first build:**
+
+1. An [Expo account](https://expo.dev/signup), and an Apple Developer Program membership.
+2. In `mobile/`: `npx eas-cli login`, then `npx eas-cli init`. That creates the Expo project and prints its ID: put it in `EAS_PROJECT_ID` in `mobile/app.config.ts` and commit.
+3. The first build asks for your Apple ID and makes the signing certificate and provisioning profile itself (EAS keeps them). The first upload also creates the app in App Store Connect if it isn't there.
+4. In [App Store Connect](https://appstoreconnect.apple.com), under the app's **TestFlight** tab, add testers (up to 100 internal testers, from your team, with no review; external testers after a short beta review). Testers install the TestFlight app and accept the invite.
+
+**Each build:**
+
+```sh
+pnpm release:ios
+```
+
+This builds the alpha from the committed code (`mobile/eas.json`, profile `alpha`; `beta` is the same with the API), then uploads it to App Store Connect. It reaches TestFlight after Apple's processing, usually 10 to 30 minutes. The build number comes from `version.json`, as on Android, and App Store Connect refuses one it has already seen for the same version, so build after bumping it, as for a GitHub release. EAS's free plan includes a limited number of iOS builds a month, queued behind paid ones.

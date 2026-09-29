@@ -12,6 +12,13 @@ const release = JSON.parse(readFileSync(join(__dirname, "..", "version.json"), "
 // CI builds number themselves (FH_BUILD_NUMBER, the workflow's run number), so each APK installs over the last.
 if (process.env.FH_BUILD_NUMBER) release.build = Number(process.env.FH_BUILD_NUMBER);
 
+/**
+ * The Expo (EAS) project, for iPhone builds and push notifications. `npx eas-cli init` (in
+ * mobile/) creates it and prints the ID, which goes here in place of undefined; it isn't a
+ * secret. EAS_PROJECT_ID overrides it.
+ */
+const EAS_PROJECT_ID: string | undefined = process.env.EAS_PROJECT_ID ?? undefined;
+
 // EXPO_PUBLIC_* values are baked into the app at build time.
 // Development default: the Android emulator reaches this PC's API at 10.0.2.2.
 const config: ExpoConfig = {
@@ -73,8 +80,7 @@ const config: ExpoConfig = {
   ],
   experiments: { typedRoutes: true },
   extra: {
-    // Set once an Expo (EAS) project exists; push notifications need it.
-    eas: process.env.EAS_PROJECT_ID ? { projectId: process.env.EAS_PROJECT_ID } : undefined,
+    eas: EAS_PROJECT_ID ? { projectId: EAS_PROJECT_ID } : undefined,
   },
 };
 
