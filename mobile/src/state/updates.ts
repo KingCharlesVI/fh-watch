@@ -1,7 +1,7 @@
 import Constants from "expo-constants";
 import Storage from "expo-sqlite/kv-store";
 import { useEffect, useSyncExternalStore } from "react";
-import { AppState } from "react-native";
+import { AppState, Platform } from "react-native";
 import { WatchSync } from "../../modules/watch-sync";
 import { RELEASES_URL, type Update, findUpdate, readReleases } from "@/core/updates";
 
@@ -41,8 +41,11 @@ const loadPrefs = () =>
     set({ includePreReleases: pre !== "false", dismissed });
   })());
 
-/** The phone app's build, or null in development (which never hears about updates). */
-const phoneBuild = (): number | null => (__DEV__ ? null : (Constants.expoConfig?.android?.versionCode ?? null));
+/**
+ * The phone app's build, or null where GitHub releases don't apply: development builds,
+ * and iPhones, which update through TestFlight and the App Store.
+ */
+const phoneBuild = (): number | null => (__DEV__ || Platform.OS !== "android" ? null : (Constants.expoConfig?.android?.versionCode ?? null));
 
 export async function checkForUpdates(): Promise<void> {
   if (state.checking) return;

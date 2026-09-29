@@ -2,7 +2,7 @@ import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, Share, Switch, View } from "react-native";
+import { Alert, Platform, Share, Switch, View } from "react-native";
 import { API_URL, ONLINE, WEB_URL } from "@/config";
 import { errorMessage } from "@/core/api";
 import { sync } from "@/services";
@@ -14,6 +14,9 @@ import { useMatches } from "@/state/sync";
 import { checkForUpdates, setIncludePreReleases, useUpdates } from "@/state/updates";
 import { UpdateNotice } from "@/features/update-notice";
 import { Badge, Banner, Button, Card, Row, Screen, T } from "@/ui/kit";
+
+/** The build number, which the phone and watch apps share. */
+const BUILD = Platform.OS === "ios" ? Constants.expoConfig?.ios?.buildNumber : Constants.expoConfig?.android?.versionCode;
 
 const ROLE_NAMES = { admin: "Admin", umpire: "Umpire", club_admin: "Club admin" } as const;
 
@@ -101,7 +104,7 @@ export default function SettingsScreen() {
 
       <Card title="About">
         <T variant="small">
-          Version {Constants.expoConfig?.version} ({Constants.expoConfig?.android?.versionCode ?? "development"}) ·{" "}
+          Version {Constants.expoConfig?.version} ({__DEV__ ? "development" : BUILD}) ·{" "}
           {ONLINE ? API_URL : "Alpha: watch and phone only"}
         </T>
         <Updates />
@@ -114,6 +117,8 @@ export default function SettingsScreen() {
 function Updates() {
   const { update, checking, checkedAt, error, includePreReleases } = useUpdates();
   if (__DEV__) return <T variant="small">Development build: no update checks.</T>;
+  // The iPhone app updates through TestFlight and the App Store.
+  if (Platform.OS === "ios") return null;
   return (
     <>
       {update ? (

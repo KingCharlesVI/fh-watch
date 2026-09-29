@@ -27,6 +27,8 @@ const config: ExpoConfig = {
     bundleIdentifier: "com.fhmatchcentre.app",
     buildNumber: String(release.build),
     supportsTablet: false,
+    // Only standard HTTPS, so App Store Connect doesn't ask about encryption for every build.
+    config: { usesNonExemptEncryption: false },
   },
   android: {
     package: "com.fhmatchcentre.app",
