@@ -14,10 +14,9 @@ if (process.env.FH_BUILD_NUMBER) release.build = Number(process.env.FH_BUILD_NUM
 
 /**
  * The Expo (EAS) project, for iPhone builds and push notifications. `npx eas-cli init` (in
- * mobile/) creates it and prints the ID, which goes here in place of undefined; it isn't a
- * secret. EAS_PROJECT_ID overrides it.
+ * mobile/) created it and printed this ID; it isn't a secret. EAS_PROJECT_ID overrides it.
  */
-const EAS_PROJECT_ID: string | undefined = process.env.EAS_PROJECT_ID ?? undefined;
+const EAS_PROJECT_ID = process.env.EAS_PROJECT_ID ??"891c69b0-c444-4e39-8166-7b2a10b8559b";
 
 // EXPO_PUBLIC_* values are baked into the app at build time.
 // Development default: the Android emulator reaches this PC's API at 10.0.2.2.

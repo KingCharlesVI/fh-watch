@@ -202,7 +202,7 @@ The iPhone app is the same app as on Android, without watch sync for now (Wear O
 **Once, before the first build:**
 
 1. An [Expo account](https://expo.dev/signup), and an Apple Developer Program membership.
-2. In `mobile/`: `npx eas-cli login`, then `npx eas-cli init`. That creates the Expo project and prints its ID: put it in `EAS_PROJECT_ID` in `mobile/app.config.ts` and commit.
+2. In `mobile/`: `npx eas-cli login`, then `npx eas-cli init`. That created the Expo project; its ID is `EAS_PROJECT_ID` in `mobile/app.config.ts`. (Done already: only needed again for a new Expo account.)
 3. The first build asks for your Apple ID and makes the signing certificate and provisioning profile itself (EAS keeps them). The first upload also creates the app in App Store Connect if it isn't there.
 4. In [App Store Connect](https://appstoreconnect.apple.com), under the app's **TestFlight** tab, add testers (up to 100 internal testers, from your team, with no review; external testers after a short beta review). Testers install the TestFlight app and accept the invite.
 
