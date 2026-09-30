@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { dayKey, formatDateTime, formatDay, formatTime } from "@/lib/format";
+import { dayKey, formatDay, formatTime } from "@/lib/format";
 import type { Match } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -108,9 +108,7 @@ export function StatusBadges({ match: m }: { match: Match }) {
   return (
     <>
       {m.status === "draft" ? (
-        <Badge variant="secondary" title={m.autoPublishAt ? `Publishes itself ${formatDateTime(m.autoPublishAt)}` : undefined}>
-          Draft{m.autoPublishAt ? ` · auto ${formatDateTime(m.autoPublishAt)}` : ""}
-        </Badge>
+        <Badge variant="secondary">Draft</Badge>
       ) : (
         <Badge>Published</Badge>
       )}

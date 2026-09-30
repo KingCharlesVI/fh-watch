@@ -1,5 +1,5 @@
 import { hasRole } from "@fh/shared";
-import { CircleCheck, Clock, Download, FilePen, Filter, Link2Off } from "lucide-react";
+import { CircleCheck, Download, FilePen, Filter, Hourglass, Link2Off } from "lucide-react";
 import Link from "next/link";
 import { FilterSelect } from "@/components/FilterSelect";
 import { MatchList, Pager } from "@/components/MatchList";
@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
-import { addDaysIso, dayStartIso, formatDateTime } from "@/lib/format";
+import { addDaysIso, dayStartIso, formatDate } from "@/lib/format";
 import { requireUser } from "@/lib/session";
 import type { ClubWithTeams, Match, Page } from "@/lib/types";
 
@@ -136,22 +136,21 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 /** "12", or "100+" when there are more than one page holds. */
 const count = (p: Page<Match>) => (p.nextCursor ? `${p.items.length}+` : String(p.items.length));
 
-/** At a glance: drafts, published, matches whose teams aren't linked, and the next to publish itself. */
+/** At a glance: drafts, published, matches whose teams aren't linked, and the draft that's waited longest. */
 function Summary({ drafts, published, view }: { drafts: Page<Match>; published: Page<Match>; view: string }) {
   const unlinked = [...drafts.items, ...published.items].filter((m) => m.home.teamId === null || m.away.teamId === null).length;
-  const next = drafts.items
-    .filter((m) => m.autoPublishAt)
-    .sort((a, b) => a.autoPublishAt!.localeCompare(b.autoPublishAt!))[0];
+  // Nothing publishes by itself, so the one that's waited longest is worth a nudge.
+  const oldest = [...drafts.items].sort((a, b) => a.playedAt.localeCompare(b.playedAt))[0];
   const tiles = [
     { icon: FilePen, label: "Drafts", value: count(drafts), href: `/dashboard?view=${view}&status=draft`, note: "Not published yet" },
     { icon: CircleCheck, label: "Published", value: count(published), href: `/dashboard?view=${view}&status=published`, note: "On the website" },
     { icon: Link2Off, label: "Teams to link", value: String(unlinked), href: null, note: "Not on club pages until linked" },
     {
-      icon: Clock,
-      label: "Next to publish",
-      value: next ? formatDateTime(next.autoPublishAt!) : "None",
-      href: next ? `/matches/${next.id}` : null,
-      note: next ? `${next.home.name} v ${next.away.name}` : "No drafts waiting",
+      icon: Hourglass,
+      label: "Oldest draft",
+      value: oldest ? formatDate(oldest.playedAt) : "None",
+      href: oldest ? `/matches/${oldest.id}` : null,
+      note: oldest ? `${oldest.home.name} v ${oldest.away.name}: publish it?` : "Nothing waiting to publish",
     },
   ];
   return (

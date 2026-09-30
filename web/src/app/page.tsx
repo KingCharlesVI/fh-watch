@@ -17,7 +17,7 @@ const STEPS = [
   {
     icon: CloudUpload,
     title: "Checked and published",
-    text: "Afterwards the match moves to their phone, where they check it and upload it. It's published once they're happy, or two hours after the final whistle.",
+    text: "Afterwards the match moves to their phone, where they check it and upload it. It's published when they're happy with it.",
   },
   {
     icon: Share2,

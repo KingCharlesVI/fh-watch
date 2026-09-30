@@ -31,7 +31,7 @@ export async function unpublishMatch(_: FormState, fd: FormData): Promise<FormSt
     return formError(err);
   }
   refresh(id);
-  return { ok: "Unpublished. The share link now shows nothing, and the match won't publish itself." };
+  return { ok: "Unpublished. The share link shows nothing until you publish it again." };
 }
 
 export async function deleteMatch(_: FormState, fd: FormData): Promise<FormState> {
