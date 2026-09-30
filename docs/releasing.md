@@ -73,14 +73,23 @@ pnpm release:ios
 
 Run it in your own terminal: it can ask you to log in to Apple. It builds in Expo's cloud (10 to 20 minutes), uploads to App Store Connect, and reaches TestFlight after Apple's processing (another 10 to 30 minutes).
 
+## Versions
+
+| Where | Tag | For |
+| --- | --- | --- |
+| `dev` | `v0.4.1-alpha.10`: version, stage, build | Test builds (pre-releases) |
+| `main` | `v0.4.1-alpha`: version and stage | A version that's been tested: marked Latest on GitHub |
+
+A fix gets the next patch version (0.4.0 → 0.4.1), new features the next minor one (0.4 → 0.5). Every build, on either branch, gets a new build number. The stage leaves the tag at the public release (`v1.0.0`).
+
 ## A full release (from `main`)
 
-When a test release has been tried and is good:
+When a test release from `dev` has been tried and is good:
 
-1. Merge `dev` into `main` on GitHub, then `git checkout main` and `git pull`.
-2. `pnpm release:github`. This makes `v0.4.0`, marked Latest, from the same build. Nothing to bump, and the changelog already has it.
+1. Merge `dev` into `main` on GitHub (a pull request), then `git checkout main` and `git pull`.
+2. `pnpm release:github --skip-build`. This makes `v0.4.0-alpha`, marked Latest, from the APKs of the test release you tried (they're in `dist/play/`; leave out `--skip-build` to build them again). Its notes cover everything since the last full release.
 3. The iPhone build is already in TestFlight: nothing to do.
-4. Back on `dev`, start the next version: set `"version"` in `version.json` (e.g. `0.5.0`) and commit `chore: start 0.5.0`.
+4. `git checkout dev`. For a fix, set `"version"` in `version.json` to the next patch (`0.4.1`), bump the build, and carry on with a test release.
 
 ## If something fails
 

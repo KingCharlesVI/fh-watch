@@ -154,8 +154,8 @@ For the commands in order (build number, changelog, GitHub release, TestFlight),
 
 | Branch | Release | Tag | Notes cover |
 | --- | --- | --- | --- |
-| `dev` | A **pre-release**, for testing | `v<version>-alpha.<build>`, e.g. `v0.3.0-alpha.7` | Commits since the last tag (the previous pre-release) |
-| `main` | A full release, marked **Latest** | `v<version>`, e.g. `v0.3.0` | Commits since the last full release, so every pre-release of that version together |
+| `dev` | A **pre-release**, for testing | `v<version>-alpha.<build>`, e.g. `v0.4.1-alpha.10` | Commits since the last tag (the previous pre-release) |
+| `main` | A full release, marked **Latest** | `v<version>-alpha`, e.g. `v0.4.0-alpha` (`v<version>` from the public release) | Commits since the last full release, so every pre-release of that version together |
 
 Each release has the phone and watch APKs from the same build attached. On GitHub: **Releases**.
 

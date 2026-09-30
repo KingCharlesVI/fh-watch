@@ -10,10 +10,11 @@
 //   --dry-run      stop before publishing: shows the tag, the notes and the files
 //
 // The branch decides the kind of release:
-//   dev    a pre-release, tagged v<version>-<stage>.<build>   (e.g. v0.3.0-alpha.7)
-//   main   a full release, tagged v<version>                  (e.g. v0.3.0)
+//   dev    a pre-release, tagged v<version>-<stage>.<build>   (e.g. v0.4.1-alpha.10)
+//   main   a full release, tagged v<version>-<stage>          (e.g. v0.4.0-alpha; v0.4.0 from the public release)
 // A pre-release's notes cover everything since the last tag of either kind; a full release's
 // cover everything since the last full release, so they include all of that version's pre-releases.
+// A pre-release tag is one ending in .<build>; tags from before 0.4.0 (v0.2.0) have no stage.
 //
 // Needs the GitHub CLI (gh, signed in with `gh auth login`) and git-cliff. The commit must be pushed
 // first: the release tags the commit that's on GitHub. The version and build come from version.json.
@@ -77,14 +78,15 @@ const remote = capture("git", ["rev-parse", `origin/${branch}`]);
 if (head !== remote) fail(`${branch} and origin/${branch} differ. Push (or pull) first: the release tags the commit that's on GitHub.`);
 
 const release = JSON.parse(readFileSync(join(ROOT, "version.json"), "utf8"));
-const tag = prerelease ? `v${release.version}-${stage}.${release.build}` : `v${release.version}`;
-const title = prerelease ? `${release.version} ${stage} (build ${release.build})` : release.version;
+// The stage stays in full releases' tags until the public release, when there's no stage left to name.
+const tag = prerelease ? `v${release.version}-${stage}.${release.build}` : `v${release.version}-${stage}`;
+const title = prerelease ? `${release.version} ${stage} (build ${release.build})` : `${release.version} ${stage}`;
 
 if (capture("git", ["rev-parse", "--verify", "--quiet", `refs/tags/${tag}`], { allowFail: true }) !== null) {
   fail(
     prerelease
       ? `${tag} already exists. Add 1 to the build in version.json, commit and push, then run this again.`
-      : `${tag} already exists. Change the version in version.json for a new release (e.g. 0.3.0 -> 0.3.1), commit and push, then run this again.`,
+      : `${tag} already exists. Change the version in version.json for a new release (e.g. 0.4.0 -> 0.4.1), commit and push, then run this again.`,
   );
 }
 
@@ -95,9 +97,9 @@ say(`${prerelease ? "Pre-release" : "Release"} ${tag} from ${branch} (${head.sli
 const out = join(ROOT, "dist", "play");
 mkdirSync(out, { recursive: true });
 const notes = join(out, `release-notes-${tag}.md`);
-// The last release these notes follow: any tag for a pre-release, the last full release (no "-") for a
-// full one, whose notes then gather every commit of its pre-releases too. None before the first release.
-const since = capture("git", ["describe", "--tags", "--abbrev=0", ...(prerelease ? [] : ["--exclude", "*-*"]), "HEAD"], { allowFail: true });
+// The last release these notes follow: any tag for a pre-release, the last full release (not ending in
+// .<build>) for a full one, whose notes then gather every commit of its pre-releases too.
+const since = capture("git", ["describe", "--tags", "--abbrev=0", ...(prerelease ? [] : ["--exclude", "v*-*.*"]), "HEAD"], { allowFail: true });
 // -o keeps cliff.toml's own output (CHANGELOG.md) untouched.
 run("git-cliff", [
   ...(since ? [`${since}..HEAD`] : []),
@@ -106,7 +108,7 @@ run("git-cliff", [
   "--strip",
   "header",
   // Otherwise the pre-release tags in the range would split the notes into sections.
-  ...(prerelease ? [] : ["--ignore-tags", "^v[0-9.]+-"]),
+  ...(prerelease ? [] : ["--ignore-tags", "^v[0-9.]+-[a-z]+\\.[0-9]+$"]),
   "-o",
   notes,
 ]);
