@@ -19,3 +19,5 @@
   - [Google Play](technical/play-store.md)
   - [Deployment](technical/deployment.md)
   - [Privacy policy](technical/privacy-policy.md)
+
+<footer id="mb-footer"></footer>

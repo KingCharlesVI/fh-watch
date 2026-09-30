@@ -1,0 +1,231 @@
+/*
+ * GitHub's dark mode for the docsify GitHub theme (github.css, which is light only):
+ * its colours replaced with GitHub's dark palette (Primer "dark default").
+ */
+:root {
+  --gh-bg: #0d1117;
+  --gh-bg-subtle: #161b22;
+  --gh-bg-muted: #21262d;
+  --gh-border: #30363d;
+  --gh-fg: #e6edf3;
+  --gh-fg-muted: #9198a1;
+  --gh-hover: rgba(177, 186, 196, 0.12);
+  --theme-color: #55c483;
+  color-scheme: dark;
+}
+
+body,
+.sidebar {
+  background-color: var(--gh-bg);
+  color: var(--gh-fg);
+}
+
+.sidebar {
+  border-right-color: var(--gh-border);
+}
+
+.sidebar ul li a,
+.sidebar li > p,
+.sidebar ul li .section-link {
+  color: var(--gh-fg-muted);
+}
+
+.sidebar ul li.active > a,
+.sidebar-nav > ul > li > ul > li[class].collapse > a {
+  background-color: var(--gh-hover);
+  color: var(--gh-fg);
+}
+
+.sidebar ul li a:hover {
+  background-color: var(--gh-hover);
+  color: var(--gh-fg);
+}
+
+.sidebar-nav > ul > li > ul > li:last-child::after {
+  border-bottom-color: var(--gh-border);
+}
+
+.sidebar-toggle {
+  background-color: var(--gh-bg-muted);
+  border-color: var(--gh-border);
+  box-shadow: none;
+}
+
+.sidebar-toggle:hover {
+  background-color: var(--gh-border);
+}
+
+.sidebar-toggle span {
+  background-color: var(--gh-fg);
+}
+
+@media screen and (max-width: 768px) {
+  body.close .sidebar-toggle {
+    background-color: rgba(13, 17, 23, 0.9);
+  }
+}
+
+/* Search */
+.search {
+  border-bottom-color: var(--gh-border);
+}
+
+.search input {
+  background-color: var(--gh-bg);
+  color: var(--gh-fg);
+  border-color: var(--gh-border) !important;
+  box-shadow: none;
+}
+
+.sidebar .search input[type="search"] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath fill='%239198a1' d='M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z'/%3E%3C/svg%3E");
+}
+
+.search .matching-post {
+  border-bottom-color: var(--gh-border);
+}
+
+/* The links along the top */
+.app-nav a {
+  color: var(--gh-fg);
+}
+
+.app-nav li ul {
+  background-color: var(--gh-bg-subtle);
+  border-color: var(--gh-border);
+}
+
+.github-corner svg {
+  color: var(--gh-bg);
+}
+
+/* Page content */
+.markdown-section h1,
+.markdown-section h2,
+.markdown-section h3,
+.markdown-section h4,
+.markdown-section strong,
+.anchor span {
+  color: var(--gh-fg);
+}
+
+.markdown-section h5,
+.markdown-section h6,
+.markdown-section em,
+.markdown-section blockquote {
+  color: var(--gh-fg-muted);
+}
+
+.markdown-section hr,
+.markdown-section blockquote {
+  border-color: var(--gh-border);
+}
+
+.markdown-section iframe,
+.markdown-section output {
+  border-color: var(--gh-border);
+}
+
+/* Tables: every row the same, rather than alternating stripes. */
+.markdown-section th,
+.markdown-section td,
+.markdown-section tr {
+  border-color: var(--gh-border);
+}
+
+.markdown-section tr,
+.markdown-section tr:nth-child(2n) {
+  background-color: var(--gh-bg-subtle);
+}
+
+/* Callouts: ?> tip and !> warning */
+.markdown-section p.tip,
+.markdown-section p.warn {
+  color: var(--gh-fg);
+}
+
+.markdown-section p.tip em {
+  color: var(--gh-fg-muted);
+}
+
+/* Code */
+.markdown-section code,
+.markdown-section p.tip code {
+  background-color: rgba(110, 118, 129, 0.4);
+  color: var(--gh-fg);
+}
+
+.markdown-section pre {
+  background-color: var(--gh-bg-subtle);
+}
+
+.markdown-section pre > code {
+  background-color: transparent;
+  color: var(--gh-fg);
+}
+
+kbd,
+.markdown-section kbd {
+  border-color: var(--gh-border);
+  background-color: var(--gh-bg-subtle);
+}
+
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #9198a1;
+}
+
+.token.punctuation {
+  color: var(--gh-fg);
+}
+
+.token.keyword,
+.token.important {
+  color: #ff7b72;
+}
+
+.token.string,
+.language-css .token.string,
+.style .token.string {
+  color: #a5d6ff;
+}
+
+.token.boolean,
+.token.number,
+.token.property,
+.token.attr-name,
+.token.constant {
+  color: #79c0ff;
+}
+
+.token.function {
+  color: #d2a8ff;
+}
+
+.token.tag,
+.token.selector {
+  color: #7ee787;
+}
+
+.token.variable,
+.token.regex,
+.token.atrule {
+  color: #ffa657;
+}
+
+/* Previous / next links at the bottom of each page */
+.docsify-pagination-container {
+  border-top-color: var(--gh-border);
+}
+
+/* The sidebar footer */
+#mb-footer {
+  border-top-color: var(--gh-border);
+  color: var(--gh-fg-muted);
+}
+
+#mb-footer a {
+  color: var(--gh-fg-muted);
+}

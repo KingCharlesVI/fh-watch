@@ -4,7 +4,10 @@ The user guide and technical documentation at **docs.fhmatchcentre.com**, built 
 
 | File | |
 | --- | --- |
-| `index.html` | docsify and its settings and plugins (search, copy code, pagination, Mermaid diagrams) |
+| `index.html` | docsify and its settings and plugins: search, copy code, pagination, Mermaid diagrams, [edit on GitHub](https://github.com/njleonzhang/docsify-edit-on-github) (pages copied from `docs/` link to their files there) and the [sidebar footer](https://github.com/markbattistella/docsify-sidebar-footer) |
+| `assets/github.css` | The [GitHub theme](https://github.com/w3teal/docsify-theme-github), kept here as its README advises |
+| `assets/github-dark.css` | That theme in GitHub's dark colours: the site is always dark |
+| `assets/theme.css` | The logo, table layout and footer spacing |
 | `home.md` | The front page |
 | `_sidebar.md`, `_navbar.md` | The sidebar, and the links to the other sites at the top |
 | `guide/` | The user guide |

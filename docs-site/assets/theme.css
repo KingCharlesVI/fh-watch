@@ -1,16 +1,6 @@
-/* The brand green over docsify's Vue theme, and a few tidy-ups. */
-:root {
-  --theme-color: #106c3e;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --theme-color: #55c483;
-  }
-}
-
+/* FH Match Centre's touches on top of the GitHub dark theme. */
 body {
-  font-family: "Geist", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 .app-name-link {
@@ -36,38 +26,24 @@ body {
   vertical-align: top;
 }
 
-/* Every row the same grey, rather than docsify's alternating stripes. */
-.markdown-section tr,
-.markdown-section tr:nth-child(2n) {
-  background-color: #f8f8f8;
+/* The edit link at the top of each page. */
+.markdown-section > div:first-child > p[style*="float"] a {
+  font-size: 0.85em;
+  color: var(--gh-fg-muted);
 }
 
-@media (prefers-color-scheme: dark) {
-  .markdown-section tr,
-  .markdown-section tr:nth-child(2n) {
-    background-color: rgba(255, 255, 255, 0.05);
-  }
-
-  .markdown-section td,
-  .markdown-section th {
-    border-color: #555;
-  }
-
-  /* The dark theme's bold text is a dim blue-grey. */
-  .markdown-section strong {
-    color: #e6e6e6;
-  }
+/* The sidebar footer: a space between "Copyright © 2026" and the name, and the policy link on its own line. */
+#mb-footer .footer-text-author::before {
+  content: " ";
 }
 
-/* Keyboard-like labels for buttons on screen: <kbd>Start</kbd>. */
-.markdown-section kbd {
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 0 0.35em;
-  font-size: 0.9em;
+#mb-footer .footer-link {
+  margin-top: 0.25rem;
 }
 
-.markdown-section p.tip,
-.markdown-section p.warn {
-  border-radius: 6px;
+/* Lined up with the menu, no second divider under the last section, and clear of the menu button below. */
+#mb-footer {
+  border-top: none !important;
+  margin: 0 0 5rem 8px;
+  padding-top: 0.5rem;
 }
