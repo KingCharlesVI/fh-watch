@@ -1,6 +1,6 @@
 import type { MatchDocument } from "@fh/shared";
 import { describe, expect, it } from "vitest";
-import { autoPublishDue, purgeExpired } from "../src/services/matches.js";
+import { purgeExpired } from "../src/services/matches.js";
 import { matchDoc, setupTestApp } from "./helpers.js";
 
 const t = await setupTestApp();
@@ -19,7 +19,7 @@ const get = (url: string, headers: Record<string, string> = {}) => t.app.inject(
 const post = (url: string, headers: Record<string, string>) => t.app.inject({ method: "POST", url, headers });
 
 describe("uploading", () => {
-  it("creates a draft with the uploader as umpire 1 and a 2-hour publish timer", async () => {
+  it("creates a draft with the uploader as umpire 1", async () => {
     const { user, headers } = await t.createUser({ name: "Sam" });
     const doc = matchDoc({ endedAt: "2026-09-19T11:30:00Z" });
     const res = await put(doc, headers);
@@ -33,7 +33,6 @@ describe("uploading", () => {
       umpires: [{ slot: 1, userId: user.id, name: "Sam" }],
       currentRevision: 1,
       shareCode: null,
-      autoPublishAt: "2026-09-19T13:30:00.000Z",
     });
   });
 
@@ -164,13 +163,13 @@ describe("visibility and publishing", () => {
     expect((await get("/v1/matches")).json().items).toHaveLength(1);
 
     const unpublished = await post(`/v1/matches/${doc.id}/unpublish`, headers);
-    expect(unpublished.json().match).toMatchObject({ status: "draft", autoPublishAt: null, shareCode });
+    expect(unpublished.json().match).toMatchObject({ status: "draft", shareCode });
     expect((await get(`/v1/m/${shareCode}`)).statusCode).toBe(404);
 
-    // Timer stays cancelled after an edit.
+    // An edit doesn't publish it again.
     doc.venue = "Pitch 3";
     const edited = await put(doc, headers, 1);
-    expect(edited.json().match.autoPublishAt).toBeNull();
+    expect(edited.json().match.status).toBe("draft");
   });
 
   it("lets club admins read, but not change, their club's matches", async () => {
@@ -250,54 +249,17 @@ describe("visibility and publishing", () => {
   });
 });
 
-describe("auto-publish", () => {
-  it("publishes a draft once 2 hours have passed and tells the umpire to link teams", async () => {
-    const { headers } = await t.createUser();
-    await t.app.inject({
-      method: "POST",
-      url: "/v1/me/push-tokens",
-      headers,
-      payload: { token: "ExponentPushToken[sam]", platform: "android" },
-    });
-    const doc = matchDoc({ endedAt: "2026-09-19T11:30:00Z" });
-    await put(doc, headers);
-
-    t.advance(HOUR); // 13:00, window ends 13:30
-    expect(await autoPublishDue(t.deps, t.app.log)).toEqual([]);
-
-    t.advance(HOUR); // 14:00
-    expect(await autoPublishDue(t.deps, t.app.log)).toEqual([doc.id]);
-    expect((await get(`/v1/matches/${doc.id}`)).json().match.status).toBe("published");
-
-    expect(t.push.sent).toEqual([
-      {
-        to: "ExponentPushToken[sam]",
-        title: "Oxford Hawks M1 v Reading M1 published",
-        body: "Your match was published automatically. Link the teams so it shows on club pages.",
-        data: { matchId: doc.id, action: "link_teams" },
-      },
-    ]);
-    // Runs again without publishing or notifying twice.
-    expect(await autoPublishDue(t.deps, t.app.log)).toEqual([]);
-    expect(t.push.sent).toHaveLength(1);
-  });
-
-  it("publishes on arrival when uploaded after the window, with a plain message if teams are linked", async () => {
-    const { teams } = await t.createClub("Oxford Hawks", ["M1", "M2"]);
+describe("publishing", () => {
+  it("leaves a match a draft until its umpire publishes it, however long ago it ended", async () => {
     const { headers } = await t.createUser();
     await t.app.inject({ method: "POST", url: "/v1/me/push-tokens", headers, payload: { token: "tok", platform: "ios" } });
-    const doc = matchDoc({ endedAt: "2026-09-19T09:00:00Z", homeTeamId: teams[0]!.id, awayTeamId: teams[1]!.id });
-    const res = await put(doc, headers);
-    expect(res.json().match.status).toBe("published");
-    expect(t.push.sent[0]!.body).toBe("Your match was published automatically.");
-  });
+    const doc = matchDoc({ endedAt: "2026-09-19T08:00:00Z" });
+    expect((await put(doc, headers)).json().match.status).toBe("draft");
 
-  it("removes push tokens the push service reports as invalid", async () => {
-    const { headers } = await t.createUser();
-    await t.app.inject({ method: "POST", url: "/v1/me/push-tokens", headers, payload: { token: "dead", platform: "ios" } });
-    t.push.invalid.add("dead");
-    await put(matchDoc({ endedAt: "2026-09-19T08:00:00Z" }), headers);
-    expect(await t.db.query.pushTokens.findMany()).toEqual([]);
+    // Two days on (the sign-in has expired, so straight from the database): still a draft, and no one was told otherwise.
+    t.advance(48 * HOUR);
+    expect((await t.db.query.matches.findFirst())!.status).toBe("draft");
+    expect(t.push.sent).toEqual([]);
   });
 });
 

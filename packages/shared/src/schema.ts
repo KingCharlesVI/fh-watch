@@ -181,7 +181,7 @@ export const MatchDocument = z
       .datetime()
       .nullable()
       .optional()
-      .meta({ description: "Final whistle. Starts the 2-hour auto-publish window." }),
+      .meta({ description: "Final whistle." }),
     events: z.array(MatchEvent),
   })
   .meta({ title: "Field hockey match document" });

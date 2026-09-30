@@ -111,8 +111,6 @@ export const matches = pgTable(
       .default("draft"),
     currentRevision: integer().notNull(),
     shareCode: text().unique(),
-    /** When a draft publishes itself. Null once published or after an unpublish. */
-    autoPublishAt: tstz(),
     publishedAt: tstz(),
     /** Soft delete; purged 30 days later. */
     deletedAt: tstz(),
@@ -122,7 +120,6 @@ export const matches = pgTable(
   },
   (t) => [
     index().on(t.playedAt.desc(), t.id.desc()),
-    index().on(t.autoPublishAt),
     index().on(t.homeTeamId),
     index().on(t.awayTeamId),
   ],

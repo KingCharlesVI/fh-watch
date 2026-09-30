@@ -43,7 +43,6 @@ export interface Match {
   shareCode: string | null;
   shareUrl: string | null;
   publishedAt: string | null;
-  autoPublishAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

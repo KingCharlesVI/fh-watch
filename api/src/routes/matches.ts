@@ -4,7 +4,6 @@ import {
   canOnMatch,
   canUploadMatch,
   checkSemantics,
-  finalWhistle,
   hasRole,
   matchEventsToCsv,
   matchListToCsv,
@@ -28,11 +27,9 @@ import { Limit, containsPattern } from "../lib/sql.js";
 import { audit } from "../services/audit.js";
 
 import {
-  AUTO_PUBLISH_DELAY_MS,
   type MatchRow,
   type UmpireRow,
   accessFor,
-  autoPublishDue,
   denormalize,
   matchDto,
   publishMatch,
@@ -215,8 +212,6 @@ export const matchRoutes =
         }
 
         const now = deps.now();
-        const whistle = finalWhistle(document);
-        const autoPublishFrom = whistle ? Date.parse(whistle) : now.getTime();
         const columns = denormalize(document);
 
         const outcome = await db.transaction(async (tx) => {
@@ -228,7 +223,6 @@ export const matchRoutes =
               id,
               ...columns,
               currentRevision: 1,
-              autoPublishAt: new Date(autoPublishFrom + AUTO_PUBLISH_DELAY_MS),
               createdBy: actor.id,
               createdAt: now,
               updatedAt: now,
@@ -267,8 +261,6 @@ export const matchRoutes =
             .set({
               ...columns,
               currentRevision: revision,
-              // A pending timer follows a corrected final whistle; a cancelled one stays cancelled.
-              autoPublishAt: existing.autoPublishAt ? new Date(autoPublishFrom + AUTO_PUBLISH_DELAY_MS) : null,
               updatedAt: now,
             })
             .where(eq(matches.id, id));
@@ -276,9 +268,6 @@ export const matchRoutes =
           await audit(tx, actor.id, "update", "match", id, { revision, source });
           return { status: 200 as const, revision };
         });
-
-        // Uploaded after the 2-hour window: publish on arrival.
-        await autoPublishDue(deps, request.log, { matchId: id });
 
         const match = await dtoFor(id);
         return reply
@@ -351,7 +340,7 @@ export const matchRoutes =
       {
         schema: {
           tags: ["matches"],
-          summary: "Hide a match again. Cancels its auto-publish timer; the share code is kept for republishing.",
+          summary: "Hide a match again. The share code is kept for republishing.",
           params: IdParams,
         },
       },
@@ -361,7 +350,7 @@ export const matchRoutes =
         await db.transaction(async (tx) => {
           await tx
             .update(matches)
-            .set({ status: "draft", publishedAt: null, autoPublishAt: null, updatedAt: deps.now() })
+            .set({ status: "draft", publishedAt: null, updatedAt: deps.now() })
             .where(eq(matches.id, match.id));
           await audit(tx, actor.id, "unpublish", "match", match.id);
         });
