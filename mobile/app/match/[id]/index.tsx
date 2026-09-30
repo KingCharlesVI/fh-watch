@@ -5,10 +5,12 @@ import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, View } from "react-native";
 import { ONLINE, WEB_URL } from "@/config";
 import { errorMessage } from "@/core/api";
+import { offenceSummary, redCards } from "@/core/red-card";
 import type { LocalMatch } from "@/core/store";
-import { PeriodTable, ScoreCard, StatsCard, StatusBadges, Timeline, formatDateTime } from "@/features/match-view";
+import { FitnessCard, PeriodTable, ScoreCard, StatsCard, StatusBadges, Timeline, formatDateTime } from "@/features/match-view";
 import { sync } from "@/services";
-import { type ExportKind, saveMatch, shareMatch } from "@/services/export";
+import { type ExportKind, saveMatch, shareMatch, shareReport } from "@/services/export";
+import { saveToHealthConnect, useHealthConnect } from "@/services/health";
 import { useMatch } from "@/state/sync";
 import { Banner, Button, Card, Empty, Row, Screen, T } from "@/ui/kit";
 import { space, useColors } from "@/ui/theme";
@@ -97,10 +99,13 @@ export default function MatchScreen() {
         {ONLINE && <PublishButtons match={m} act={act} busy={busy} />}
       </View>
 
+      <RedCardReports match={m} />
+
       <ScoreCard doc={doc} summary={summary} />
       <Timeline doc={doc} summary={summary} />
       <PeriodTable doc={doc} summary={summary} />
       <StatsCard summary={summary} />
+      {m.fitness && <FitnessCard fitness={m.fitness} footer={<HealthConnectSave match={m} act={act} busy={busy} />} />}
       <Card title="Umpires">
         <T>
           {server?.umpires.length
@@ -171,6 +176,60 @@ function ServerBanners({ match: m, state, act, busy }: { match: LocalMatch; stat
   );
 }
 
+/** Each red card needs a report to England Hockey: where each one stands, and the way in. */
+function RedCardReports({ match: m }: { match: LocalMatch }) {
+  const cards = redCards(m.document!);
+  if (cards.length === 0) return null;
+  const doc = m.document!;
+  return (
+    <Card title={cards.length === 1 ? "Red card report" : "Red card reports"}>
+      {cards.map((card) => {
+        const report = m.redCardReports?.find((r) => r.cardSeq === card.seq);
+        const status = report?.submittedAt ? "Submitted" : report ? "Started" : "Not started";
+        return (
+          <Row key={card.seq} style={{ alignItems: "center" }}>
+            <View style={{ flex: 1 }}>
+              <T>
+                {doc.teams[card.team].name}
+                {card.player !== undefined ? ` #${card.player}` : ""}
+              </T>
+              <T variant="small">
+                {offenceSummary(doc, card)} · {status}
+              </T>
+            </View>
+            <Button
+              small
+              variant={report?.submittedAt ? "outline" : "primary"}
+              title={report ? "Open" : "Start"}
+              onPress={() => router.push(`/match/${m.id}/red-card/${card.seq}`)}
+            />
+          </Row>
+        );
+      })}
+    </Card>
+  );
+}
+
+/** Sends the workout to Health Connect, or says it's there. */
+function HealthConnectSave({ match: m, act, busy }: { match: LocalMatch; act: Act; busy: string | null }) {
+  const { status } = useHealthConnect();
+  if (status !== "available" || !m.fitness?.endedAt) return null;
+  if (m.healthSavedAt) return <T variant="small">Saved to Health Connect {formatDateTime(m.healthSavedAt)}.</T>;
+  return (
+    <Button
+      title="Save to Health Connect"
+      variant="outline"
+      icon="fitness-outline"
+      loading={busy === "Save to Health Connect"}
+      onPress={() =>
+        act("Save to Health Connect", async () => {
+          if (!(await saveToHealthConnect(m))) Alert.alert("Not saved", "Health Connect needs your permission to save workouts from FH Match Centre.");
+        })
+      }
+    />
+  );
+}
+
 /** Beta: publishing puts the match on the website; sharing sends its link. */
 function PublishButtons({ match: m, act, busy }: { match: LocalMatch; act: Act; busy: string | null }) {
   if (m.baseRevision === null) return null;
@@ -210,9 +269,20 @@ const EXPORTS: { kind: ExportKind; title: string; detail: string; icon: "documen
   { kind: "json", title: "Match data (JSON)", detail: "Everything, for importing on another phone.", icon: "code-slash-outline" },
 ];
 
-/** Getting the match off the phone: saved to a folder, or shared. */
+/** Getting the match off the phone: the report shared in one tap, or any file saved or shared. */
 function ExportCard({ match }: { match: LocalMatch }) {
-  const [busy, setBusy] = useState<ExportKind | null>(null);
+  const [busy, setBusy] = useState<ExportKind | "report" | null>(null);
+
+  async function sendReport() {
+    setBusy("report");
+    try {
+      await shareReport(match);
+    } catch (err) {
+      Alert.alert("Couldn't share the report", errorMessage(err));
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function run(kind: ExportKind, how: "save" | "share") {
     setBusy(kind);
@@ -236,6 +306,10 @@ function ExportCard({ match }: { match: LocalMatch }) {
 
   return (
     <Card title="Save or share">
+      <View style={{ gap: 2 }}>
+        <Button title="Share report" icon="share-social-outline" loading={busy === "report"} onPress={() => void sendReport()} />
+        <T variant="small">The PDF, by WhatsApp, email, Quick Share or any app.</T>
+      </View>
       {EXPORTS.map((e) => (
         <View key={e.kind} style={{ gap: 2 }}>
           <Button title={e.title} variant="outline" icon={e.icon} loading={busy === e.kind} onPress={() => choose(e.kind, e.title)} />

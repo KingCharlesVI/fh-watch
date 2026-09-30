@@ -1,6 +1,7 @@
 package com.fhmatchcentre.watch.data
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
@@ -73,9 +74,40 @@ interface MatchDao {
     suspend fun delete(id: String)
 }
 
-@Database(entities = [MatchRow::class], version = 1, exportSchema = true)
+/**
+ * The umpire's workout during a match (see FitnessTracker), kept apart from the match
+ * because it never goes in the match document.
+ */
+@Entity(tableName = "fitness")
+data class FitnessRow(
+    @PrimaryKey val matchId: String,
+    /** A FitnessProgress as JSON. */
+    val progress: String,
+    val updatedAt: Long,
+)
+
+@Dao
+interface FitnessDao {
+    @Upsert
+    suspend fun upsert(row: FitnessRow)
+
+    @Query("SELECT * FROM fitness WHERE matchId = :matchId")
+    suspend fun get(matchId: String): FitnessRow?
+
+    /** Drops workouts whose match has been deleted. */
+    @Query("DELETE FROM fitness WHERE matchId NOT IN (SELECT id FROM matches)")
+    suspend fun deleteOrphans(): Int
+}
+
+@Database(
+    entities = [MatchRow::class, FitnessRow::class],
+    version = 2,
+    exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
+)
 abstract class WatchDatabase : RoomDatabase() {
     abstract fun matches(): MatchDao
+    abstract fun fitness(): FitnessDao
 
     companion object {
         fun open(context: Context): WatchDatabase =

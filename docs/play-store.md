@@ -53,7 +53,8 @@ This builds both bundles into `dist/play/`. To build one app on its own, use `pn
    - **Content rating:** fill in the questionnaire (a utility/sports app with no user-generated content shared with others).
    - **Target audience:** 18 and over. The app is for match officials; choosing younger ages brings Families policy requirements.
    - **Data safety:** for the alpha, *no data collected* and *no data shared*. Matches stay on the device; the watch-to-phone transfer is between the user's own devices, and exports happen only when the user chooses. **Update this before the beta**, which collects account details (name, email) and uploads matches.
-   - **Foreground service permissions:** the watch app uses a special-use foreground service to keep the match clock, suspension timers and alerts running with the screen off. Describe that, and give a link to a short screen recording of a match running on the watch.
+   - **Health apps:** the watch reads heart rate and steps (Health Services) while **Record workout** is on, and the phone writes workouts to Health Connect (exercise, steps, distance, total calories, heart rate; write-only). Complete the Health apps declaration and the Health Connect permissions declaration, giving *fitness tracking of the umpire's own workouts during matches* as the use. Data safety: health and fitness data is processed on the user's devices only and not collected, since nothing leaves them except to Health Connect on the same phone.
+   - **Foreground service permissions:** the watch app uses a special-use foreground service to keep the match clock, suspension timers and alerts running with the screen off. Describe that, and give a link to a short screen recording of a match running on the watch. With Record workout on, the same service is also a health foreground service: it keeps the workout recording for the length of the match.
 3. **Add Wear OS:** Test and release → Advanced settings → Form factors → Add form factor → Wear OS. This creates separate Wear OS release tracks. The Wear OS app is reviewed against the [Wear OS app quality guidelines](https://developer.android.com/docs/quality-guidelines/wear-app-quality).
 4. **Store listing** (Grow users → Store presence → Main store listing): short and full description, a 512×512 icon, a 1024×500 feature graphic, at least two phone screenshots, and Wear OS screenshots (one of each match page: Timing, Cards and Goals show it best).
 
@@ -67,6 +68,27 @@ Internal testing reaches up to 100 testers you choose, and releases are usually 
 4. Copy the opt-in link from the Testers tab and send it to the testers. They accept, then install the phone app from Google Play; the watch app installs from the Play Store on the watch (or from the phone's Play Store, under the watch's device).
 
 For every update: `pnpm release:android --bump`, then upload both bundles to their internal testing tracks. Keep the two in step, so testers never have a phone and watch from different builds.
+
+## 5. Uploading from the command line
+
+`pnpm release:play` ([scripts/play-upload.mjs](../scripts/play-upload.mjs)) uploads both bundles from `dist/play/` and releases them to a testing track: the phone bundle to the phone track, the watch bundle to the Wear OS one (e.g. `wear:internal`). The release notes are the features and fixes from the GitHub release notes, cut to Play's 500 characters.
+
+| Command | Track |
+| --- | --- |
+| `pnpm release:play` | Internal testing (the alpha) |
+| `pnpm release:play --track closed --beta` | Closed testing (the beta; `--beta` picks the beta phone bundle) |
+| `pnpm release:play --track open` | Open testing |
+
+Add `--dry-run` to upload and check everything without releasing anything, or `--draft` to leave the releases as drafts to roll out in Play Console.
+
+**Once, before the first upload:**
+
+1. Upload the very first bundles by hand (step 4). Google Play only accepts uploads through its API for an app that already has one. Until the app has been published on a track, uploads must be drafts: add `--draft`.
+2. In [Google Cloud Console](https://console.cloud.google.com), create a project (any name), and under **APIs & Services → Library** enable the **Google Play Android Developer API**.
+3. Under **IAM & Admin → Service accounts**, create a service account (e.g. `play-upload`). Open it, then **Keys → Add key → JSON**. Save the file as `C:Users<you>.fhplay-service-account.json`, outside the repository (or anywhere, with `FH_PLAY_KEY` set to its path). Keep it private: it can release the app.
+4. In [Play Console](https://play.google.com/console), **Users and permissions → Invite new users**: the service account's email address, with **FH Match Centre** added under **App permissions** and **Release to testing tracks** ticked (and **Release to production** later, if you want that from the command line too).
+
+It can take up to a day before a new service account's access works; until then Play answers that it doesn't have permission.
 
 ## Later: production
 

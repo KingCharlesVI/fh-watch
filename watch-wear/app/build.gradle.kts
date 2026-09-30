@@ -102,6 +102,8 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
     implementation(libs.play.services.wearable)
+    // Heart rate, steps and distance during a match (the umpire's workout).
+    implementation(libs.health.services.client)
     implementation(libs.coroutines.android)
     implementation(libs.coroutines.play.services)
     implementation(libs.serialization.json)

@@ -1,0 +1,358 @@
+{
+  "createdOn" : "watchos",
+  "endedAt" : "2026-09-21T15:20:20.000Z",
+  "events" : [
+    {
+      "clockMs" : 0,
+      "period" : 1,
+      "seq" : 1,
+      "type" : "period_start",
+      "wallTime" : "2026-09-21T14:13:20.000Z"
+    },
+    {
+      "clockMs" : 180000,
+      "method" : "field",
+      "period" : 1,
+      "player" : 9,
+      "seq" : 2,
+      "team" : "home",
+      "type" : "goal",
+      "wallTime" : "2026-09-21T14:16:20.000Z"
+    },
+    {
+      "clockMs" : 180000,
+      "period" : 1,
+      "seq" : 3,
+      "team" : "away",
+      "type" : "goal",
+      "wallTime" : "2026-09-21T14:16:20.000Z"
+    },
+    {
+      "clockMs" : 180000,
+      "period" : 1,
+      "seq" : 4,
+      "team" : "home",
+      "type" : "penalty_corner",
+      "wallTime" : "2026-09-21T14:16:20.000Z"
+    },
+    {
+      "clockMs" : 180000,
+      "color" : "green",
+      "durationSec" : 120,
+      "period" : 1,
+      "player" : 4,
+      "seq" : 5,
+      "team" : "away",
+      "type" : "card",
+      "wallTime" : "2026-09-21T14:16:20.000Z"
+    },
+    {
+      "clockMs" : 180000,
+      "color" : "yellow",
+      "durationSec" : 600,
+      "period" : 1,
+      "player" : 12,
+      "reason" : "dissent",
+      "seq" : 6,
+      "team" : "home",
+      "type" : "card",
+      "wallTime" : "2026-09-21T14:16:20.000Z"
+    },
+    {
+      "clockMs" : 180000,
+      "color" : "red",
+      "period" : 1,
+      "player" : 3,
+      "seq" : 7,
+      "team" : "home",
+      "type" : "card",
+      "wallTime" : "2026-09-21T14:16:20.000Z"
+    },
+    {
+      "clockMs" : 180000,
+      "period" : 1,
+      "reason" : "video",
+      "seq" : 8,
+      "type" : "clock_stop",
+      "wallTime" : "2026-09-21T14:16:20.000Z"
+    },
+    {
+      "clockMs" : 180000,
+      "period" : 1,
+      "seq" : 9,
+      "type" : "clock_resume",
+      "wallTime" : "2026-09-21T14:17:20.000Z"
+    },
+    {
+      "clockMs" : 300000,
+      "period" : 1,
+      "refSeq" : 5,
+      "seq" : 10,
+      "type" : "card_end",
+      "wallTime" : "2026-09-21T14:20:20.000Z"
+    },
+    {
+      "clockMs" : 360000,
+      "period" : 1,
+      "scored" : true,
+      "seq" : 11,
+      "team" : "away",
+      "type" : "penalty_stroke",
+      "wallTime" : "2026-09-21T14:20:20.000Z"
+    },
+    {
+      "clockMs" : 360000,
+      "method" : "ps",
+      "period" : 1,
+      "player" : 11,
+      "seq" : 12,
+      "team" : "away",
+      "type" : "goal",
+      "wallTime" : "2026-09-21T14:20:20.000Z"
+    },
+    {
+      "clockMs" : 360000,
+      "period" : 1,
+      "scored" : false,
+      "seq" : 13,
+      "team" : "home",
+      "type" : "penalty_stroke",
+      "wallTime" : "2026-09-21T14:20:20.000Z"
+    },
+    {
+      "clockMs" : 360000,
+      "method" : "pc",
+      "period" : 1,
+      "player" : 10,
+      "seq" : 14,
+      "team" : "home",
+      "type" : "goal",
+      "wallTime" : "2026-09-21T14:20:20.000Z"
+    },
+    {
+      "clockMs" : 360000,
+      "period" : 1,
+      "refSeq" : 14,
+      "seq" : 15,
+      "type" : "void",
+      "wallTime" : "2026-09-21T14:20:20.000Z"
+    },
+    {
+      "clockMs" : 360000,
+      "method" : "pc",
+      "period" : 1,
+      "player" : 10,
+      "seq" : 16,
+      "team" : "home",
+      "type" : "goal",
+      "wallTime" : "2026-09-21T14:20:20.000Z"
+    },
+    {
+      "clockMs" : 780000,
+      "period" : 1,
+      "refSeq" : 6,
+      "seq" : 17,
+      "type" : "card_end",
+      "wallTime" : "2026-09-21T14:35:20.000Z"
+    },
+    {
+      "clockMs" : 900000,
+      "period" : 1,
+      "seq" : 18,
+      "type" : "period_end",
+      "wallTime" : "2026-09-21T14:35:20.000Z"
+    },
+    {
+      "clockMs" : 0,
+      "period" : 2,
+      "seq" : 19,
+      "type" : "period_start",
+      "wallTime" : "2026-09-21T14:35:20.000Z"
+    },
+    {
+      "clockMs" : 900000,
+      "period" : 2,
+      "seq" : 20,
+      "type" : "period_end",
+      "wallTime" : "2026-09-21T14:50:20.000Z"
+    },
+    {
+      "clockMs" : 0,
+      "period" : 3,
+      "seq" : 21,
+      "type" : "period_start",
+      "wallTime" : "2026-09-21T14:50:20.000Z"
+    },
+    {
+      "clockMs" : 900000,
+      "period" : 3,
+      "seq" : 22,
+      "type" : "period_end",
+      "wallTime" : "2026-09-21T15:05:20.000Z"
+    },
+    {
+      "clockMs" : 0,
+      "period" : 4,
+      "seq" : 23,
+      "type" : "period_start",
+      "wallTime" : "2026-09-21T15:05:20.000Z"
+    },
+    {
+      "clockMs" : 900000,
+      "period" : 4,
+      "seq" : 24,
+      "type" : "period_end",
+      "wallTime" : "2026-09-21T15:20:20.000Z"
+    },
+    {
+      "player" : 20,
+      "round" : 1,
+      "scored" : true,
+      "seq" : 25,
+      "team" : "home",
+      "type" : "shootout_attempt",
+      "wallTime" : "2026-09-21T15:20:20.000Z"
+    },
+    {
+      "round" : 1,
+      "scored" : true,
+      "seq" : 26,
+      "team" : "away",
+      "type" : "shootout_attempt",
+      "wallTime" : "2026-09-21T15:20:20.000Z"
+    },
+    {
+      "player" : 21,
+      "round" : 2,
+      "scored" : true,
+      "seq" : 27,
+      "team" : "home",
+      "type" : "shootout_attempt",
+      "wallTime" : "2026-09-21T15:20:20.000Z"
+    },
+    {
+      "round" : 2,
+      "scored" : true,
+      "seq" : 28,
+      "team" : "away",
+      "type" : "shootout_attempt",
+      "wallTime" : "2026-09-21T15:20:20.000Z"
+    },
+    {
+      "player" : 22,
+      "round" : 3,
+      "scored" : false,
+      "seq" : 29,
+      "team" : "home",
+      "type" : "shootout_attempt",
+      "wallTime" : "2026-09-21T15:20:20.000Z"
+    },
+    {
+      "round" : 3,
+      "scored" : true,
+      "seq" : 30,
+      "team" : "away",
+      "type" : "shootout_attempt",
+      "wallTime" : "2026-09-21T15:20:20.000Z"
+    },
+    {
+      "player" : 23,
+      "round" : 4,
+      "scored" : true,
+      "seq" : 31,
+      "team" : "home",
+      "type" : "shootout_attempt",
+      "wallTime" : "2026-09-21T15:20:20.000Z"
+    },
+    {
+      "round" : 4,
+      "scored" : true,
+      "seq" : 32,
+      "team" : "away",
+      "type" : "shootout_attempt",
+      "wallTime" : "2026-09-21T15:20:20.000Z"
+    },
+    {
+      "player" : 24,
+      "round" : 5,
+      "scored" : true,
+      "seq" : 33,
+      "team" : "home",
+      "type" : "shootout_attempt",
+      "wallTime" : "2026-09-21T15:20:20.000Z"
+    },
+    {
+      "round" : 5,
+      "scored" : false,
+      "seq" : 34,
+      "team" : "away",
+      "type" : "shootout_attempt",
+      "wallTime" : "2026-09-21T15:20:20.000Z"
+    },
+    {
+      "player" : 7,
+      "round" : 6,
+      "scored" : true,
+      "seq" : 35,
+      "team" : "home",
+      "type" : "shootout_attempt",
+      "wallTime" : "2026-09-21T15:20:20.000Z"
+    },
+    {
+      "player" : 5,
+      "round" : 6,
+      "scored" : false,
+      "seq" : 36,
+      "team" : "away",
+      "type" : "shootout_attempt",
+      "wallTime" : "2026-09-21T15:20:20.000Z"
+    },
+    {
+      "refSeq" : 36,
+      "seq" : 37,
+      "type" : "void",
+      "wallTime" : "2026-09-21T15:20:20.000Z"
+    },
+    {
+      "player" : 5,
+      "round" : 6,
+      "scored" : false,
+      "seq" : 38,
+      "team" : "away",
+      "type" : "shootout_attempt",
+      "wallTime" : "2026-09-21T15:20:20.000Z"
+    }
+  ],
+  "id" : "01a0c450-6c00-7f83-a1cd-637538e31085",
+  "schemaVersion" : 1,
+  "settings" : {
+    "breakLengthsSec" : [
+      120,
+      300,
+      120
+    ],
+    "cardDurationsSec" : {
+      "green" : 120,
+      "yellowLong" : 600,
+      "yellowShort" : 300
+    },
+    "periodLengthSec" : 900,
+    "periods" : 4,
+    "shootoutIfDrawn" : true
+  },
+  "startedAt" : "2026-09-21T14:13:20.000Z",
+  "teams" : {
+    "away" : {
+      "color" : "#B91C1C",
+      "name" : "Reading M1",
+      "teamId" : null
+    },
+    "home" : {
+      "captain" : 7,
+      "color" : "#1E40AF",
+      "name" : "Oxford Hawks M1",
+      "teamId" : null
+    }
+  },
+  "venue" : "Oxford Hawks, Pitch 1"
+}

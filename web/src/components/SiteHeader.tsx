@@ -11,8 +11,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SITE_NAME } from "@/lib/site";
+import { DOCS_URL, GITHUB_URL, SITE_NAME } from "@/lib/site";
 import type { User } from "@/lib/types";
+import { GitHubIcon } from "./GitHubIcon";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function SiteHeader({ user }: { user: User | null }) {
@@ -73,6 +74,14 @@ export function SiteHeader({ user }: { user: User | null }) {
               </Button>
             </>
           )}
+          <Button variant="ghost" asChild>
+            <a href={DOCS_URL}>Docs</a>
+          </Button>
+          <Button variant="ghost" size="icon" asChild>
+            <a href={GITHUB_URL} aria-label="GitHub repository" title="GitHub">
+              <GitHubIcon />
+            </a>
+          </Button>
           <ThemeToggle />
         </nav>
       </div>

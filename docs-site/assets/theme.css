@@ -1,0 +1,49 @@
+/* FH Match Centre's touches on top of the GitHub dark theme. */
+body {
+  font-family: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.app-name-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  vertical-align: middle;
+}
+
+.markdown-section table {
+  display: table;
+  width: 100%;
+}
+
+.markdown-section td,
+.markdown-section th {
+  vertical-align: top;
+}
+
+/* The edit link at the top of each page. */
+.markdown-section > div:first-child > p[style*="float"] a {
+  font-size: 0.85em;
+  color: var(--gh-fg-muted);
+}
+
+/* The sidebar footer: a space between "Copyright © 2026" and the name, and the policy link on its own line. */
+#mb-footer .footer-text-author::before {
+  content: " ";
+}
+
+#mb-footer .footer-link {
+  margin-top: 0.25rem;
+}
+
+/* Lined up with the menu, no second divider under the last section, and clear of the menu button below. */
+#mb-footer {
+  border-top: none !important;
+  margin: 0 0 5rem 8px;
+  padding-top: 0.5rem;
+}

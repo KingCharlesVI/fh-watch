@@ -35,7 +35,9 @@ object WatchReceiver {
     val id = item.uri.path?.removePrefix(MATCH_PATH)?.takeIf { item.uri.path!!.startsWith(MATCH_PATH) && ID.matches(it) } ?: return null
     val map = DataMapItem.fromDataItem(item).dataMap
     val bytes = map.getByteArray("json") ?: map.getAsset("jsonAsset")?.let { readAsset(context, it) } ?: return null
-    WatchInbox.write(context, id, bytes)
+    // The umpire's workout, if the watch recorded one: kept beside the match, not in it.
+    val fitness = map.getByteArray("fitness") ?: map.getAsset("fitnessAsset")?.let { readAsset(context, it) }
+    WatchInbox.write(context, id, bytes, fitness)
     Log.i(TAG, "Stored match $id from the watch (${bytes.size} bytes)")
 
     // The receipt. If the watch is out of reach, it keeps the match pending, and the
@@ -76,15 +78,20 @@ class WatchListenerService : WearableListenerService() {
   }
 }
 
-/** Matches received but not yet taken by the JS app: one JSON file each. */
+/**
+ * Matches received but not yet taken by the JS app: one JSON file each, and a
+ * `.fitness` file beside it for the umpire's workout.
+ */
 object WatchInbox {
-  data class Entry(val id: String, val json: String, val receivedAt: Long)
+  data class Entry(val id: String, val json: String, val receivedAt: Long, val fitness: String?)
 
   private fun dir(context: Context) = File(context.filesDir, "watch-inbox").apply { mkdirs() }
 
   @Synchronized
-  fun write(context: Context, id: String, bytes: ByteArray) {
+  fun write(context: Context, id: String, bytes: ByteArray, fitness: ByteArray? = null) {
     val dir = dir(context)
+    // Before the match file, so the JS side never sees a match without its workout.
+    if (fitness != null) File(dir, "$id.fitness").writeBytes(fitness)
     val tmp = File(dir, "$id.json.tmp")
     tmp.writeBytes(bytes)
     // A rename is atomic, so the JS side never reads half a file.
@@ -98,10 +105,14 @@ object WatchInbox {
   fun list(context: Context): List<Entry> =
     dir(context).listFiles { f -> f.name.endsWith(".json") }.orEmpty()
       .sortedBy { it.lastModified() }
-      .map { Entry(it.name.removeSuffix(".json"), it.readText(), it.lastModified()) }
+      .map {
+        val id = it.name.removeSuffix(".json")
+        Entry(id, it.readText(), it.lastModified(), File(it.parentFile, "$id.fitness").takeIf(File::exists)?.readText())
+      }
 
   @Synchronized
   fun remove(context: Context, id: String) {
     File(dir(context), "$id.json").delete()
+    File(dir(context), "$id.fitness").delete()
   }
 }

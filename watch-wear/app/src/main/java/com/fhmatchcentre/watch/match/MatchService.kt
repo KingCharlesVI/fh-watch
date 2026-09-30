@@ -47,13 +47,16 @@ class MatchService : LifecycleService() {
         haptics = Haptics(this)
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(NotificationChannel(CHANNEL, "Match in progress", NotificationManager.IMPORTANCE_LOW))
-        startForeground(NOTIFICATION_ID, notification("Match in progress"), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        // A health service too while a workout may be recorded; that type needs the permissions granted.
+        val services = (application as WatchApp).services
+        val health = if (services.fitness.wanted) ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH else 0
+        startForeground(NOTIFICATION_ID, notification("Match in progress"), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or health)
 
         // Alerts must fire on time with the screen off, when the CPU would otherwise sleep.
         wakeLock = getSystemService(PowerManager::class.java).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "fh:match")
         wakeLock.acquire(MAX_MATCH_MS)
 
-        val controller = (application as WatchApp).services.controller
+        val controller = services.controller
         lifecycleScope.launch {
             while (true) {
                 val record = controller.active.value ?: break

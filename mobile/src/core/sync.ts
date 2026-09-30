@@ -1,5 +1,7 @@
 import { type Match, type MatchDocument, type ValidationIssue, parseMatch } from "@fh/shared";
 import { type ApiClient, ApiError, NetworkError, errorMessage } from "./api";
+import type { Fitness } from "./fitness";
+import type { RedCardReport } from "./red-card";
 import type { LocalMatch, MatchStore } from "./store";
 
 /**
@@ -94,6 +96,29 @@ export class SyncEngine {
     });
     this.changed();
     return { status: "added" };
+  }
+
+  /** The umpire's workout from the watch. A resend doesn't replace one already stored. */
+  async setFitness(id: string, fitness: Fitness) {
+    const row = await this.store.get(id);
+    if (!row || row.fitness) return;
+    await this.store.put({ ...row, fitness });
+    this.changed();
+  }
+
+  /** Saves a red card report, replacing any earlier one for the same card. */
+  async saveRedCardReport(id: string, report: RedCardReport) {
+    const row = await this.require(id);
+    const others = (row.redCardReports ?? []).filter((r) => r.cardSeq !== report.cardSeq);
+    await this.store.put({ ...row, redCardReports: [...others, report].sort((a, b) => a.cardSeq - b.cardSeq) });
+    this.changed();
+  }
+
+  /** Notes that the workout is in Health Connect, so it isn't saved again by itself. */
+  async markHealthSaved(id: string) {
+    const row = await this.require(id);
+    await this.store.put({ ...row, healthSavedAt: new Date(this.now()).toISOString() });
+    this.changed();
   }
 
   /** Saves an edit on the phone and queues it for upload. Refuses documents with errors. */

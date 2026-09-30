@@ -1,6 +1,9 @@
 import { type MatchDocument, type MatchEvent, type MatchSummary, describeEvent, eventTime, periodLabel } from "@fh/shared";
+import { type ReactNode, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import Svg, { Polyline } from "react-native-svg";
 import { ONLINE } from "@/config";
+import { type Fitness, fitnessStats } from "@/core/fitness";
 import type { LocalMatch } from "@/core/store";
 import type { SyncState } from "@/core/sync";
 import { Badge, Card, Swatch, T, Text } from "@/ui/kit";
@@ -111,6 +114,46 @@ export function StatsCard({ summary }: { summary: MatchSummary }) {
         </View>
       ))}
     </Card>
+  );
+}
+
+/** The umpire's workout during the match, from the watch. Only ever on this phone. */
+export function FitnessCard({ fitness, footer }: { fitness: Fitness; footer?: ReactNode }) {
+  const c = useColors();
+  const stats = fitnessStats(fitness);
+  return (
+    <Card title="Your workout">
+      {fitness.heartRateSamples.length > 1 && <HeartRateChart samples={fitness.heartRateSamples} />}
+      {stats.map(([label, value], i) => (
+        <View key={label} style={[styles.statRow, i > 0 && { borderTopColor: c.border, borderTopWidth: StyleSheet.hairlineWidth }]}>
+          <Text style={{ color: c.muted, flex: 1 }}>{label}</Text>
+          <Text style={{ color: c.text, fontVariant: ["tabular-nums"] }}>{value}</Text>
+        </View>
+      ))}
+      {stats.length === 0 && <T variant="small">The watch didn&apos;t record anything for this match.</T>}
+      {footer}
+    </Card>
+  );
+}
+
+/** Heart rate through the match, scaled between its lowest and highest. */
+function HeartRateChart({ samples }: { samples: [number, number][] }) {
+  const c = useColors();
+  const [width, setWidth] = useState(0);
+  const height = 72;
+  const end = samples[samples.length - 1]![0] || 1;
+  const bpm = samples.map((s) => s[1]);
+  const lo = Math.min(...bpm);
+  const span = Math.max(Math.max(...bpm) - lo, 1);
+  const points = samples.map(([t, b]) => `${((t / end) * width).toFixed(1)},${(height - 2 - ((b - lo) / span) * (height - 4)).toFixed(1)}`).join(" ");
+  return (
+    <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={{ height, marginBottom: space.sm }}>
+      {width > 0 && (
+        <Svg width={width} height={height}>
+          <Polyline points={points} fill="none" stroke={c.danger} strokeWidth={2} strokeLinejoin="round" />
+        </Svg>
+      )}
+    </View>
   );
 }
 

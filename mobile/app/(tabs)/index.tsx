@@ -4,10 +4,12 @@ import { useState } from "react";
 import { Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { errorMessage } from "@/core/api";
 import { StatusBadges, formatDate } from "@/features/match-view";
+import { UpdateNotice } from "@/features/update-notice";
 import { ONLINE } from "@/config";
 import { sync } from "@/services";
 import { drainWatchInbox } from "@/services/watch";
 import { type MatchRow, useMatches } from "@/state/sync";
+import { useUpdates } from "@/state/updates";
 import { Banner, Empty, Screen, Tabs, Text } from "@/ui/kit";
 import { radius, space, useColors } from "@/ui/theme";
 
@@ -30,6 +32,7 @@ export default function MatchesScreen() {
   const [tab, setTab] = useState<Tab>("new");
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { update, dismissed } = useUpdates();
   const counts = { new: 0, saved: 0, drafts: 0, published: 0 };
   for (const r of rows) for (const t of TABS) if (inTab(r, t)) counts[t]++;
   const shown = rows.filter((r) => inTab(r, tab));
@@ -49,6 +52,7 @@ export default function MatchesScreen() {
 
   return (
     <Screen refresh={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
+      {update && dismissed !== update.release.tag && <UpdateNotice update={update} later />}
       <Tabs value={tab} onChange={setTab} options={TABS.map((t) => ({ value: t, label: `${TAB_NAMES[t]} (${counts[t]})` }))} />
       {error && <Banner tone="warn" icon="cloud-offline-outline" title="Couldn't refresh">{error}</Banner>}
       {loaded && shown.length === 0 && (

@@ -8,6 +8,7 @@ import { notificationTarget } from "@/services/push";
 import { AuthProvider, useAuth } from "@/state/auth";
 import { ONLINE } from "@/config";
 import { useSyncTriggers, useWatchInbox } from "@/state/sync";
+import { useUpdateChecks } from "@/state/updates";
 import { FONT, useColors } from "@/ui/theme";
 
 export default function RootLayout() {
@@ -36,6 +37,7 @@ function Navigator() {
   const open = !ONLINE || signedIn;
   useWatchInbox(open);
   useSyncTriggers(ONLINE && signedIn);
+  useUpdateChecks();
 
   // A tapped notification opens its match (or its editor, when teams need linking).
   const lastResponse = Notifications.useLastNotificationResponse();
@@ -67,6 +69,7 @@ function Navigator() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="match/[id]/index" options={{ title: "Match" }} />
         <Stack.Screen name="match/[id]/edit" options={{ title: "Edit match" }} />
+        <Stack.Screen name="match/[id]/red-card/[seq]" options={{ title: "Red card report" }} />
         <Stack.Screen name="match/[id]/share" options={{ title: "Share", presentation: "modal" }} />
         {/* Setup on phone: the watch opens this (fhmatchcentre://setup). */}
         <Stack.Screen name="setup" options={{ title: "Set up a match" }} />

@@ -22,6 +22,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.wear.compose.material3.AlertDialog
+import androidx.wear.compose.material3.AlertDialogDefaults
 import androidx.wear.compose.material3.SwitchButton
 import androidx.wear.compose.material3.Text
 import androidx.wear.input.RemoteInputIntentHelper
@@ -48,6 +50,7 @@ import com.fhmatchcentre.watch.engine.activeEvents
 import com.fhmatchcentre.watch.engine.penaltyCorners
 import com.fhmatchcentre.watch.engine.score
 import com.fhmatchcentre.watch.engine.shootout
+import com.fhmatchcentre.watch.fitness.FitnessTracker
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
@@ -239,10 +242,11 @@ private fun syncLabel(sync: SyncState) = when (sync) {
 
 /** A finished match: the result, and whether the phone has it yet. */
 @Composable
-fun SummaryScreen(services: Services, id: String, onDone: () -> Unit) {
+fun SummaryScreen(services: Services, id: String, onDone: () -> Unit, onDeleted: () -> Unit) {
     val row by services.db.matches().observe(id).collectAsState(initial = null)
     val scope = rememberCoroutineScope()
     var sending by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
     val r = row ?: return
     val m = remember(r.record) { r.decode() }
     val t = m.document.teams
@@ -282,7 +286,29 @@ fun SummaryScreen(services: Services, id: String, onDone: () -> Unit) {
             }
         }
         item { ChoiceButton("Done", color = Color(0xFF106C3E)) { onDone() } }
+        item { ChoiceButton("Delete from watch") { confirmDelete = true } }
     }
+    AlertDialog(
+        visible = confirmDelete,
+        onDismissRequest = { confirmDelete = false },
+        title = { Text("Delete this match?") },
+        text = {
+            Text(
+                if (r.sync == SyncState.SYNCED) "It stays on your phone."
+                else "It hasn't reached your phone, so it will be gone for good.",
+            )
+        },
+        confirmButton = {
+            AlertDialogDefaults.ConfirmButton(onClick = {
+                confirmDelete = false
+                scope.launch {
+                    services.sync.delete(r.id)
+                    onDeleted()
+                }
+            })
+        },
+        dismissButton = { AlertDialogDefaults.DismissButton(onClick = { confirmDelete = false }) },
+    )
 }
 
 @Composable
@@ -303,6 +329,7 @@ fun SettingsScreen(services: Services) {
             )
         }
         item { ClockButtonSwitch(clockButton) { clockButton = it; services.prefs.clockButtonOnScreen = it } }
+        item { FitnessSwitch(services) }
         item {
             Text(
                 when {
@@ -320,6 +347,34 @@ fun SettingsScreen(services: Services) {
         }
         item { Text(versionText(LocalContext.current), fontSize = 12.sp, color = Color(0xFFB5B5B5)) }
     }
+}
+
+/**
+ * Records each match as a workout. Turning it on asks for the sensor permissions; it
+ * stays off if they're refused.
+ */
+@Composable
+private fun FitnessSwitch(services: Services) {
+    val context = LocalContext.current
+    var on by remember { mutableStateOf(services.fitness.wanted) }
+    val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
+        on = granted.values.all { it }
+        services.prefs.fitnessTracking = on
+    }
+    SwitchButton(
+        checked = on,
+        onCheckedChange = { checked ->
+            if (checked && !FitnessTracker.permitted(context)) {
+                ask.launch(FitnessTracker.PERMISSIONS)
+            } else {
+                on = checked
+                services.prefs.fitnessTracking = checked
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text("Record workout") },
+        secondaryLabel = { Text("Heart rate, steps, distance") },
+    )
 }
 
 /**

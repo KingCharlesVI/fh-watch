@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { type Fitness, fitnessStats, healthWorkout, parseFitness } from "../src/core/fitness";
 import { type InboxItem, type NativeInbox, drainInbox } from "../src/core/watch-inbox";
 import { matchDoc, setup } from "./helpers";
 
@@ -8,8 +9,8 @@ class FakeInbox implements NativeInbox {
   items: InboxItem[] = [];
   pending: InboxItem[] = [];
   removed: string[] = [];
-  put(json: string, id = `id-${this.items.length}`) {
-    this.items.push({ id, json, receivedAt: 1 });
+  put(json: string, id = `id-${this.items.length}`, fitness?: string) {
+    this.items.push({ id, json, receivedAt: 1, fitness });
   }
   async listInbox() {
     return [...this.items];
@@ -33,6 +34,9 @@ class FakeInbox implements NativeInbox {
  */
 const wearFixture = readFileSync(new URL("./fixtures/wear-full-match.json", import.meta.url), "utf8");
 
+/** The same for the Apple Watch app: written by its engine tests (mobile/targets, `swift test`). */
+const watchosFixture = readFileSync(new URL("./fixtures/watchos-full-match.json", import.meta.url), "utf8");
+
 describe("the watch inbox", () => {
   it("stores a match from the Wear OS app and empties the inbox", async () => {
     const t = await setup();
@@ -45,6 +49,19 @@ describe("the watch inbox", () => {
     expect(inbox.items).toEqual([]);
     const row = (await t.engine.get(doc.id))!;
     expect(row).toMatchObject({ source: "watch", seen: false, warnings: [] });
+    expect(row.document!.events.length).toBe(doc.events.length);
+  });
+
+  it("stores a match from the Apple Watch app", async () => {
+    const t = await setup();
+    const inbox = new FakeInbox();
+    const doc = JSON.parse(watchosFixture);
+    inbox.put(watchosFixture, doc.id);
+
+    expect(await drainInbox(inbox, t.engine)).toEqual({ added: [doc.id], problems: [] });
+    const row = (await t.engine.get(doc.id))!;
+    expect(row).toMatchObject({ source: "watch", warnings: [] });
+    expect(row.document!.createdOn).toBe("watchos");
     expect(row.document!.events.length).toBe(doc.events.length);
   });
 
@@ -102,5 +119,102 @@ describe("the watch inbox", () => {
     inbox.put("[]", "bad");
     inbox.put(JSON.stringify(good), good.id);
     expect((await drainInbox(inbox, t.engine)).added).toEqual([good.id]);
+  });
+
+  it("keeps the umpire's workout beside the match, not in it", async () => {
+    const t = await setup();
+    const inbox = new FakeInbox();
+    const doc = matchDoc();
+    inbox.put(JSON.stringify(doc), doc.id, JSON.stringify(workout));
+    await drainInbox(inbox, t.engine);
+    const row = (await t.engine.get(doc.id))!;
+    expect(row.fitness).toEqual(workout);
+    expect(row.document).toEqual(doc);
+  });
+
+  it("adds a workout that comes with a resend, but never replaces one", async () => {
+    const t = await setup();
+    const inbox = new FakeInbox();
+    const doc = matchDoc();
+    inbox.put(JSON.stringify(doc), doc.id);
+    await drainInbox(inbox, t.engine);
+    inbox.put(JSON.stringify(doc), doc.id, JSON.stringify(workout));
+    await drainInbox(inbox, t.engine);
+    expect((await t.engine.get(doc.id))!.fitness).toEqual(workout);
+    inbox.put(JSON.stringify(doc), doc.id, JSON.stringify({ ...workout, steps: 1 }));
+    await drainInbox(inbox, t.engine);
+    expect((await t.engine.get(doc.id))!.fitness!.steps).toBe(workout.steps);
+  });
+
+  it("stores the match without a workout it can't read", async () => {
+    const t = await setup();
+    const inbox = new FakeInbox();
+    const doc = matchDoc();
+    inbox.put(JSON.stringify(doc), doc.id, "{nope");
+    expect((await drainInbox(inbox, t.engine)).added).toEqual([doc.id]);
+    expect((await t.engine.get(doc.id))!.fitness).toBeUndefined();
+  });
+});
+
+const workout: Fitness = {
+  version: 1,
+  startedAt: "2026-09-26T14:00:00Z",
+  endedAt: "2026-09-26T15:20:00Z",
+  steps: 9120,
+  distanceM: 6480.5,
+  caloriesKcal: 610,
+  heartRate: { avg: 128, min: 82, max: 176 },
+  heartRateSamples: [
+    [0, 95],
+    [10, 104],
+    [20, 120],
+  ],
+};
+
+describe("workouts from the watch", () => {
+  it("reads what the watch sends, leaving out anything implausible", () => {
+    expect(parseFitness(JSON.stringify(workout))).toEqual(workout);
+    const odd = parseFitness(JSON.stringify({ ...workout, steps: -5, distanceM: "far", heartRateSamples: [[0, 90], [5], [10, 900]], extra: 1 }));
+    expect(odd).toMatchObject({ heartRateSamples: [[0, 90]] });
+    expect(odd).not.toHaveProperty("steps");
+    expect(odd).not.toHaveProperty("distanceM");
+  });
+
+  it("refuses something that isn't a workout", () => {
+    expect(parseFitness("[]")).toBeNull();
+    expect(parseFitness(JSON.stringify({ ...workout, version: 2 }))).toBeNull();
+    expect(parseFitness(JSON.stringify({ ...workout, startedAt: "soon" }))).toBeNull();
+  });
+
+  it("becomes a Health Connect workout named for the match, once finished", async () => {
+    const t = await setup();
+    const doc = matchDoc();
+    await t.engine.importMatch(doc, "watch");
+    await t.engine.setFitness(doc.id, workout);
+    const row = (await t.engine.get(doc.id))!;
+    expect(healthWorkout(row)).toEqual({
+      matchId: doc.id,
+      title: `Umpiring: ${doc.teams.home.name} v ${doc.teams.away.name}`,
+      startedAt: workout.startedAt,
+      endedAt: workout.endedAt,
+      steps: 9120,
+      distanceM: 6480.5,
+      caloriesKcal: 610,
+      heartRateSamples: workout.heartRateSamples,
+    });
+    expect(healthWorkout({ ...row, fitness: { ...workout, endedAt: undefined } })).toBeNull();
+    await t.engine.markHealthSaved(doc.id);
+    expect((await t.engine.get(doc.id))!.healthSavedAt).toBeDefined();
+  });
+
+  it("describes it for the match page", () => {
+    expect(fitnessStats(workout)).toEqual([
+      ["Time", "80 min"],
+      ["Distance", "6.5 km"],
+      ["Steps", "9,120"],
+      ["Average heart rate", "128 bpm"],
+      ["Highest heart rate", "176 bpm"],
+      ["Calories", "610 kcal"],
+    ]);
   });
 });

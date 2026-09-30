@@ -1,0 +1,22 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "alpha": {
+      "distribution": "store",
+      "node": "22.18.0",
+      "pnpm": "9.15.0",
+      "env": { "EXPO_PUBLIC_STAGE": "alpha" }
+    },
+    "beta": {
+      "extends": "alpha",
+      "env": { "EXPO_PUBLIC_STAGE": "beta" }
+    }
+  },
+  "submit": {
+    "alpha": { "ios": {} },
+    "beta": { "ios": {} }
+  }
+}

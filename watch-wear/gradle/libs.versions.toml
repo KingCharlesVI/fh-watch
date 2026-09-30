@@ -9,6 +9,7 @@ wear = "1.4.0"
 wearInput = "1.2.0"
 wearRemoteInteractions = "1.2.0"
 room = "2.8.5"
+healthServices = "1.1.0"
 activityCompose = "1.13.0"
 lifecycle = "2.11.0"
 coreKtx = "1.19.1"
@@ -41,6 +42,7 @@ wear-remote-interactions = { module = "androidx.wear:wear-remote-interactions", 
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+health-services-client = { module = "androidx.health:health-services-client", version.ref = "healthServices" }
 play-services-wearable = { module = "com.google.android.gms:play-services-wearable", version.ref = "playServicesWearable" }
 coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "coroutines" }

@@ -97,4 +97,9 @@ class Prefs(context: Context) {
     var clockCountsDown: Boolean
         get() = prefs.getBoolean("countDown", true)
         set(value) = prefs.edit().putBoolean("countDown", value).apply()
+
+    /** Whether matches are recorded as a workout (heart rate, steps, distance). Off until the umpire turns it on. */
+    var fitnessTracking: Boolean
+        get() = prefs.getBoolean("fitness", false)
+        set(value) = prefs.edit().putBoolean("fitness", value).apply()
 }

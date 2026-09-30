@@ -1,4 +1,6 @@
 import type { Match, MatchDocument, ValidationIssue } from "@fh/shared";
+import type { Fitness } from "./fitness";
+import type { RedCardReport } from "./red-card";
 
 /** One match as this phone knows it: what's been received or edited here, plus the server's view. */
 export interface LocalMatch {
@@ -26,6 +28,12 @@ export interface LocalMatch {
    * its own list once a match is uploaded.
    */
   umpireNames?: string[];
+  /** The umpire's workout, recorded by the watch. Only ever on this phone. */
+  fitness?: Fitness;
+  /** Reports on this match's red cards. Only ever on this phone. */
+  redCardReports?: RedCardReport[];
+  /** When the workout was last saved to Health Connect. */
+  healthSavedAt?: string;
   /** The server has a newer version than `baseRevision`: the umpire picks which to keep. */
   conflict: { revision: number; document: MatchDocument } | null;
   /** Why the last upload was refused (not a network problem). Uploads pause until the next edit or retry. */

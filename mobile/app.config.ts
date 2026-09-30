@@ -12,6 +12,12 @@ const release = JSON.parse(readFileSync(join(__dirname, "..", "version.json"), "
 // CI builds number themselves (FH_BUILD_NUMBER, the workflow's run number), so each APK installs over the last.
 if (process.env.FH_BUILD_NUMBER) release.build = Number(process.env.FH_BUILD_NUMBER);
 
+/**
+ * The Expo (EAS) project, for iPhone builds and push notifications. `npx eas-cli init` (in
+ * mobile/) created it and printed this ID; it isn't a secret. EAS_PROJECT_ID overrides it.
+ */
+const EAS_PROJECT_ID = process.env.EAS_PROJECT_ID ??"891c69b0-c444-4e39-8166-7b2a10b8559b";
+
 // EXPO_PUBLIC_* values are baked into the app at build time.
 // Development default: the Android emulator reaches this PC's API at 10.0.2.2.
 const config: ExpoConfig = {
@@ -25,8 +31,12 @@ const config: ExpoConfig = {
   userInterfaceStyle: "automatic",
   ios: {
     bundleIdentifier: "com.fhmatchcentre.app",
+    // For signing local builds on a Mac, the watch app included; EAS Build finds the team itself.
+    appleTeamId: process.env.APPLE_TEAM_ID,
     buildNumber: String(release.build),
     supportsTablet: false,
+    // Only standard HTTPS, so App Store Connect doesn't ask about encryption for every build.
+    config: { usesNonExemptEncryption: false },
   },
   android: {
     package: "com.fhmatchcentre.app",
@@ -66,13 +76,14 @@ const config: ExpoConfig = {
         },
       },
     ],
+    // The Apple Watch app: every folder in targets/ with an expo-target.config (see targets/watch).
+    "@bacons/apple-targets",
     "./plugins/with-cmake-version",
     "./plugins/with-release-signing",
   ],
   experiments: { typedRoutes: true },
   extra: {
-    // Set once an Expo (EAS) project exists; push notifications need it.
-    eas: process.env.EAS_PROJECT_ID ? { projectId: process.env.EAS_PROJECT_ID } : undefined,
+    eas: EAS_PROJECT_ID ? { projectId: EAS_PROJECT_ID } : undefined,
   },
 };
 

@@ -10,6 +10,8 @@ describe("backups", () => {
     await from.engine.importMatch(a, "watch");
     await from.engine.importMatch(b, "watch");
     await from.engine.setUmpireNames(a.id, ["Sam Smith", " Alex Jones ", ""]);
+    const workout = { version: 1 as const, startedAt: "2026-09-26T14:00:00Z", steps: 8000, heartRateSamples: [] };
+    await from.engine.setFitness(b.id, workout);
     // Through JSON, as it goes via a file.
     const file = JSON.parse(JSON.stringify(makeBackup(await from.engine.list(), new Date("2026-09-25T10:00:00Z"))));
 
@@ -17,6 +19,8 @@ describe("backups", () => {
     expect(await importData(to.engine, file)).toEqual({ added: 2, duplicate: 0, invalid: [] });
     expect((await to.engine.get(a.id))!).toMatchObject({ document: a, umpireNames: ["Sam Smith", "Alex Jones"], source: "file" });
     expect((await to.engine.get(b.id))!.umpireNames).toBeUndefined();
+    expect((await to.engine.get(b.id))!.fitness).toEqual(workout);
+    expect((await to.engine.get(a.id))!.fitness).toBeUndefined();
   });
 
   it("skips matches the phone already has, and reports ones it can't read", async () => {

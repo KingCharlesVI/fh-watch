@@ -1,8 +1,12 @@
 package com.fhmatchcentre.watch
 
 import android.Manifest
+import android.database.ContentObserver
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
+import android.provider.Settings
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -37,8 +41,6 @@ import com.fhmatchcentre.watch.ui.SetupScreen
 import com.fhmatchcentre.watch.ui.ShootoutScreen
 import com.fhmatchcentre.watch.ui.SummaryScreen
 import com.fhmatchcentre.watch.ui.WatchTheme
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -63,15 +65,32 @@ class MainActivity : ComponentActivity() {
         // The match service's notification is what keeps the match on the watch face.
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {}.launch(Manifest.permission.POST_NOTIFICATIONS)
         lifecycleScope.launch { services.controller.restore() }
-        // The screen stays on for the whole match, from setup to the end, so the clock is
-        // always in view. It goes back to normal (dimming, then off) once the match ends.
-        lifecycleScope.launch {
-            services.controller.active.map { it != null }.distinctUntilChanged().collect { inMatch ->
-                if (inMatch) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-            }
-        }
+        // While the app is open the screen doesn't dim or turn off, so the clock is always in
+        // view. The system takes over again as soon as the app leaves the screen.
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContent { WatchTheme { WatchNav(services, ambient.value) } }
+    }
+
+    // Adaptive brightness dims the screen in shade and under clouds. The app holds the
+    // brightness the watch is set to instead, following it if the umpire changes it.
+    private val brightnessSetting = object : ContentObserver(Handler(Looper.getMainLooper())) {
+        override fun onChange(selfChange: Boolean) = holdBrightness()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        holdBrightness()
+        contentResolver.registerContentObserver(Settings.System.getUriFor(Settings.System.SCREEN_BRIGHTNESS), false, brightnessSetting)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        contentResolver.unregisterContentObserver(brightnessSetting)
+    }
+
+    private fun holdBrightness() {
+        val level = runCatching { Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS) }.getOrNull() ?: return
+        window.attributes = window.attributes.apply { screenBrightness = (level / 255f).coerceIn(0.01f, 1f) }
     }
 
     /**
@@ -188,7 +207,13 @@ private fun WatchNav(services: Services, ambient: Boolean) {
             composable("shootout") { ShootoutScreen(controller) }
             composable("matches") { MatchesScreen(services) { id -> nav.navigate("summary/$id") } }
             composable("summary/{id}") { entry ->
-                SummaryScreen(services, entry.arguments?.getString("id") ?: "") { nav.popBackStack("home", inclusive = false) }
+                SummaryScreen(
+                    services,
+                    entry.arguments?.getString("id") ?: "",
+                    onDone = { nav.popBackStack("home", inclusive = false) },
+                    // Back to Past matches, or home for a match that has only just ended.
+                    onDeleted = { nav.popBackStack() },
+                )
             }
             composable("settings") { SettingsScreen(services) }
         }

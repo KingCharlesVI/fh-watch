@@ -10,3 +10,12 @@ coverage/
 next-env.d.ts
 # The landing page's static build (Vercel builds its own).
 landing/out/
+mobile/ios/
+
+# The watch app's Info.plist is written from the Expo config at prebuild; SwiftPM's output.
+mobile/targets/watch/Info.plist
+mobile/targets/.build/
+mobile/targets/.swiftpm/
+
+# The docs site's build output (node docs-site/build.mjs).
+docs-site/dist/

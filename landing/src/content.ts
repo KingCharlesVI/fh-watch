@@ -13,7 +13,13 @@ export const SITE = {
   contactEmail: null as string | null,
   /** The public GitHub repository whose releases hold the APKs (see `pnpm release:github`). */
   githubRepo: "KingCharlesVI/fh-watch",
+  /** The website (results, accounts, clubs), from the beta. Null hides the links to it. */
+  appUrl: "https://app.fhmatchcentre.com" as string | null,
+  /** The user guide and technical documentation (docs-site/). */
+  docsUrl: "https://docs.fhmatchcentre.com",
 };
+
+export const GITHUB_URL = `https://github.com/${SITE.githubRepo}`;
 
 export type Stage = "alpha" | "beta" | "release";
 

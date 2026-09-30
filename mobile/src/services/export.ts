@@ -2,7 +2,9 @@ import { type MatchDocument, matchEventsToCsv, renderMatchReport, summarizeMatch
 import { Directory, File, Paths } from "expo-file-system";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import { FileShare } from "../../modules/file-share";
 import { makeBackup } from "@/core/backup";
+import { reportShareText } from "@/core/share-text";
 import type { LocalMatch } from "@/core/store";
 import { sync } from "./index";
 
@@ -10,7 +12,7 @@ import { sync } from "./index";
  * Getting matches off the phone as files: a match report (PDF, the same one the
  * website prints), its events (CSV), the match data (JSON), or a backup of every
  * match. Each can be saved to a folder the umpire picks, or shared (email, Drive,
- * WhatsApp and so on).
+ * WhatsApp, Quick Share and so on).
  */
 
 export type ExportKind = "pdf" | "csv" | "json";
@@ -85,6 +87,17 @@ async function saveToFolder(file: File, name: string, mimeType: string): Promise
 export async function shareMatch(match: LocalMatch, kind: ExportKind) {
   const { file } = await build(match, kind);
   await share(file, TYPES[kind].mime, "Send the match");
+}
+
+/**
+ * The match report (PDF), straight to the share sheet. On Android it goes with a subject
+ * for email and a message (WhatsApp's caption) giving the result.
+ */
+export async function shareReport(match: LocalMatch) {
+  const { file } = await build(match, "pdf");
+  const { subject, text } = reportShareText(match.document!);
+  if (FileShare) await FileShare.shareFile(file.uri, TYPES.pdf.mime, subject, text, "Share the match report");
+  else await share(file, TYPES.pdf.mime, "Share the match report");
 }
 
 export async function saveMatch(match: LocalMatch, kind: ExportKind): Promise<boolean> {

@@ -12,6 +12,7 @@ Field hockey match system: umpire watch apps, a phone app, an API and a public w
 | `web` | Public website, dashboards and admin (Next.js, shadcn/ui) |
 | `mobile` | Phone app for umpires (Expo / React Native), with the watch-sync native module in `mobile/modules/watch-sync` |
 | `watch-wear` | Wear OS umpire app (Kotlin, Compose for Wear OS). See [watch-wear/README.md](watch-wear/README.md) |
+| `docs-site` | The documentation site, user guide and technical (docsify, for Vercel at docs.fhmatchcentre.com). See [docs-site/README.md](docs-site/README.md) |
 | `landing` | The public landing page (static, for Vercel): teasers, roadmap, download links and the privacy policy. See [landing/README.md](landing/README.md) |
 | `deploy` | Runs the server on a Linux or Windows machine behind a Cloudflare Tunnel: setup scripts, services, and the `fh` command for deploys and backups. See [docs/deployment.md](docs/deployment.md) |
 
@@ -35,6 +36,7 @@ pnpm dev:web              # API and website
 pnpm dev:api              # API only
 pnpm dev:mobile           # API and phone app
 pnpm dev:watch            # Wear OS app on the watch emulator (not part of plain `pnpm dev`)
+pnpm dev:docs             # the documentation site, http://localhost:3003
 pnpm dev --seed           # any of the above, resetting the demo data first
 pnpm dev mobile --build   # rebuild the phone app after native changes (also automatic if it isn't installed)
 ```
@@ -56,7 +58,7 @@ pnpm --filter @fh/api db:generate   # after changing api/src/db/schema.ts
 
 ## Phone app
 
-Needs Android Studio (SDK and an emulator) for Android. An iPhone build needs a Mac with Xcode.
+Needs Android Studio (SDK and an emulator) for Android. iPhone builds are made in the cloud by EAS Build, so they don't need a Mac: see [iPhone builds](#iphone-builds-testflight).
 
 **Building for Android on Windows.** React Native's generated native code has paths over 260 characters, so:
 
@@ -146,12 +148,14 @@ After building, upload the bundles as described in [docs/play-store.md](docs/pla
 
 ### Publishing a GitHub release
 
+For the commands in order (build number, changelog, GitHub release, TestFlight), see [docs/releasing.md](docs/releasing.md).
+
 `pnpm release:github` ([scripts/github-release.mjs](scripts/github-release.mjs)) builds both apps' APKs on this PC and publishes them as a release on GitHub, with patch notes written by [git-cliff](https://git-cliff.org) from the commit messages. The branch you're on decides the kind of release:
 
 | Branch | Release | Tag | Notes cover |
 | --- | --- | --- | --- |
-| `dev` | A **pre-release**, for testing | `v<version>-alpha.<build>`, e.g. `v0.3.0-alpha.7` | Commits since the last tag (the previous pre-release) |
-| `main` | A full release, marked **Latest** | `v<version>`, e.g. `v0.3.0` | Commits since the last full release, so every pre-release of that version together |
+| `dev` | A **pre-release**, for testing | `v<version>-alpha.<build>`, e.g. `v0.4.1-alpha.10` | Commits since the last tag (the previous pre-release) |
+| `main` | A full release, marked **Latest** | `v<version>-alpha`, e.g. `v0.4.0-alpha` (`v<version>` from the public release) | Commits since the last full release, so every pre-release of that version together |
 
 Each release has the phone and watch APKs from the same build attached. On GitHub: **Releases**.
 
@@ -169,7 +173,7 @@ winget install GitHub.cli
 gh auth login
 ```
 
-git-cliff reads the repository's `cliff.toml`. The script writes the notes to `dist/play/release-notes-<tag>.md` and leaves `CHANGELOG.md` as it is; regenerate that with `git-cliff` when you want it updated.
+git-cliff reads the repository's `cliff.toml`. The script writes the notes to `dist/play/release-notes-<tag>.md` and leaves `CHANGELOG.md` as it is; [docs/releasing.md](docs/releasing.md) has the command that adds the new entry to it.
 
 **A pre-release from `dev`:**
 
@@ -190,3 +194,35 @@ The script stops before building if anything is out of order: another branch, un
 #### Getting the APKs to testers
 
 The landing page's APK buttons link to the newest release's APKs, pre-releases included, so a new release reaches testers as soon as it's published, without redeploying the landing page (see [landing/README.md](landing/README.md)). This needs the repository to be public: a private repository's releases need a GitHub login with access to it.
+
+The phone app tells testers about new releases itself. It checks the releases when it opens (and every six hours while in use), and shows a notice on the match list when there's a newer phone app, or a newer watch app than the one on the paired watch (which tells the phone its build number). The phone APK downloads from the notice; the watch app links to the release page, as it goes on from a computer. **Settings → About → Include pre-releases** (on by default) decides whether pre-releases from `dev` count, or only full releases from `main`. Builds are compared by the build number in the APK names, so each release needs a higher build than the last one it should replace.
+
+### iPhone builds (TestFlight)
+
+iOS apps can't be built on Windows, so the iPhone app is built by [EAS Build](https://docs.expo.dev/build/introduction/) (Expo's cloud builders) and handed to testers through **TestFlight**. There's no APK-style install on an iPhone, and GitHub update notices are Android only: TestFlight tells testers about new builds itself.
+
+The iPhone app is the same app as on Android, with the Apple Watch app inside it (Wear OS watches don't pair with iPhones). The watch app installs from the iPhone's Watch app, or by itself on the watch, once the iPhone app is on.
+
+**Once, before the first build:**
+
+1. An [Expo account](https://expo.dev/signup), and an Apple Developer Program membership.
+2. In `mobile/`: `npx eas-cli login`, then `npx eas-cli init`. That created the Expo project; its ID is `EAS_PROJECT_ID` in `mobile/app.config.ts`. (Done already: only needed again for a new Expo account.)
+3. The first build asks for your Apple ID and makes the signing certificate and provisioning profile itself (EAS keeps them). The first upload also creates the app in App Store Connect if it isn't there.
+4. In [App Store Connect](https://appstoreconnect.apple.com), under the app's **TestFlight** tab, add testers (up to 100 internal testers, from your team, with no review; external testers after a short beta review). Testers install the TestFlight app and accept the invite.
+
+**Each build:**
+
+```sh
+pnpm release:ios
+```
+
+This builds the alpha from the committed code (`mobile/eas.json`, profile `alpha`; `beta` is the same with the API), then uploads it to App Store Connect. It reaches TestFlight after Apple's processing, usually 10 to 30 minutes. The build number comes from `version.json`, as on Android, and App Store Connect refuses one it has already seen for the same version, so build after bumping it, as for a GitHub release. EAS's free plan includes a limited number of iOS builds a month, queued behind paid ones.
+
+
+### Apple Watch app
+
+The watch app is SwiftUI, in `mobile/targets/watch/`. The `@bacons/apple-targets` config plugin adds it to the iPhone app at prebuild, so EAS builds include it; nothing else is needed for TestFlight.
+
+- **Engine tests** (no Xcode needed): `cd mobile/targets && swift test`. They're the Wear OS engine's tests, ported, and they write `mobile/test/fixtures/watchos-full-match.json`, which the phone's tests check. Swift runs on Windows too ([install](https://www.swift.org/install/windows/)).
+- **On a Mac**, to run it in the simulator or on a watch: `cd mobile && npx expo prebuild -p ios --clean`, then `xed ios`. Pick the **FHMatchCentreWatch** scheme and a watch simulator, and Run. Edit the watch files in Xcode's `expo:targets/watch` group: they're the files in `mobile/targets/watch/`. For a real watch, set `APPLE_TEAM_ID` (your team ID, from the Apple Developer site) before prebuild.
+- **What's different from Wear OS:** there's no side button to use, so the Timing page has the Start/Stop button, which double-tap presses on a Series 9, Ultra 2 or later with watchOS 11. A workout session keeps the match running with the wrist down; the first match asks for Health access for that.

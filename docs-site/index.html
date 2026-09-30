@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>FH Match Centre docs</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="How to use FH Match Centre, the field hockey umpiring app for Wear OS, Apple Watch and phones, and how it's built." />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="assets/icon.png" />
+    <!-- The GitHub theme (w3teal/docsify-theme-github, kept here as its README advises), in GitHub's dark mode. -->
+    <link rel="stylesheet" href="assets/github.css" />
+    <link rel="stylesheet" href="assets/github-dark.css" />
+    <link rel="stylesheet" href="assets/theme.css" />
+  </head>
+  <body>
+    <div id="app">Loading…</div>
+    <!-- Before the settings, which use it. -->
+    <script src="https://cdn.jsdelivr.net/npm/docsify-edit-on-github@1"></script>
+    <script>
+      // The documentation site (docs.fhmatchcentre.com), rendered in the browser by docsify
+      // from the Markdown files beside this page. See docs-site/README.md.
+      const REPO = "https://github.com/KingCharlesVI/fh-watch";
+      /** Pages build.mjs copies from docs/: edited there, not in docs-site/. */
+      const FROM_DOCS = ["design.md", "deployment.md", "releasing.md", "play-store.md", "privacy-policy.md"];
+
+      window.$docsify = {
+        name: '<img src="assets/icon.png" alt="" class="app-logo"> FH Match Centre',
+        nameLink: "#/",
+        repo: REPO,
+        homepage: "home.md",
+        loadSidebar: true,
+        loadNavbar: true,
+        mergeNavbar: true,
+        alias: { "/.*/_sidebar.md": "/_sidebar.md", "/.*/_navbar.md": "/_navbar.md" },
+        subMaxLevel: 2,
+        maxLevel: 3,
+        auto2top: true,
+        themeColor: "#55c483",
+        externalLinkTarget: "_self",
+        search: { placeholder: "Search the docs", noData: "Nothing found", depth: 3 },
+        copyCode: { buttonText: "Copy", successText: "Copied" },
+        pagination: { previousText: "Previous", nextText: "Next", crossChapter: true, crossChapterText: true },
+        // The footer at the bottom of the sidebar (docsify-sidebarfooter): see <footer id="mb-footer"> in _sidebar.md.
+        autoFooter: {
+          name: "FH Match Centre",
+          url: "https://fhmatchcentre.com",
+          copyYear: "2026",
+          policy: "https://fhmatchcentre.com/privacy",
+          terms: false,
+          cookies: false,
+          customStyle: "sidebar",
+        },
+        plugins: [EditOnGithubPlugin.create(`${REPO}/blob/main/docs-site/`, null, "Edit this page on GitHub")],
+      };
+
+      // The copied pages' edit links go to their files in docs/.
+      const editDoc = EditOnGithubPlugin.editDoc;
+      EditOnGithubPlugin.editDoc = (event, vm) => {
+        const file = vm.route.file ?? "";
+        const name = file.split("/").pop();
+        if (file.startsWith("technical/") && FROM_DOCS.includes(name)) {
+          window.open(`${REPO}/edit/main/docs/${name}`);
+          event.preventDefault();
+          return false;
+        }
+        return editDoc(event, vm);
+      };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify-copy-code@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify-pagination@2/dist/docsify-pagination.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@markbattistella/docsify-sidebarfooter@5"></script>
+    <!-- Diagrams in the technical docs (```mermaid blocks). -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+      mermaid.initialize({ startOnLoad: false, theme: "dark" });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify-mermaid@2/dist/docsify-mermaid.js"></script>
+  </body>
+</html>

@@ -4,6 +4,7 @@ import android.app.Application
 import com.fhmatchcentre.watch.data.Prefs
 import com.fhmatchcentre.watch.data.Setup
 import com.fhmatchcentre.watch.data.WatchDatabase
+import com.fhmatchcentre.watch.fitness.FitnessTracker
 import com.fhmatchcentre.watch.match.MatchController
 import com.fhmatchcentre.watch.sync.WatchSync
 import kotlinx.coroutines.CoroutineScope
@@ -17,8 +18,9 @@ class Services(app: Application) {
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val db = WatchDatabase.open(app)
     val prefs = Prefs(app)
-    val sync = WatchSync(app, db.matches())
-    val controller = MatchController(app, db.matches(), sync, scope)
+    val fitness = FitnessTracker(app, db.fitness(), prefs, scope)
+    val sync = WatchSync(app, db.matches(), fitness)
+    val controller = MatchController(app, db.matches(), sync, fitness, scope)
 
     /**
      * A setup that just arrived from the phone (Setup on phone), until the watch's
@@ -38,6 +40,9 @@ class WatchApp : Application() {
         services.scope.launch {
             // Synced matches are kept for 30 days, then deleted.
             services.db.matches().deleteSyncedBefore(System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000)
+            services.db.fitness().deleteOrphans()
         }
+        // So the phone can say when there's a newer watch app. Without a phone paired, it waits.
+        services.scope.launch { runCatching { services.sync.announceVersion() } }
     }
 }

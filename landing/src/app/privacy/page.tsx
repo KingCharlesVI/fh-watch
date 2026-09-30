@@ -32,6 +32,16 @@ export default function Privacy() {
                 players&apos; shirt numbers). They are stored on your watch and your phone.
               </li>
               <li>
+                <strong>Red card reports you fill in:</strong> your name, qualification and contact details, your colleague&apos;s name, and the
+                offender&apos;s name, age group, club and team, with your account of what happened. They are stored on your phone only, for you to
+                copy into England Hockey&apos;s form or share yourself.
+              </li>
+              <li>
+                <strong>Your workout, if you turn on Record workout on the watch:</strong> your heart rate, steps, distance and calories during each
+                match, read from the watch&apos;s sensors. They are stored on your watch and your phone, apart from the match: they&apos;re never in a
+                match you share.
+              </li>
+              <li>
                 <strong>Nothing else.</strong> There&apos;s no account, no analytics, no advertising and no tracking.
               </li>
             </ul>
@@ -41,6 +51,10 @@ export default function Privacy() {
               <li>
                 <strong>Between your watch and your phone:</strong> finished matches are sent from your watch to your phone using Google&apos;s Wear OS
                 data connection, part of Google Play services on your devices.
+              </li>
+              <li>
+                <strong>To Health Connect, if you choose:</strong> you can save your workouts to Health Connect on your phone, where fitness apps you
+                allow (such as Samsung Health) can read them. The app only writes to Health Connect; it never reads anything from it.
               </li>
               <li>
                 <strong>Nowhere else, unless you choose.</strong> A match or backup leaves your phone only when you save it to a folder or share it
