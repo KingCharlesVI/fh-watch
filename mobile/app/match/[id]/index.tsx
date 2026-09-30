@@ -169,9 +169,7 @@ function ServerBanners({ match: m, state, act, busy }: { match: LocalMatch; stat
           It goes as soon as there&apos;s a connection.
         </Banner>
       )}
-      {server?.status === "draft" && server.autoPublishAt && (
-        <T variant="small">Publishes itself {formatDateTime(server.autoPublishAt)} unless you publish or unpublish it first.</T>
-      )}
+      {server?.status === "draft" && <T variant="small">A draft: only you and your colleague can see it until you publish it.</T>}
     </>
   );
 }
@@ -246,7 +244,7 @@ function PublishButtons({ match: m, act, busy }: { match: LocalMatch; act: Act; 
               variant="outline"
               loading={busy === "Unpublish"}
               onPress={() =>
-                Alert.alert("Unpublish this match?", "The share link will show nothing, and it won't publish itself again.", [
+                Alert.alert("Unpublish this match?", "The share link will show nothing until you publish it again.", [
                   { text: "Cancel", style: "cancel" },
                   { text: "Unpublish", style: "destructive", onPress: () => void act("Unpublish", () => sync.publish(m.id, false)) },
                 ])

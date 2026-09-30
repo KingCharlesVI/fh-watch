@@ -5,6 +5,7 @@ import type { LocalMatch } from "@/core/store";
 import type { SyncState } from "@/core/sync";
 import { ONLINE } from "@/config";
 import { sync } from "@/services";
+import { syncUploadReminders } from "@/services/upload-reminders";
 import { drainWatchInbox, onWatchMatch } from "@/services/watch";
 
 export interface MatchRow {
@@ -105,6 +106,29 @@ export function useSyncTriggers(enabled: boolean) {
       app.remove();
       net.remove();
       clearInterval(timer);
+    };
+  }, [enabled]);
+}
+
+/**
+ * Signed in: keeps a reminder scheduled for each match from the watch that isn't
+ * uploaded two hours after it arrived (see services/upload-reminders.ts), as matches
+ * arrive, get uploaded or are deleted.
+ */
+export function useUploadReminders(enabled: boolean) {
+  useEffect(() => {
+    if (!enabled) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const update = () => {
+      clearTimeout(timer);
+      // Changes come in bursts (a drain, an upload run): update once they settle.
+      timer = setTimeout(() => void syncUploadReminders().catch((err) => console.warn("Couldn't schedule upload reminders", err)), 1000);
+    };
+    update();
+    const off = sync.subscribe(update);
+    return () => {
+      clearTimeout(timer);
+      off();
     };
   }, [enabled]);
 }

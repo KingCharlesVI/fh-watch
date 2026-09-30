@@ -7,7 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { notificationTarget } from "@/services/push";
 import { AuthProvider, useAuth } from "@/state/auth";
 import { ONLINE } from "@/config";
-import { useSyncTriggers, useWatchInbox } from "@/state/sync";
+import { useSyncTriggers, useUploadReminders, useWatchInbox } from "@/state/sync";
 import { useUpdateChecks } from "@/state/updates";
 import { FONT, useColors } from "@/ui/theme";
 
@@ -37,9 +37,10 @@ function Navigator() {
   const open = !ONLINE || signedIn;
   useWatchInbox(open);
   useSyncTriggers(ONLINE && signedIn);
+  useUploadReminders(ONLINE && signedIn);
   useUpdateChecks();
 
-  // A tapped notification opens its match (or its editor, when teams need linking).
+  // A tapped notification opens its match (or its editor, when teams need linking); an upload reminder, the match.
   const lastResponse = Notifications.useLastNotificationResponse();
   useEffect(() => {
     if (!ONLINE || !signedIn || !lastResponse) return;

@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { errorMessage } from "@/core/api";
+import { overdueUploads } from "@/core/upload-reminders";
 import { StatusBadges, formatDate } from "@/features/match-view";
 import { UpdateNotice } from "@/features/update-notice";
 import { ONLINE } from "@/config";
@@ -10,7 +11,7 @@ import { sync } from "@/services";
 import { drainWatchInbox } from "@/services/watch";
 import { type MatchRow, useMatches } from "@/state/sync";
 import { useUpdates } from "@/state/updates";
-import { Banner, Empty, Screen, Tabs, Text } from "@/ui/kit";
+import { Banner, Button, Empty, Screen, Tabs, Text } from "@/ui/kit";
 import { radius, space, useColors } from "@/ui/theme";
 
 type Tab = "new" | "saved" | "drafts" | "published";
@@ -55,6 +56,7 @@ export default function MatchesScreen() {
       {update && dismissed !== update.release.tag && <UpdateNotice update={update} later />}
       <Tabs value={tab} onChange={setTab} options={TABS.map((t) => ({ value: t, label: `${TAB_NAMES[t]} (${counts[t]})` }))} />
       {error && <Banner tone="warn" icon="cloud-offline-outline" title="Couldn't refresh">{error}</Banner>}
+      {ONLINE && <UploadReminder rows={rows} />}
       {loaded && shown.length === 0 && (
         <Empty icon={tab === "new" ? "watch-outline" : "document-text-outline"} title={tab === "new" ? "Nothing new" : "No matches here"}>
           {tab === "new"
@@ -73,6 +75,45 @@ export default function MatchesScreen() {
         </View>
       )}
     </Screen>
+  );
+}
+
+/**
+ * Nothing publishes by itself, so matches from the watch still not uploaded two hours
+ * after they arrived get a reminder here (and a notification, if they're on).
+ */
+function UploadReminder({ rows }: { rows: MatchRow[] }) {
+  const [busy, setBusy] = useState(false);
+  const overdue = overdueUploads(
+    rows.map((r) => r.match),
+    Date.now(),
+  );
+  if (overdue.length === 0) return null;
+  const one = overdue.length === 1 ? overdue[0]!.document!.teams : null;
+  return (
+    <Banner
+      tone="warn"
+      icon="cloud-upload-outline"
+      title={one ? `${one.home.name} v ${one.away.name} isn't uploaded` : `${overdue.length} matches aren't uploaded`}
+      action={
+        <Button
+          small
+          title={one ? "Upload" : "Upload all"}
+          icon="cloud-upload-outline"
+          loading={busy}
+          onPress={async () => {
+            setBusy(true);
+            try {
+              for (const m of overdue) await sync.requestUpload(m.id);
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      }
+    >
+      {one ? "It came from your watch over 2 hours ago." : "They came from your watch over 2 hours ago."} Upload to put {one ? "it" : "them"} on the website as a draft, ready to publish.
+    </Banner>
   );
 }
 

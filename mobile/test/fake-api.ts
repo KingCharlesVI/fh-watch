@@ -180,7 +180,6 @@ export class FakeApi {
       shareCode: m.shareCode,
       shareUrl: m.shareCode ? `https://fhmatchcentre.com/m/${m.shareCode}` : null,
       publishedAt: null,
-      autoPublishAt: null,
       createdAt: m.createdAt,
       updatedAt: m.createdAt,
     };
