@@ -10,10 +10,19 @@ const dateTimeFmt = new Intl.DateTimeFormat("en-GB", {
   minute: "2-digit",
   timeZone: TIME_ZONE,
 });
+const dayFmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: TIME_ZONE });
+const dayKeyFmt = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: TIME_ZONE });
+const timeFmt = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TIME_ZONE });
 const longFmt = new Intl.DateTimeFormat("en-GB", { dateStyle: "full", timeStyle: "short", timeZone: TIME_ZONE });
 
 export const formatDate = (iso: string) => dateFmt.format(new Date(iso));
 export const formatDateTime = (iso: string) => dateTimeFmt.format(new Date(iso));
+/** "Saturday 19 September 2026". */
+export const formatDay = (iso: string) => dayFmt.format(new Date(iso));
+/** The UK date as yyyy-mm-dd, for grouping by day. */
+export const dayKey = (iso: string) => dayKeyFmt.format(new Date(iso));
+/** "14:02". */
+export const formatTime = (iso: string) => timeFmt.format(new Date(iso));
 export const formatLongDateTime = (iso: string) => longFmt.format(new Date(iso));
 
 /** "2–1", or "1–1 (3–2 SO)" when a shootout decided it. */
