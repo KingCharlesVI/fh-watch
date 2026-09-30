@@ -12,6 +12,7 @@ Field hockey match system: umpire watch apps, a phone app, an API and a public w
 | `web` | Public website, dashboards and admin (Next.js, shadcn/ui) |
 | `mobile` | Phone app for umpires (Expo / React Native), with the watch-sync native module in `mobile/modules/watch-sync` |
 | `watch-wear` | Wear OS umpire app (Kotlin, Compose for Wear OS). See [watch-wear/README.md](watch-wear/README.md) |
+| `docs-site` | The documentation site, user guide and technical (docsify, for Vercel at docs.fhmatchcentre.com). See [docs-site/README.md](docs-site/README.md) |
 | `landing` | The public landing page (static, for Vercel): teasers, roadmap, download links and the privacy policy. See [landing/README.md](landing/README.md) |
 | `deploy` | Runs the server on a Linux or Windows machine behind a Cloudflare Tunnel: setup scripts, services, and the `fh` command for deploys and backups. See [docs/deployment.md](docs/deployment.md) |
 
@@ -35,6 +36,7 @@ pnpm dev:web              # API and website
 pnpm dev:api              # API only
 pnpm dev:mobile           # API and phone app
 pnpm dev:watch            # Wear OS app on the watch emulator (not part of plain `pnpm dev`)
+pnpm dev:docs             # the documentation site, http://localhost:3003
 pnpm dev --seed           # any of the above, resetting the demo data first
 pnpm dev mobile --build   # rebuild the phone app after native changes (also automatic if it isn't installed)
 ```

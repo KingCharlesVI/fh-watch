@@ -1,0 +1,50 @@
+/* The brand green over docsify's Vue theme, and a few tidy-ups. */
+:root {
+  --theme-color: #106c3e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --theme-color: #55c483;
+  }
+}
+
+body {
+  font-family: "Geist", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.app-name-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  vertical-align: middle;
+}
+
+.markdown-section table {
+  display: table;
+  width: 100%;
+}
+
+.markdown-section td,
+.markdown-section th {
+  vertical-align: top;
+}
+
+/* Keyboard-like labels for buttons on screen: <kbd>Start</kbd>. */
+.markdown-section kbd {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0 0.35em;
+  font-size: 0.9em;
+}
+
+.markdown-section p.tip,
+.markdown-section p.warn {
+  border-radius: 6px;
+}

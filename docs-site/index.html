@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>FH Match Centre docs</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="How to use FH Match Centre, the field hockey umpiring app for Wear OS, Apple Watch and phones, and how it's built." />
+    <link rel="icon" href="assets/icon.png" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/dark.css" media="(prefers-color-scheme: dark)" />
+    <link rel="stylesheet" href="assets/theme.css" />
+  </head>
+  <body>
+    <div id="app">Loading…</div>
+    <script>
+      // The documentation site (docs.fhmatchcentre.com), rendered in the browser by docsify
+      // from the Markdown files beside this page. See docs-site/README.md.
+      window.$docsify = {
+        name: '<img src="assets/icon.png" alt="" class="app-logo"> FH Match Centre',
+        nameLink: "#/",
+        repo: "https://github.com/KingCharlesVI/fh-watch",
+        homepage: "home.md",
+        loadSidebar: true,
+        loadNavbar: true,
+        mergeNavbar: true,
+        alias: { "/.*/_sidebar.md": "/_sidebar.md", "/.*/_navbar.md": "/_navbar.md" },
+        subMaxLevel: 2,
+        maxLevel: 3,
+        auto2top: true,
+        themeColor: "#106C3E",
+        externalLinkTarget: "_self",
+        search: { placeholder: "Search the docs", noData: "Nothing found", depth: 3 },
+        copyCode: { buttonText: "Copy", successText: "Copied" },
+        pagination: { previousText: "Previous", nextText: "Next", crossChapter: true, crossChapterText: true },
+      };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify-copy-code@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify-pagination@2/dist/docsify-pagination.min.js"></script>
+    <!-- Diagrams in the technical docs (```mermaid blocks). -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+      mermaid.initialize({ startOnLoad: false, theme: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "default" });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify-mermaid@2/dist/docsify-mermaid.js"></script>
+  </body>
+</html>
