@@ -146,6 +146,8 @@ After building, upload the bundles as described in [docs/play-store.md](docs/pla
 
 ### Publishing a GitHub release
 
+For the commands in order (build number, changelog, GitHub release, TestFlight), see [docs/releasing.md](docs/releasing.md).
+
 `pnpm release:github` ([scripts/github-release.mjs](scripts/github-release.mjs)) builds both apps' APKs on this PC and publishes them as a release on GitHub, with patch notes written by [git-cliff](https://git-cliff.org) from the commit messages. The branch you're on decides the kind of release:
 
 | Branch | Release | Tag | Notes cover |
@@ -169,7 +171,7 @@ winget install GitHub.cli
 gh auth login
 ```
 
-git-cliff reads the repository's `cliff.toml`. The script writes the notes to `dist/play/release-notes-<tag>.md` and leaves `CHANGELOG.md` as it is; regenerate that with `git-cliff` when you want it updated.
+git-cliff reads the repository's `cliff.toml`. The script writes the notes to `dist/play/release-notes-<tag>.md` and leaves `CHANGELOG.md` as it is; [docs/releasing.md](docs/releasing.md) has the command that adds the new entry to it.
 
 **A pre-release from `dev`:**
 
