@@ -1,6 +1,10 @@
 {
-  "platforms": ["android"],
+  "platforms": ["android", "apple"],
   "android": {
     "modules": ["expo.modules.watchsync.WatchSyncModule"]
+  },
+  "apple": {
+    "modules": ["WatchSyncModule"],
+    "appDelegateSubscribers": ["WatchSyncAppDelegateSubscriber"]
   }
 }
