@@ -19,6 +19,7 @@
     "release:phone": "node scripts/release-android.mjs phone",
     "release:watch": "node scripts/release-android.mjs watch",
     "release:github": "node scripts/github-release.mjs",
+    "release:play": "node scripts/play-upload.mjs",
     "release:ios": "cd mobile && npx --yes eas-cli build --platform ios --profile alpha --auto-submit"
   },
   "pnpm": {
@@ -26,5 +27,8 @@
       "@types/react": "^19.3.0",
       "@types/react-dom": "^19.3.0"
     }
+  },
+  "devDependencies": {
+    "@googleapis/androidpublisher": "^42.1.0"
   }
 }

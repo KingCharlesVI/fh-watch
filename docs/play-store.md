@@ -69,6 +69,27 @@ Internal testing reaches up to 100 testers you choose, and releases are usually 
 
 For every update: `pnpm release:android --bump`, then upload both bundles to their internal testing tracks. Keep the two in step, so testers never have a phone and watch from different builds.
 
+## 5. Uploading from the command line
+
+`pnpm release:play` ([scripts/play-upload.mjs](../scripts/play-upload.mjs)) uploads both bundles from `dist/play/` and releases them to a testing track: the phone bundle to the phone track, the watch bundle to the Wear OS one (e.g. `wear:internal`). The release notes are the features and fixes from the GitHub release notes, cut to Play's 500 characters.
+
+| Command | Track |
+| --- | --- |
+| `pnpm release:play` | Internal testing (the alpha) |
+| `pnpm release:play --track closed --beta` | Closed testing (the beta; `--beta` picks the beta phone bundle) |
+| `pnpm release:play --track open` | Open testing |
+
+Add `--dry-run` to upload and check everything without releasing anything, or `--draft` to leave the releases as drafts to roll out in Play Console.
+
+**Once, before the first upload:**
+
+1. Upload the very first bundles by hand (step 4). Google Play only accepts uploads through its API for an app that already has one. Until the app has been published on a track, uploads must be drafts: add `--draft`.
+2. In [Google Cloud Console](https://console.cloud.google.com), create a project (any name), and under **APIs & Services → Library** enable the **Google Play Android Developer API**.
+3. Under **IAM & Admin → Service accounts**, create a service account (e.g. `play-upload`). Open it, then **Keys → Add key → JSON**. Save the file as `C:Users<you>.fhplay-service-account.json`, outside the repository (or anywhere, with `FH_PLAY_KEY` set to its path). Keep it private: it can release the app.
+4. In [Play Console](https://play.google.com/console), **Users and permissions → Invite new users**: the service account's email address, with **FH Match Centre** added under **App permissions** and **Release to testing tracks** ticked (and **Release to production** later, if you want that from the command line too).
+
+It can take up to a day before a new service account's access works; until then Play answers that it doesn't have permission.
+
 ## Later: production
 
 Google requires new personal developer accounts to run a **closed test with at least 12 testers for 14 days** before the app can go to production. The beta is a good time for that: move from internal testing to a closed testing track with the beta build.

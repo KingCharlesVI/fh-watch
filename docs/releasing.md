@@ -10,6 +10,7 @@ Every app uses the version and build in `version.json`: the Android phone and We
 winget install GitHub.cli      # then open a new terminal
 gh auth login                  # GitHub, for the release
 cd mobile; npx eas-cli login   # Expo, for the iPhone build
+# Google Play: a service account key, see play-store.md step 5
 ```
 
 git-cliff (for the changelog) is needed too: `cargo install git-cliff`, or `winget install orhun.git-cliff`.
@@ -56,7 +57,15 @@ pnpm release:github
 
 This makes the pre-release `v0.4.0-alpha.9`, with the phone and watch APKs and the same notes. Add `--dry-run` to build and see the notes without publishing.
 
-**5. iPhone and Apple Watch: build and send to TestFlight:**
+**5. Google Play: upload the same build to internal testing** (needs the one-time setup in [play-store.md](play-store.md#5-uploading-from-the-command-line)):
+
+```powershell
+pnpm release:play
+```
+
+It uploads the bundles step 4 built alongside the APKs (in `dist/play/`), so there's nothing to build. Add `--dry-run` to check without releasing.
+
+**6. iPhone and Apple Watch: build and send to TestFlight:**
 
 ```powershell
 pnpm release:ios
