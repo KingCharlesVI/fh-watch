@@ -31,6 +31,8 @@ const config: ExpoConfig = {
   userInterfaceStyle: "automatic",
   ios: {
     bundleIdentifier: "com.fhmatchcentre.app",
+    // For signing local builds on a Mac, the watch app included; EAS Build finds the team itself.
+    appleTeamId: process.env.APPLE_TEAM_ID,
     buildNumber: String(release.build),
     supportsTablet: false,
     // Only standard HTTPS, so App Store Connect doesn't ask about encryption for every build.
@@ -74,6 +76,8 @@ const config: ExpoConfig = {
         },
       },
     ],
+    // The Apple Watch app: every folder in targets/ with an expo-target.config (see targets/watch).
+    "@bacons/apple-targets",
     "./plugins/with-cmake-version",
     "./plugins/with-release-signing",
   ],
