@@ -74,7 +74,11 @@ function MatchRow({ match: m, manage }: { match: Match; manage: boolean }) {
   return (
     <Link
       href={matchHref(m, manage)}
-      className="grid gap-x-4 gap-y-1.5 px-4 py-3 no-underline transition-colors hover:bg-muted/60 hover:no-underline md:grid-cols-[3.5rem_1fr_minmax(9rem,auto)] md:items-center"
+      // A fixed width on the right, so the scores line up from row to row; wider for the status badges.
+      className={cn(
+        "grid gap-x-4 gap-y-1.5 px-4 py-3 no-underline transition-colors hover:bg-muted/60 hover:no-underline md:items-center",
+        manage ? "md:grid-cols-[3.5rem_1fr_17rem]" : "md:grid-cols-[3.5rem_1fr_11rem]",
+      )}
     >
       <span className="hidden text-sm text-muted-foreground tabular-nums md:block">{formatTime(m.playedAt)}</span>
       <span className="grid grid-cols-[1fr_4.5rem_1fr] items-center gap-3">
@@ -92,7 +96,7 @@ function MatchRow({ match: m, manage }: { match: Match; manage: boolean }) {
         <span className={side("away")}>{m.away.name}</span>
       </span>
       <span className="flex flex-wrap items-center justify-center gap-1.5 text-xs text-muted-foreground md:justify-end">
-        {m.competition && <span className="truncate">{m.competition}</span>}
+        {m.competition && <span className="max-w-full truncate" title={m.competition}>{m.competition}</span>}
         {manage && <StatusBadges match={m} />}
       </span>
     </Link>
