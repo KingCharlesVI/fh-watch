@@ -80,7 +80,7 @@ Run it in your own terminal: it can ask you to log in to Apple. It builds in Exp
 | `dev` | `v0.4.1-alpha.10`: version, stage, build | Test builds (pre-releases) |
 | `main` | `v0.4.0-alpha` before 1.0.0; `v1.0.0` from then on | A version that's been tested: marked Latest on GitHub |
 
-`dev` is working towards **1.0.0**, the public release: the beta (accounts, uploads and the website) and the Apple apps included, so test builds until then are `v1.0.0-alpha.<build>`, then `v1.0.0-beta.<build>` once the phone app is built with `--beta`. From 1.0.0, a fix gets the next patch version (1.0.0 → 1.0.1) and new features the next minor one (1.0 → 1.1). Every build, on either branch, gets a new build number.
+`dev` is working towards **1.0.0**, the public release, with no public beta in between: accounts, uploads, the website and the Apple apps included. Test builds until then are `v1.0.0-alpha.<build>`, then `v1.0.0-beta.<build>` once the phone app is built with `--beta` (the build switch for accounts and uploads). From 1.0.0, a fix gets the next patch version (1.0.0 → 1.0.1) and new features the next minor one (1.0 → 1.1). Every build, on either branch, gets a new build number.
 
 ## A full release (from `main`)
 

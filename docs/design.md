@@ -113,7 +113,7 @@ Every event carries `seq` and, when recorded on the watch, `wallTime` (UTC). Eve
 - `seq` is the log order: unique and ascending in the array, gaps allowed. Events added on the phone take the next `seq`, and the timeline sorts by `period` and `clockMs`, so they slot into place.
 - Only `goal` events count towards the score. A scored `penalty_stroke` needs a matching goal with method `ps`; validation warns if they don't match.
 - Unknown fields are rejected, so a newer watch must bump `schemaVersion`.
-- `endedAt` is the final whistle and starts the auto-publish window. If it's missing, the last `period_end` wall time is used.
+- `endedAt` is the final whistle. If it's missing, the last `period_end` wall time is used.
 - Validation (`parseMatch`) returns errors, which block an upload, and warnings, which the umpire reviews (for example a card length that differs from the match settings).
 
 **Database tables (PostgreSQL)**
@@ -124,7 +124,7 @@ Every event carries `seq` and, when recorded on the watch, `wallTime` (UTC). Eve
 | `clubs` | id, name, slug |
 | `club_requests` | id, user_id, club_id? (existing club) or club_name (new club), status (pending/approved/rejected), reviewed_by, reviewed_at |
 | `teams` | id, club_id, name (e.g. "Men's 1s"), slug |
-| `matches` | id (watch UUID), home_team_id?, away_team_id?, home_name, away_name, venue?, competition?, played_at, status (`draft` / `published`), current_revision, share_code, auto_publish_at |
+| `matches` | id (watch UUID), home_team_id?, away_team_id?, home_name, away_name, venue?, competition?, played_at, status (`draft` / `published`), current_revision, share_code |
 | `match_umpires` | match_id, slot (1 or 2), user_id?, name. user_id is empty when that umpire isn't registered. |
 | `match_revisions` | match_id, revision, document (jsonb), created_by, created_at, source (`watch` / `mobile` / `web`) |
 | `push_tokens` | id, user_id, token, platform (`ios` / `android`), created_at, last_used_at |
@@ -228,9 +228,9 @@ The phone app is an inbox for matches from the watch. The umpire reviews a match
 **Stages.** The phone app is built for one of two stages (`EXPO_PUBLIC_STAGE`, baked in at build time):
 
 - **Alpha:** the watch and the phone only. No account, no sign-in and no network use. Matches are saved on the phone, edited there (including umpire names, kept on the phone), and exported when the umpire chooses: a one-page PDF report (the same report the website prints, rendered on the phone with `expo-print`), the events as CSV, or the match as JSON. Each can be saved to a folder the umpire picks or shared. A backup puts every match in one JSON file, and "Import from a file" reads it back (skipping matches already on the phone). Matches can be deleted from the phone.
-- **Beta:** adds the API and website: sign-in, upload, publishing, share links, team linking and umpire 2 from the directory. Exports, backups and deleting stay available.
+- **1.0** (built with `EXPO_PUBLIC_STAGE=beta`, the name the build switch still has): adds the API and website: sign-in, upload, publishing, share links, team linking and umpire 2 from the directory. Exports, backups and deleting stay available. There's no public beta: the alpha goes straight to 1.0.
 
-Upgrading a phone from the alpha to the beta keeps its matches: signing in clears the phone only when a different user signs in.
+Upgrading a phone from the alpha to 1.0 keeps its matches: signing in clears the phone only when a different user signs in.
 
 **Screens**
 
@@ -256,14 +256,13 @@ Upgrading a phone from the alpha to the beta keeps its matches: signing in clear
 - Matches tabs: **New** means not yet opened on this phone, **Drafts** and **Published** follow the server status. Matches uploaded from elsewhere are listed from the server and downloaded when opened. In the alpha, opened matches are simply **Saved**.
 - The sync engine and API client are plain TypeScript, tested against a fake API that can go offline, fail, or lose replies.
 - An unpublished match can still be viewed on the phone, but it gets no public link.
-- A new match stays a draft until an umpire publishes it or 2 hours pass after the final whistle, whichever comes first. The API runs the timer, so a match uploaded after the 2 hours publishes as soon as it arrives. Unpublishing a match cancels its timer.
+- A new match stays a draft until an umpire publishes it: nothing publishes by itself. Instead, the phone reminds the umpire about a match from the watch that isn't uploaded 2 hours after it reached the phone: a banner on the match list (Upload / Upload all), and a local notification at that time, cancelled once it's uploaded (`mobile/src/core/upload-reminders.ts`). The dashboard on the website shows the oldest draft, to nudge publishing it.
 
 **Push notifications**
 
 - After sign-in the app registers its Expo push token with `POST /me/push-tokens`. Sign-out removes it.
-- When the API auto-publishes a match, it sends a push to every registered umpire on that match: "Your match *Home v Away* was published automatically. Link the teams so it shows on club pages." The notification is only sent if at least one team is unlinked; otherwise it says the match was published.
-- Tapping the notification opens that match's Edit screen.
-- Sent through the Expo Push Service, which delivers via APNs and FCM. Tokens that come back as invalid are deleted.
+- Nothing sends a push yet: the upload reminders are local notifications, scheduled on the phone. The token registration and the API's Expo Push Service sender are kept for messages from the server later.
+- Tapping a notification opens its match.
 
 **Share link and QR code**
 
@@ -313,9 +312,8 @@ The API is a versioned REST service (`/v1`) written in Fastify, and all input is
 
 **Background jobs**
 
-- Auto-publish: a job runs every minute, publishes drafts whose `auto_publish_at` has passed, and sends the push notification described under Mobile app.
 - Purge: a daily job permanently removes matches soft-deleted more than 30 days ago.
-- Both run inside the API process on a timer. Auto-publish selects drafts with `FOR UPDATE SKIP LOCKED`, so two runs at once never publish or notify for the same match twice. Purge is safe to repeat.
+- It runs inside the API process on a timer, and is safe to repeat.
 - Purge also removes expired refresh tokens and spent or expired email tokens. Revoked refresh tokens are kept until they expire, so reuse of a stolen one is still detected.
 
 **Conventions**
@@ -428,14 +426,14 @@ The work runs from the server outwards, so every step can be tested end to end b
 | # | Milestone | Done when |
 | --- | --- | --- |
 | 1 | Monorepo, schema, shared package | The JSON Schema and TS types are generated, and score calculation and the CSV builder have unit tests with sample matches |
-| 2 | API core | Auth, users, roles, clubs and teams, match upload and edit with revisions, auto-publish job. Integration tests against a real Postgres. |
+| 2 | API core | Auth, users, roles, clubs and teams, match upload and edit with revisions. Integration tests against a real Postgres. |
 | 3 | Website (public + admin) | Match pages, JSON/CSV/PDF downloads, dashboards, admin screens |
-| 4 | Server deployment | Running on a Linux or Windows machine behind a Cloudflare Tunnel, with backups and a deploy command |
+| 4 | Server deployment | Running on a Linux or Windows machine behind a Cloudflare Tunnel, with backups and a deploy command. In production: an old laptop running Ubuntu Desktop 24.04 LTS, deployed near the end, before 1.0. |
 | 5 | Mobile app without watch | Sign in, import a match from a file, edit, publish, share by QR code or link, offline upload queue, push notifications. Expo SDK 57 with Expo Router; editing uses the same shared functions as the website. |
 | 6 | Wear OS app + Android sync | Full umpiring features. A match reaches the phone automatically. Tested at a real match. Built: the app, sync and phone receiver, tested on emulators (see below); the match screen is now swiped pages (timing, goals, cards, settings), after MatchGear. Still to do: a paired end-to-end test and a real match. |
 | 7 | Alpha (Android) | Watch and phone only: no account, matches saved and exported on the phone (PDF, CSV, JSON, backups), uploads only when the umpire asks. Released to umpires through Google Play internal testing ([play-store.md](play-store.md)). |
 | 8 | watchOS app + iOS sync | Same features as Wear OS, including workout session, Action Button and double-tap |
-| 9 | Beta | The API and website in the apps: sign-in, upload, publishing. Closed testing on Google Play (Google requires 12 testers for 14 days before production) and TestFlight. |
+| 9 | 1.0 | No public beta: straight from the alpha. The API and website in the apps (sign-in and upload), the server deployed, email through Amazon SES. Closed testing on Google Play first (Google requires 12 testers for 14 days before production), then Google Play and the App Store. |
 
 The watchOS work (8) doesn't depend on the Android alpha and can run alongside it. Releasing the iOS and watchOS apps needs an Apple Developer account ($99/yr) and a Mac. The Google Play Console account is in place.
 
@@ -443,16 +441,17 @@ The watchOS work (8) doesn't depend on the Android alpha and can run alongside i
 
 **Open questions**
 
-- [ ] Which SMTP provider? (Until one is set, emails are written to the API log.)
-- [ ] Auto-publish now that uploads are manual: the 2-hour window starts at the final whistle, so a match first uploaded more than 2 hours later publishes as soon as it arrives. Start the window at the first upload instead? (Decide before the beta.)
-- [ ] Which machine to run on? A spare Windows or Linux PC behind a Cloudflare Tunnel for now; a VPS later if needed.
+None at the moment.
 
 **Decided**
 
 - Umpires can edit every match where they're a registered umpire 1 or 2.
 - A match has one or two umpires; both registered umpires can edit it.
 - Only one watch uploads each match (umpire 1's).
-- A new match stays a draft until published, or auto-publishes 2 hours after the final whistle, with a push notification to the umpires.
+- No public beta: the alpha goes straight to 1.0.
+- No auto-publish: a match stays a draft until an umpire publishes it. The phone reminds the umpire to upload a match from the watch that isn't uploaded 2 hours after it arrived.
+- Email goes through Amazon SES (SMTP), in eu-west-2.
+- The server is an old laptop running Ubuntu Desktop 24.04 LTS, behind a Cloudflare Tunnel; a VPS later if needed.
 - Only admins create clubs; club admins add and edit their own club's teams; users can request clubs and club-admin status.
 - Anyone can register as an umpire, with no approval.
 - Accounts hold a set of roles.

@@ -34,7 +34,7 @@ The build reads `../docs` and `../landing` (for the icon), which Vercel has beca
 | | |
 | --- | --- |
 | `fhmatchcentre.com` | The landing page (`landing/`) |
-| `app.fhmatchcentre.com` | The website (`web/`), from the beta |
+| `app.fhmatchcentre.com` | The website (`web/`), from 1.0 |
 | `docs.fhmatchcentre.com` | This |
 
 Each links to the others: here in `_navbar.md` and `home.md`, on the landing page through `SITE` in `landing/src/content.ts`, and on the website through `web/src/lib/site.ts`.

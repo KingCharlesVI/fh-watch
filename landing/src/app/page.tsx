@@ -84,7 +84,7 @@ export default function Home() {
             {[
               { icon: Watch, title: "Umpire on the watch", text: "Start the match, record goals, cards and corners in a couple of taps. The clock never stops being accurate." },
               { icon: Smartphone, title: "Check it on your phone", text: "The finished match arrives on your phone. Fix any mistakes, add the umpires, and export the report." },
-              { icon: Globe, title: "Publish it", text: "Coming in the beta: publish the result for players and clubs, and share it by link or QR code." },
+              { icon: Globe, title: "Publish it", text: "Coming in 1.0: publish the result for players and clubs, and share it by link or QR code." },
             ].map(({ icon: Icon, title, text }, i) => (
               <li key={title} className="relative rounded-xl border bg-card p-5">
                 <span className="absolute top-5 right-5 text-sm text-muted-foreground tabular-nums">0{i + 1}</span>
@@ -131,7 +131,7 @@ export default function Home() {
             })}
           </div>
           <p className="mt-6 text-sm text-muted-foreground">
-            Needs a Wear OS 3 watch or later (Samsung Galaxy Watch 4 and newer, Google Pixel Watch) with an Android phone. Apple Watch arrives in the beta.
+            Needs a Wear OS 3 watch or later (Samsung Galaxy Watch 4 and newer, Google Pixel Watch) with an Android phone. Apple Watch and iPhone are in testing through TestFlight, and arrive for everyone in 1.0.
           </p>
         </Section>
       </main>

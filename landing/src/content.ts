@@ -13,7 +13,7 @@ export const SITE = {
   contactEmail: null as string | null,
   /** The public GitHub repository whose releases hold the APKs (see `pnpm release:github`). */
   githubRepo: "KingCharlesVI/fh-watch",
-  /** The website (results, accounts, clubs), from the beta. Null hides the links to it. */
+  /** The website (results, accounts, clubs), from 1.0. Null hides the links to it. */
   appUrl: "https://app.fhmatchcentre.com" as string | null,
   /** The user guide and technical documentation (docs-site/). */
   docsUrl: "https://docs.fhmatchcentre.com",
@@ -21,7 +21,8 @@ export const SITE = {
 
 export const GITHUB_URL = `https://github.com/${SITE.githubRepo}`;
 
-export type Stage = "alpha" | "beta" | "release";
+/** No public beta: the alpha goes straight to the 1.0 release. */
+export type Stage = "alpha" | "release";
 
 /** Where the project is now. */
 export const CURRENT_STAGE: Stage = "alpha";
@@ -60,20 +61,10 @@ export const DOWNLOADS: Download[] = [
     ],
   },
   {
-    stage: "beta",
-    title: "Beta",
-    summary: "Adds your account, uploads and the website: publish results, share a link or QR code, and let clubs see their matches. Adds Apple Watch and iPhone.",
-    audience: "A wider group of umpires and clubs.",
-    links: [
-      { label: "Android and Wear OS", store: "google-play", href: null },
-      { label: "iPhone and Apple Watch", store: "testflight", href: null },
-    ],
-  },
-  {
     stage: "release",
-    title: "Public release",
-    summary: "Everything from the beta, for everyone.",
-    audience: "Anyone.",
+    title: "1.0",
+    summary: "Adds Apple Watch and iPhone, your account, uploads and the website: publish results, share a link or QR code, and let clubs see their matches.",
+    audience: "Every umpire and club.",
     links: [
       { label: "Google Play", store: "google-play", href: null },
       { label: "App Store", store: "app-store", href: null },
@@ -95,7 +86,7 @@ export const ROADMAP: RoadmapStep[] = [
       "One match format shared by the watch, phone, server and website",
       "Wear OS umpiring app, working fully offline",
       "Phone app to review, correct and export matches",
-      "Server and website, ready for the beta",
+      "Server and website, ready for 1.0",
     ],
   },
   {
@@ -105,21 +96,16 @@ export const ROADMAP: RoadmapStep[] = [
       "Real matches with invited umpires on Android and Wear OS",
       "Watch screens refined to feel like the tools umpires already know",
       "Match reports as PDF, spreadsheets and backups, straight from the phone",
+      "Apple Watch and iPhone apps, through TestFlight",
     ],
   },
   {
-    title: "Beta",
+    title: "1.0",
     status: "next",
     items: [
       "Accounts, uploads and published results on the website",
-      "Share a match by link or QR code; club dashboards",
-      "Apple Watch and iPhone apps",
-      "Wider testing on Google Play and TestFlight",
+      "Share a match by link or QR code; club and team pages",
+      "On Google Play and the App Store for every umpire and club",
     ],
-  },
-  {
-    title: "Public release",
-    status: "later",
-    items: ["On Google Play and the App Store for every umpire and club"],
   },
 ];

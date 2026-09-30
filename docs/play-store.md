@@ -7,9 +7,9 @@ FH Match Centre is one Play listing (package `com.fhmatchcentre.app`) with two a
 | Stage | Phone app | Needs |
 | --- | --- | --- |
 | **Alpha** (now) | Watch and phone only. No account and nothing sent anywhere: matches are saved on the phone and exported as PDF, CSV or JSON files, or backed up in one file. | Just this guide. |
-| **Beta** | Adds sign-in, uploading (only when the umpire taps Upload), publishing and share links. | The server running (see [deployment.md](deployment.md)), and updated Data safety answers. |
+| **1.0** (no public beta) | Adds sign-in, uploading (only when the umpire taps Upload), publishing and share links. | The server running (see [deployment.md](deployment.md)), and updated Data safety answers. |
 
-The stage is baked into the phone app when it's built (`EXPO_PUBLIC_STAGE`, see `mobile/src/config.ts`). `pnpm release:android` builds the alpha; `pnpm release:android --beta` builds the beta. The watch app is the same for both.
+The stage is baked into the phone app when it's built (`EXPO_PUBLIC_STAGE`, see `mobile/src/config.ts`). `pnpm release:android` builds the alpha; `pnpm release:android --beta` builds 1.0's phone app (the build switch is still called `beta`). The watch app is the same for both.
 
 ## 1. Make the upload key (once)
 
@@ -52,7 +52,7 @@ This builds both bundles into `dist/play/`. To build one app on its own, use `pn
    - **Ads:** no ads.
    - **Content rating:** fill in the questionnaire (a utility/sports app with no user-generated content shared with others).
    - **Target audience:** 18 and over. The app is for match officials; choosing younger ages brings Families policy requirements.
-   - **Data safety:** for the alpha, *no data collected* and *no data shared*. Matches stay on the device; the watch-to-phone transfer is between the user's own devices, and exports happen only when the user chooses. **Update this before the beta**, which collects account details (name, email) and uploads matches.
+   - **Data safety:** for the alpha, *no data collected* and *no data shared*. Matches stay on the device; the watch-to-phone transfer is between the user's own devices, and exports happen only when the user chooses. **Update this before 1.0**, which collects account details (name, email) and uploads matches.
    - **Health apps:** the watch reads heart rate and steps (Health Services) while **Record workout** is on, and the phone writes workouts to Health Connect (exercise, steps, distance, total calories, heart rate; write-only). Complete the Health apps declaration and the Health Connect permissions declaration, giving *fitness tracking of the umpire's own workouts during matches* as the use. Data safety: health and fitness data is processed on the user's devices only and not collected, since nothing leaves them except to Health Connect on the same phone.
    - **Foreground service permissions:** the watch app uses a special-use foreground service to keep the match clock, suspension timers and alerts running with the screen off. Describe that, and give a link to a short screen recording of a match running on the watch. With Record workout on, the same service is also a health foreground service: it keeps the workout recording for the length of the match.
 3. **Add Wear OS:** Test and release → Advanced settings → Form factors → Add form factor → Wear OS. This creates separate Wear OS release tracks. The Wear OS app is reviewed against the [Wear OS app quality guidelines](https://developer.android.com/docs/quality-guidelines/wear-app-quality).
@@ -76,7 +76,7 @@ For every update: `pnpm release:android --bump`, then upload both bundles to the
 | Command | Track |
 | --- | --- |
 | `pnpm release:play` | Internal testing (the alpha) |
-| `pnpm release:play --track closed --beta` | Closed testing (the beta; `--beta` picks the beta phone bundle) |
+| `pnpm release:play --track closed --beta` | Closed testing, before 1.0 (`--beta` picks the phone bundle built with accounts and uploads) |
 | `pnpm release:play --track open` | Open testing |
 
 Add `--dry-run` to upload and check everything without releasing anything, or `--draft` to leave the releases as drafts to roll out in Play Console.
@@ -92,4 +92,4 @@ It can take up to a day before a new service account's access works; until then 
 
 ## Later: production
 
-Google requires new personal developer accounts to run a **closed test with at least 12 testers for 14 days** before the app can go to production. The beta is a good time for that: move from internal testing to a closed testing track with the beta build.
+Google requires new personal developer accounts to run a **closed test with at least 12 testers for 14 days** before the app can go to production. Do it with the 1.0 build before release: move from internal testing to a closed testing track (`pnpm release:play --track closed --beta`).

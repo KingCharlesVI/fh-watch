@@ -4,7 +4,7 @@ Every match you've umpired, on your phone. In the alpha, everything stays on the
 
 ## Your matches
 
-Matches from the watch arrive by themselves, even when the app is closed, and appear under **New** until you've opened them. The rest are under **Saved**. (From the beta, with an account: **New**, **Drafts** and **Published**.)
+Matches from the watch arrive by themselves, even when the app is closed, and appear under **New** until you've opened them. The rest are under **Saved**. (From 1.0, with an account: **New**, **Drafts** and **Published**.)
 
 Pull down on the list to check for anything waiting.
 

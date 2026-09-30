@@ -1,6 +1,6 @@
 # FH Match Centre privacy policy (alpha)
 
-*Draft for the alpha test. Replace the contact address, publish it on a public page, and revise it before the beta, which adds accounts and uploads.*
+*Draft for the alpha test. Replace the contact address, publish it on a public page, and revise it before 1.0, which adds accounts and uploads.*
 
 Last updated: 25 September 2026
 
