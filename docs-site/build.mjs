@@ -22,7 +22,7 @@ const IMPORTED = ["design.md", "deployment.md", "releasing.md", "play-store.md",
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 for (const entry of readdirSync(SITE)) {
-  if (["dist", "build.mjs", "vercel.json", "node_modules"].includes(entry)) continue;
+  if (["dist", "build.mjs", "vercel.json", "package.json", "node_modules"].includes(entry)) continue;
   cpSync(join(SITE, entry), join(OUT, entry), { recursive: true });
 }
 cpSync(join(ROOT, "landing", "src", "app", "icon.png"), join(OUT, "assets", "icon.png"));
