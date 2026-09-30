@@ -22,9 +22,9 @@ node docs-site/build.mjs --serve   # build, then http://localhost:3003
 
 ## Deploying on Vercel (once)
 
-1. In Vercel, **Add New → Project**, and import the GitHub repository again (a second project, beside the landing page's).
+1. In Vercel, **Add New → Project**, and import the same `fh-watch` repository again. Vercel allows several projects from one repository, each with its own root directory: this is a second one, beside the landing page's.
 2. Set **Root Directory** to `docs-site`. Leave everything else: `docs-site/vercel.json` sets the build (`node build.mjs`, nothing to install) and the output (`dist`).
-3. Deploy. Every push to `main` redeploys it.
+3. Deploy. Every push to `main` redeploys it, unless nothing it uses changed: `ignoreCommand` in `vercel.json` skips the build when `docs-site/`, `docs/` and the icon are the same as in the commit before.
 4. **Domain:** Settings → Domains → add `docs.fhmatchcentre.com`. In Cloudflare, add the CNAME record Vercel shows, set to **DNS only** (grey cloud).
 
 The build reads `../docs` and `../landing` (for the icon), which Vercel has because it clones the whole repository.
