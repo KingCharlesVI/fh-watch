@@ -1,6 +1,6 @@
 import { Check, FileText, Flag, Globe, Hand, Smartphone, Timer, Vibrate, Watch, WifiOff } from "lucide-react";
-import { ApkInstructions, Button, Container, Logo, PhoneFrame, RequestAccess, Section, StoreButton, WatchFrame } from "@/components/parts";
-import { CURRENT_STAGE, DOWNLOADS, ROADMAP, SITE, type RoadmapStep } from "@/content";
+import { ApkInstructions, Button, Container, GitHubIcon, Logo, PhoneFrame, RequestAccess, Section, StoreButton, WatchFrame } from "@/components/parts";
+import { CURRENT_STAGE, DOWNLOADS, GITHUB_URL, ROADMAP, SITE, type RoadmapStep } from "@/content";
 
 const FEATURES = [
   { icon: Timer, title: "A match clock you can trust", text: "Quarters or halves, any length, with breaks. Counts up or down, and keeps perfect time through stoppages, a flat screen or a restart." },
@@ -26,6 +26,12 @@ export default function Home() {
             </a>
             <a href="#roadmap" className="hidden hover:text-foreground sm:inline">
               Roadmap
+            </a>
+            <a href={SITE.docsUrl} className="hover:text-foreground">
+              Docs
+            </a>
+            <a href={GITHUB_URL} className="hover:text-foreground" aria-label="GitHub repository" title="GitHub">
+              <GitHubIcon />
             </a>
             <a href="#download" className="font-medium text-foreground hover:text-primary">
               Download
@@ -135,7 +141,18 @@ export default function Home() {
           <span className="flex items-center gap-2">
             <Logo size={20} /> {SITE.name}
           </span>
-          <nav className="flex gap-5">
+          <nav className="flex flex-wrap gap-5">
+            {SITE.appUrl && (
+              <a href={SITE.appUrl} className="hover:text-foreground">
+                Website
+              </a>
+            )}
+            <a href={SITE.docsUrl} className="hover:text-foreground">
+              Docs
+            </a>
+            <a href={GITHUB_URL} className="flex items-center gap-1.5 hover:text-foreground">
+              <GitHubIcon size={15} /> GitHub
+            </a>
             <a href="/privacy" className="hover:text-foreground">
               Privacy
             </a>
