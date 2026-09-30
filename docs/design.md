@@ -50,12 +50,12 @@ Pairing is platform-bound: an Apple Watch pairs only with an iPhone, and a Wear 
 | `packages/shared/` | Zod match schema (the authoring source) and its inferred types, validation, score calculation, CSV builder | TypeScript, Zod |
 | `watch-wear/` | Wear OS umpire app | Kotlin, Jetpack Compose for Wear OS |
 | `mobile/` | Phone app, with native modules for watch sync | React Native (Expo dev build) |
-| `mobile/ios/…Watch App/` | watchOS umpire app, built inside the iOS Xcode project | Swift, SwiftUI |
+| `mobile/targets/watch/` | watchOS umpire app, built inside the iOS app by `@bacons/apple-targets` at prebuild. Its engine (`Engine/`) is also a Swift package with tests (`mobile/targets/Package.swift`). | Swift, SwiftUI |
 | `api/` | REST API and database migrations | Node.js, Fastify, Drizzle ORM, PostgreSQL |
 | `web/` | Public site and admin area | Next.js (App Router), shadcn/ui, Tailwind CSS |
 | `deploy/` | The `fh` operations command, provision scripts, systemd units and Windows service definitions | Node, shell, PowerShell |
 
-The watchOS app has to ship inside the iOS app bundle, so it lives in the Expo project's `ios/` folder. It's added as an Xcode target, using an Expo config plugin so it survives rebuilds.
+The watchOS app has to ship inside the iOS app bundle, so it's an Xcode target of the iOS project. `ios/` is generated (and not in git), so the target's files live in `mobile/targets/watch/` and the `@bacons/apple-targets` config plugin adds the target at every prebuild, locally and on EAS Build. Its `Info.plist` is written from the Expo config then, so the watch app's version always matches the iPhone app's.
 
 ## Match data model
 
@@ -166,11 +166,11 @@ The watch app does everything MatchGear does and works fully offline. The only e
 | Platform | What third-party apps can use | Plan |
 | --- | --- | --- |
 | Wear OS | The main (Home) button is reserved by the system. Galaxy Watch 4 to 7 have a second, lower button that sends Back, which apps receive as a key press. Some other watches have extra "stem" buttons (`KEYCODE_STEM_1` to `3`). Rotary crown or bezel input is available. | While a match is under way (before kickoff, in a period or a break), Back and the stem buttons start and stop the clock on every screen. The Timing page has no on-screen Start/Stop button unless the umpire turns it on in Settings ("Start/stop on screen", off by default), for watches whose buttons the app can't use, such as a Pixel Watch. Predictive back is turned off for the activity so the Back key reaches the app. On Wear OS 6 swiping right also arrives as a Back key. On a Galaxy Watch7 both it and the button come from the system (device -1, no scan code); the swipe's key has FLAG_VIRTUAL_HARD_KEY and follows a touch within milliseconds, so those two go back and anything else works the clock. Checked on a Galaxy Watch7 (Wear OS 6). While the app is open the screen stays on and doesn't dim, at the brightness the watch is set to (adaptive brightness is held off), so ambient mode doesn't come into it. |
-| watchOS | The side button and a Digital Crown press are reserved by the system. Crown rotation is available. The Action Button (Ultra models) and double-tap (Series 9+ / Ultra 2+) can trigger an app's main action. | Start/stop on the Action Button and double-tap. Crown rotation scrolls. On-screen button everywhere else. |
+| watchOS | The side button and a Digital Crown press are reserved by the system. Crown rotation is available. The Action Button (Ultra models) and double-tap (Series 9+ / Ultra 2+) can trigger an app's main action. | The Timing page's Start/Stop button, which double-tap presses on watchOS 11 (`handGestureShortcut(.primaryAction)`). Crown rotation scrolls. The Action Button isn't used yet. |
 
 **Local storage**
 
-- Wear OS uses Room (SQLite). watchOS uses SwiftData.
+- Wear OS uses Room (SQLite). watchOS keeps one JSON file per match in Application Support, written atomically.
 - Each event is written as soon as it happens, so a crash or a flat battery loses nothing.
 - Synced matches are kept for 30 days, then deleted.
 
@@ -190,13 +190,13 @@ When a match ends, the watch queues the whole match document with the platform's
 
 | | watchOS ↔ iOS | Wear OS ↔ Android |
 | --- | --- | --- |
-| Transport | `WCSession.transferUserInfo` (queued, survives restarts). Documents over ~50 KB go via `transferFile`. | `DataClient.putDataItem` at `/match/{id}`, marked urgent |
-| Phone receiver | Native Swift module, activated in `AppDelegate` at launch so no delivery is missed | `WearableListenerService`, which runs even when the app is closed |
-| Confirmation to watch | `sendMessage` `{ack: id, rev}`, falling back to `transferUserInfo` | `MessageClient` at `/ack/{id}` |
+| Transport | `WCSession.transferUserInfo` `{kind: "match", id, json, fitness?}` (queued, survives restarts). Documents over ~50 KB go via `transferFile`, with the rest as its metadata. A resend cancels anything for the same match still queued. | `DataClient.putDataItem` at `/match/{id}`, marked urgent |
+| Phone receiver | The `watch-sync` Expo module's iOS side, activated at launch by an app delegate subscriber so no delivery is missed. The same file inbox as Android. | `WearableListenerService`, which runs even when the app is closed |
+| Confirmation to watch | `sendMessage` `{ack: id}` when the watch is in reach, otherwise `transferUserInfo` | `MessageClient` at `/ack/{id}` |
 | Bridge to the JS app | Expo module event `onMatchReceived` plus a native inbox the JS side drains at startup | Same |
-| Umpire's workout (watch → phone) | Not built yet | With **Record workout** on in the watch's Settings, a Health Services exercise (no GPS) records heart rate, steps, distance and calories from the first period to the final whistle. The summary goes in the match's DataItem as `fitness` (or `fitnessAsset`), JSON, apart from the match document: it's the umpire's own data and is never uploaded or published. The phone keeps it on the match row, shows it on the match page, and saves it to Health Connect (the `health-connect` Expo module, write-only) when the umpire taps Save or turns on Save automatically. Each record's client ID is built from the match ID, so saving again replaces it. |
-| Watch app version (watch → phone) | Not built yet | The watch puts its version and build number as a DataItem at `/watch-info` when the app starts. The phone reads it (`getDataItems`) to tell the umpire when a newer watch app is out (below). |
-| Setup on phone (phone → watch) | Not built yet | The watch's **Setup on phone** opens the phone app's setup screen (`fhmatchcentre://setup`) with `RemoteActivityHelper`. The phone sends the setup as JSON with `MessageClient` at `/setup` to each watch in reach. The watch checks every value (`Setup.fromPhone`), saves it as the last setup, and opens its own setup screen with it, where the umpire checks it and taps Ready. |
+| Umpire's workout (watch → phone) | The workout session that keeps the match running (below) collects heart rate, distance, steps and active calories. With **Record workout** on it's saved to Health, and its summary goes with the match as `fitness`, in the same JSON as Wear OS's; otherwise it's discarded. | With **Record workout** on in the watch's Settings, a Health Services exercise (no GPS) records heart rate, steps, distance and calories from the first period to the final whistle. The summary goes in the match's DataItem as `fitness` (or `fitnessAsset`), JSON, apart from the match document: it's the umpire's own data and is never uploaded or published. The phone keeps it on the match row, shows it on the match page, and saves it to Health Connect (the `health-connect` Expo module, write-only) when the umpire taps Save or turns on Save automatically. Each record's client ID is built from the match ID, so saving again replaces it. |
+| Watch app version (watch → phone) | Sent in the application context, but not used: the watch app comes with the iPhone app, so there are no separate updates to tell about. | The watch puts its version and build number as a DataItem at `/watch-info` when the app starts. The phone reads it (`getDataItems`) to tell the umpire when a newer watch app is out (below). |
+| Setup on phone (phone → watch) | The phone sends `{setup: json}` with `sendMessage` when the watch is in reach. The watch checks it the same way and opens its setup screen with it. There's no opening the phone app from the watch, so the umpire starts on the phone. | The watch's **Setup on phone** opens the phone app's setup screen (`fhmatchcentre://setup`) with `RemoteActivityHelper`. The phone sends the setup as JSON with `MessageClient` at `/setup` to each watch in reach. The watch checks every value (`Setup.fromPhone`), saves it as the last setup, and opens its own setup screen with it, where the umpire checks it and taps Ready. |
 
 ```mermaid
 sequenceDiagram
