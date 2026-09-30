@@ -7,7 +7,7 @@ export default function NotFound() {
       <h1 className="font-heading text-3xl font-semibold">Not found</h1>
       <p className="text-muted-foreground">This page doesn&apos;t exist, or the match hasn&apos;t been published.</p>
       <Button asChild>
-        <Link href="/">See the latest results</Link>
+        <Link href="/matches">See the latest results</Link>
       </Button>
     </div>
   );

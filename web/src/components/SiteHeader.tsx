@@ -25,7 +25,7 @@ export function SiteHeader({ user }: { user: User | null }) {
         </Link>
         <nav aria-label="Main" className="flex flex-wrap items-center gap-1">
           <Button variant="ghost" asChild>
-            <Link href="/">Matches</Link>
+            <Link href="/matches">Matches</Link>
           </Button>
           <Button variant="ghost" asChild>
             <Link href="/clubs">Clubs</Link>
