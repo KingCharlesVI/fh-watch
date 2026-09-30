@@ -1,6 +1,6 @@
 # Deploying FH Match Centre
 
-Everything runs on one machine, **Windows or Linux**, with no containers: PostgreSQL, the API, the website, and a **Cloudflare Tunnel** that connects the machine to fhmatchcentre.com. The tunnel dials out to Cloudflare, so the machine needs no public IP address, no open ports and no certificates. A spare PC at home is enough while the user base is small; moving to a VPS later uses the same Linux setup (see [Moving to another machine](#moving-to-another-machine)).
+Everything runs on one machine, **Windows or Linux**, with no containers. FH Match Centre's own server is **an old laptop running Ubuntu Desktop 24.04 LTS** (see [The laptop](#the-laptop-ubuntu-desktop)), so that's the path to follow; the Windows one stays for anyone else. It runs PostgreSQL, the API, the website, and a **Cloudflare Tunnel** that connects the machine to fhmatchcentre.com. The tunnel dials out to Cloudflare, so the machine needs no public IP address, no open ports and no certificates. A spare PC at home is enough while the user base is small; moving to a VPS later uses the same Linux setup (see [Moving to another machine](#moving-to-another-machine)).
 
 The files live in [`deploy/`](../deploy): `fh.mjs` (the `fh` command, the same on both systems), `linux/` and `windows/` (setup scripts and service definitions), and `env/` (settings templates).
 
@@ -71,6 +71,8 @@ Windows Update restarts the machine now and then. The services and tunnel start 
 
 ### 2b. Linux
 
+On Ubuntu Desktop, first do the steps in [The laptop](#the-laptop-ubuntu-desktop) below: the desktop edition has no SSH server until you install one.
+
 1. **Copy the `deploy` folder to the machine** and sign in to it, from your computer in the repository folder:
 
    ```sh
@@ -91,12 +93,30 @@ Windows Update restarts the machine now and then. The services and tunnel start 
    - creates the `fh` database role (random password) and the `fh` and `fh_restore_test` databases
    - writes the settings to `/etc/fh`, including a random JWT secret
    - installs the services and the backup timers, and the `fh` command
-   - turns off sleep and suspend, even with a laptop lid closed
+   - turns off sleep and suspend, and makes closing a laptop's lid do nothing
    - turns on the firewall with only SSH allowed in (the tunnel needs no inbound ports)
    - switches SSH to keys only, if it finds a key
    - sets up the Cloudflare Tunnel. On a machine without a browser, open the link it prints on any computer.
 
    At the end it prints a **deploy key**. In GitHub, open the repository's **Settings → Deploy keys → Add deploy key**, paste the key and leave write access off.
+
+### The laptop (Ubuntu Desktop)
+
+An old laptop makes a good small server: it uses little power, and its battery carries it through short power cuts. On the laptop itself, before step 1 above:
+
+1. **Install and start SSH**, so you can run everything else from your own computer:
+
+   ```sh
+   sudo apt update && sudo apt install -y openssh-server
+   hostname -I   # the address to use as MACHINE above
+   ```
+
+2. **The network.** A cable is best. On Wi-Fi, open **Settings → Wi-Fi →** the network's settings and tick **Available to all users**. Without it the connection only comes up once someone signs in, so after a restart the site stays down.
+3. **Starting up by itself.** Leave automatic sign-in off: the services start at boot with no one signed in. In the laptop's BIOS/UEFI settings, turn on anything like **Power on after AC loss** (or *Restore on AC power loss*), so a power cut that outlasts the battery doesn't leave it off.
+4. **Keep it plugged in,** lid open or closed: the setup turns off sleep and the lid switch. If the BIOS or the manufacturer's tool can cap charging (e.g. at 80%), turn that on: a battery held at 100% for months wears out and can swell.
+5. **Give it a fixed address** on your router (a DHCP reservation), so `ssh` always finds it. The site doesn't need one: the tunnel works from any address.
+
+Ubuntu installs security updates by itself (the setup turns that on) and needs a restart now and then; everything comes back without anyone signing in. 24.04 LTS has security updates until 2029.
 
 Running either setup script again is safe: it keeps existing secrets and settings. Add `-SkipTunnel` (Windows) or `--skip-tunnel` (Linux) to leave the tunnel for later, then run `fh tunnel` when ready.
 
@@ -131,17 +151,31 @@ A branch name works in place of a tag (e.g. `fh deploy main`), but tags make it 
 
 ## Email
 
-Pick a transactional email provider, e.g. Postmark, Resend, Mailgun or Amazon SES. Then:
+FH Match Centre sends its emails (sign-up confirmations, password resets) through **Amazon SES**, over SMTP. Another provider with SMTP works the same way from step 5.
 
-1. **Verify the domain with the provider.** Add the DNS records it gives you (SPF, DKIM, and ideally a DMARC record) in **Cloudflare's DNS**. Without them, mail from `no-reply@fhmatchcentre.com` lands in spam. Records for mail must be "DNS only" (grey cloud), not proxied.
-2. **Add the SMTP URL** to `api.env` (`/etc/fh/api.env` or `C:\ProgramData\fh\config\api.env`), URL-encoding any special characters in the password:
+1. **In the AWS console, open Amazon SES** in **Europe (London), eu-west-2**. Keep to that one region: identities and credentials belong to a region.
+2. **Verify the domain:** *Configuration → Identities → Create identity → Domain*, `fhmatchcentre.com`, with **Easy DKIM** (RSA 2048). SES shows three CNAME records: add them in **Cloudflare's DNS**, set to **DNS only** (grey cloud). Also in Cloudflare:
+   - **SPF:** a TXT record on `fhmatchcentre.com`, `v=spf1 include:amazonses.com ~all` (or add `include:amazonses.com` to an SPF record that's already there).
+   - **DMARC:** a TXT record on `_dmarc.fhmatchcentre.com`, `v=DMARC1; p=none; rua=mailto:YOUR-ADDRESS`. Tighten `p=` later, once the reports show all mail passing.
+
+   Without these, mail from `no-reply@fhmatchcentre.com` lands in spam. SES shows the identity as verified once it sees the records, usually within an hour.
+3. **Leave the sandbox.** A new SES account only sends to addresses you've verified. *Account dashboard → Request production access*: say it's transactional mail only (account confirmations and password resets) for a sports results site, sent to people who register. AWS usually answers within a day.
+4. **Make SMTP credentials:** *SMTP settings → Create SMTP credentials*. It creates an IAM user and shows an **SMTP user name and password**, once: save them. They aren't your AWS access keys.
+5. **Add the SMTP URL** to `api.env` (`/etc/fh/api.env` or `C:\ProgramData\fh\config\api.env`). SES passwords usually contain `/` or `+`, which must be URL-encoded (`%2F`, `%2B`); this prints the encoded form:
+
+   ```sh
+   node -e "console.log(encodeURIComponent(process.argv[1]))" 'THE-SMTP-PASSWORD'
+   ```
 
    ```
-   SMTP_URL=smtps://USERNAME:PASSWORD@smtp.provider.com:465
+   SMTP_URL=smtps://SMTP-USER-NAME:ENCODED-PASSWORD@email-smtp.eu-west-2.amazonaws.com:465
+   MAIL_FROM=FH Match Centre <no-reply@fhmatchcentre.com>
    ```
 
-3. **Restart the API:** `sudo systemctl restart fh-api` on Linux, `Restart-Service fh-api` on Windows.
-4. **Test it:** use **Forgotten your password?** on the sign-in page. Until this works, `fh logs api` shows the emails that would have been sent.
+   For another provider: `smtps://USERNAME:PASSWORD@smtp.provider.com:465`, encoded the same way.
+
+6. **Restart the API:** `sudo systemctl restart fh-api` on Linux, `Restart-Service fh-api` on Windows.
+7. **Test it:** use **Forgotten your password?** on the sign-in page. Until this works, `fh logs api` shows the emails that would have been sent.
 
 ## Backups
 

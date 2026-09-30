@@ -65,6 +65,15 @@ EOF
 say "Never sleep"
 # A laptop or desktop acting as a server must stay awake, lid closed or not.
 systemctl mask --quiet sleep.target suspend.target hibernate.target hybrid-sleep.target
+# And a laptop does nothing when its lid closes (Ubuntu Desktop suspends by default).
+install -d -m 755 /etc/systemd/logind.conf.d
+cat > /etc/systemd/logind.conf.d/10-fh.conf <<'EOF'
+[Login]
+HandleLidSwitch=ignore
+HandleLidSwitchExternalPower=ignore
+HandleLidSwitchDocked=ignore
+EOF
+systemctl kill -s HUP systemd-logind 2>/dev/null || true
 
 say "Users and folders"
 for u in fh-api fh-web fh-tunnel; do
