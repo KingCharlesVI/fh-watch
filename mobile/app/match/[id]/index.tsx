@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, View } from "react-native";
 import { ONLINE, WEB_URL } from "@/config";
 import { errorMessage } from "@/core/api";
+import { offenceSummary, redCards } from "@/core/red-card";
 import type { LocalMatch } from "@/core/store";
 import { FitnessCard, PeriodTable, ScoreCard, StatsCard, StatusBadges, Timeline, formatDateTime } from "@/features/match-view";
 import { sync } from "@/services";
@@ -98,6 +99,8 @@ export default function MatchScreen() {
         {ONLINE && <PublishButtons match={m} act={act} busy={busy} />}
       </View>
 
+      <RedCardReports match={m} />
+
       <ScoreCard doc={doc} summary={summary} />
       <Timeline doc={doc} summary={summary} />
       <PeriodTable doc={doc} summary={summary} />
@@ -170,6 +173,40 @@ function ServerBanners({ match: m, state, act, busy }: { match: LocalMatch; stat
         <T variant="small">Publishes itself {formatDateTime(server.autoPublishAt)} unless you publish or unpublish it first.</T>
       )}
     </>
+  );
+}
+
+/** Each red card needs a report to England Hockey: where each one stands, and the way in. */
+function RedCardReports({ match: m }: { match: LocalMatch }) {
+  const cards = redCards(m.document!);
+  if (cards.length === 0) return null;
+  const doc = m.document!;
+  return (
+    <Card title={cards.length === 1 ? "Red card report" : "Red card reports"}>
+      {cards.map((card) => {
+        const report = m.redCardReports?.find((r) => r.cardSeq === card.seq);
+        const status = report?.submittedAt ? "Submitted" : report ? "Started" : "Not started";
+        return (
+          <Row key={card.seq} style={{ alignItems: "center" }}>
+            <View style={{ flex: 1 }}>
+              <T>
+                {doc.teams[card.team].name}
+                {card.player !== undefined ? ` #${card.player}` : ""}
+              </T>
+              <T variant="small">
+                {offenceSummary(doc, card)} · {status}
+              </T>
+            </View>
+            <Button
+              small
+              variant={report?.submittedAt ? "outline" : "primary"}
+              title={report ? "Open" : "Start"}
+              onPress={() => router.push(`/match/${m.id}/red-card/${card.seq}`)}
+            />
+          </Row>
+        );
+      })}
+    </Card>
   );
 }
 

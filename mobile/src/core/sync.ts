@@ -1,6 +1,7 @@
 import { type Match, type MatchDocument, type ValidationIssue, parseMatch } from "@fh/shared";
 import { type ApiClient, ApiError, NetworkError, errorMessage } from "./api";
 import type { Fitness } from "./fitness";
+import type { RedCardReport } from "./red-card";
 import type { LocalMatch, MatchStore } from "./store";
 
 /**
@@ -102,6 +103,14 @@ export class SyncEngine {
     const row = await this.store.get(id);
     if (!row || row.fitness) return;
     await this.store.put({ ...row, fitness });
+    this.changed();
+  }
+
+  /** Saves a red card report, replacing any earlier one for the same card. */
+  async saveRedCardReport(id: string, report: RedCardReport) {
+    const row = await this.require(id);
+    const others = (row.redCardReports ?? []).filter((r) => r.cardSeq !== report.cardSeq);
+    await this.store.put({ ...row, redCardReports: [...others, report].sort((a, b) => a.cardSeq - b.cardSeq) });
     this.changed();
   }
 
