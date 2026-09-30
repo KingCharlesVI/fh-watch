@@ -9,6 +9,7 @@ FH Match Centre is a watch and phone app that field hockey umpires use to time a
 ## What the app stores
 
 - **Matches you record:** teams, scores, cards, timings and any names you type in (such as umpires' names and players' shirt numbers). They are stored on your watch and your phone.
+- **Your workout, if you turn on Record workout on the watch:** your heart rate, steps, distance and calories during each match, read from the watch's sensors. They are stored on your watch and your phone, apart from the match: they're never in a match you share.
 - **Nothing else.** There's no account, no analytics, no advertising, and no tracking.
 
 ## Where it goes

@@ -32,6 +32,11 @@ export default function Privacy() {
                 players&apos; shirt numbers). They are stored on your watch and your phone.
               </li>
               <li>
+                <strong>Your workout, if you turn on Record workout on the watch:</strong> your heart rate, steps, distance and calories during each
+                match, read from the watch&apos;s sensors. They are stored on your watch and your phone, apart from the match: they&apos;re never in a
+                match you share.
+              </li>
+              <li>
                 <strong>Nothing else.</strong> There&apos;s no account, no analytics, no advertising and no tracking.
               </li>
             </ul>
