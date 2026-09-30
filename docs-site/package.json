@@ -1,0 +1,9 @@
+{
+  "name": "@fh/docs",
+  "private": true,
+  "description": "The documentation site (docsify). No dependencies: this file is here so Vercel lists docs-site as a project folder.",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --serve"
+  }
+}
