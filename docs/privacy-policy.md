@@ -15,6 +15,7 @@ FH Match Centre is a watch and phone app that field hockey umpires use to time a
 ## Where it goes
 
 - **Between your watch and your phone:** finished matches are sent from your watch to your phone using Google's Wear OS data connection, which is part of Google Play services on your devices.
+- **To Health Connect, if you choose:** you can save your workouts to Health Connect on your phone, where fitness apps you allow (such as Samsung Health) can read them. The app only writes to Health Connect; it never reads anything from it.
 - **Nowhere else, unless you choose.** A match or backup leaves your phone only when you save it to a folder or share it (for example by email). What happens to it then is up to the service you share it with.
 
 We don't collect, receive or sell any of your data. We have no servers involved in this version of the app.

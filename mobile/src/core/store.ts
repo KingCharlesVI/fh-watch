@@ -29,6 +29,8 @@ export interface LocalMatch {
   umpireNames?: string[];
   /** The umpire's workout, recorded by the watch. Only ever on this phone. */
   fitness?: Fitness;
+  /** When the workout was last saved to Health Connect. */
+  healthSavedAt?: string;
   /** The server has a newer version than `baseRevision`: the umpire picks which to keep. */
   conflict: { revision: number; document: MatchDocument } | null;
   /** Why the last upload was refused (not a network problem). Uploads pause until the next edit or retry. */

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { type Fitness, fitnessStats, parseFitness } from "../src/core/fitness";
+import { type Fitness, fitnessStats, healthWorkout, parseFitness } from "../src/core/fitness";
 import { type InboxItem, type NativeInbox, drainInbox } from "../src/core/watch-inbox";
 import { matchDoc, setup } from "./helpers";
 
@@ -168,6 +168,27 @@ describe("workouts from the watch", () => {
     expect(parseFitness("[]")).toBeNull();
     expect(parseFitness(JSON.stringify({ ...workout, version: 2 }))).toBeNull();
     expect(parseFitness(JSON.stringify({ ...workout, startedAt: "soon" }))).toBeNull();
+  });
+
+  it("becomes a Health Connect workout named for the match, once finished", async () => {
+    const t = await setup();
+    const doc = matchDoc();
+    await t.engine.importMatch(doc, "watch");
+    await t.engine.setFitness(doc.id, workout);
+    const row = (await t.engine.get(doc.id))!;
+    expect(healthWorkout(row)).toEqual({
+      matchId: doc.id,
+      title: `Umpiring: ${doc.teams.home.name} v ${doc.teams.away.name}`,
+      startedAt: workout.startedAt,
+      endedAt: workout.endedAt,
+      steps: 9120,
+      distanceM: 6480.5,
+      caloriesKcal: 610,
+      heartRateSamples: workout.heartRateSamples,
+    });
+    expect(healthWorkout({ ...row, fitness: { ...workout, endedAt: undefined } })).toBeNull();
+    await t.engine.markHealthSaved(doc.id);
+    expect((await t.engine.get(doc.id))!.healthSavedAt).toBeDefined();
   });
 
   it("describes it for the match page", () => {

@@ -1,0 +1,20 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.fhmatchcentre'
+version = '0.1.0'
+
+android {
+  namespace "expo.modules.healthconnect"
+  defaultConfig {
+    versionCode 1
+    versionName '0.1.0'
+  }
+}
+
+dependencies {
+  // Health Connect: where the umpire's workouts go, for Samsung Health and other fitness apps to read.
+  implementation "androidx.health.connect:connect-client:1.1.0"
+}

@@ -48,6 +48,10 @@ export default function Privacy() {
                 data connection, part of Google Play services on your devices.
               </li>
               <li>
+                <strong>To Health Connect, if you choose:</strong> you can save your workouts to Health Connect on your phone, where fitness apps you
+                allow (such as Samsung Health) can read them. The app only writes to Health Connect; it never reads anything from it.
+              </li>
+              <li>
                 <strong>Nowhere else, unless you choose.</strong> A match or backup leaves your phone only when you save it to a folder or share it
                 (for example by email). What happens to it then is up to the service you share it with.
               </li>

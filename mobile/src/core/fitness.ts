@@ -1,3 +1,5 @@
+import type { LocalMatch } from "./store";
+
 /**
  * The umpire's workout during a match, recorded by the watch (FitnessTracker in the
  * Wear OS app) and sent with the match, but kept apart from the match document: it's
@@ -69,4 +71,21 @@ export function fitnessStats(f: Fitness): [string, string][] {
   }
   if (f.caloriesKcal !== undefined) stats.push(["Calories", `${Math.round(f.caloriesKcal)} kcal`]);
   return stats;
+}
+
+/** What goes to Health Connect for a match, or null while there's nothing finished to save. */
+export function healthWorkout(m: LocalMatch) {
+  const f = m.fitness;
+  if (!f?.endedAt || !m.document) return null;
+  const { home, away } = m.document.teams;
+  return {
+    matchId: m.id,
+    title: `Umpiring: ${home.name} v ${away.name}`,
+    startedAt: f.startedAt,
+    endedAt: f.endedAt,
+    ...(f.steps !== undefined ? { steps: f.steps } : {}),
+    ...(f.distanceM !== undefined ? { distanceM: f.distanceM } : {}),
+    ...(f.caloriesKcal !== undefined ? { caloriesKcal: f.caloriesKcal } : {}),
+    heartRateSamples: f.heartRateSamples,
+  };
 }

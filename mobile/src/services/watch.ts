@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { type Watch, WatchSync, watchSyncAvailable } from "../../modules/watch-sync";
 import { type InboxProblem, drainInbox } from "@/core/watch-inbox";
+import { autoSaveWorkouts } from "./health";
 import { sync } from "./index";
 
 export { WatchSync, watchSyncAvailable };
@@ -29,6 +30,7 @@ export function drainWatchInbox(): Promise<void> {
         const result = await drainInbox(WatchSync, sync);
         problems = result.problems;
         for (const l of listeners) l();
+        if (result.added.length) await autoSaveWorkouts();
       } while (again);
     } catch (err) {
       console.warn("Couldn't read matches from the watch", err);

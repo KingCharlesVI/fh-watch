@@ -9,6 +9,7 @@ import type { LocalMatch } from "@/core/store";
 import { FitnessCard, PeriodTable, ScoreCard, StatsCard, StatusBadges, Timeline, formatDateTime } from "@/features/match-view";
 import { sync } from "@/services";
 import { type ExportKind, saveMatch, shareMatch, shareReport } from "@/services/export";
+import { saveToHealthConnect, useHealthConnect } from "@/services/health";
 import { useMatch } from "@/state/sync";
 import { Banner, Button, Card, Empty, Row, Screen, T } from "@/ui/kit";
 import { space, useColors } from "@/ui/theme";
@@ -101,7 +102,7 @@ export default function MatchScreen() {
       <Timeline doc={doc} summary={summary} />
       <PeriodTable doc={doc} summary={summary} />
       <StatsCard summary={summary} />
-      {m.fitness && <FitnessCard fitness={m.fitness} />}
+      {m.fitness && <FitnessCard fitness={m.fitness} footer={<HealthConnectSave match={m} act={act} busy={busy} />} />}
       <Card title="Umpires">
         <T>
           {server?.umpires.length
@@ -169,6 +170,26 @@ function ServerBanners({ match: m, state, act, busy }: { match: LocalMatch; stat
         <T variant="small">Publishes itself {formatDateTime(server.autoPublishAt)} unless you publish or unpublish it first.</T>
       )}
     </>
+  );
+}
+
+/** Sends the workout to Health Connect, or says it's there. */
+function HealthConnectSave({ match: m, act, busy }: { match: LocalMatch; act: Act; busy: string | null }) {
+  const { status } = useHealthConnect();
+  if (status !== "available" || !m.fitness?.endedAt) return null;
+  if (m.healthSavedAt) return <T variant="small">Saved to Health Connect {formatDateTime(m.healthSavedAt)}.</T>;
+  return (
+    <Button
+      title="Save to Health Connect"
+      variant="outline"
+      icon="fitness-outline"
+      loading={busy === "Save to Health Connect"}
+      onPress={() =>
+        act("Save to Health Connect", async () => {
+          if (!(await saveToHealthConnect(m))) Alert.alert("Not saved", "Health Connect needs your permission to save workouts from FH Match Centre.");
+        })
+      }
+    />
   );
 }
 

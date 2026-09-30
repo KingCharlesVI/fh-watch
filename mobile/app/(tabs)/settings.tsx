@@ -7,6 +7,7 @@ import { API_URL, ONLINE, WEB_URL } from "@/config";
 import { errorMessage } from "@/core/api";
 import { sync } from "@/services";
 import { saveBackup, shareBackup } from "@/services/export";
+import { HealthConnect, useHealthConnect } from "@/services/health";
 import { importFromFile, sampleMatch } from "@/services/import";
 import { useConnectedWatches, useWatchProblems, watchSyncAvailable } from "@/services/watch";
 import { useAuth } from "@/state/auth";
@@ -84,6 +85,8 @@ export default function SettingsScreen() {
         )}
       </Card>
 
+      <HealthConnectCard />
+
       <Card title="Your matches">
         <T variant="muted">
           {ONLINE
@@ -110,6 +113,37 @@ export default function SettingsScreen() {
         <Updates />
       </Card>
     </Screen>
+  );
+}
+
+/**
+ * Saving the workouts the watch records to Health Connect, which Samsung Health and
+ * other fitness apps read. Android only; hidden where Health Connect can't run.
+ */
+function HealthConnectCard() {
+  const { status, autoSave, setAutoSave } = useHealthConnect();
+  if (status === null || status === "unavailable") return null;
+  return (
+    <Card title="Health Connect">
+      <T variant="muted">
+        Workouts your watch records (turn on Record workout in the watch&apos;s Settings) can go to Health Connect, so Samsung Health and other
+        fitness apps show them.
+      </T>
+      {status === "needs_update" ? (
+        <Button title="Install Health Connect" variant="outline" icon="download-outline" onPress={() => HealthConnect.openHealthConnect()} />
+      ) : (
+        <>
+          <Row style={{ alignItems: "center" }}>
+            <View style={{ flex: 1 }}>
+              <T>Save workouts automatically</T>
+              <T variant="small">As each match arrives from the watch.</T>
+            </View>
+            <Switch value={autoSave} onValueChange={(on) => void setAutoSave(on).catch((err) => Alert.alert("Couldn't change this", errorMessage(err)))} />
+          </Row>
+          <Button title="Open Health Connect" variant="outline" icon="open-outline" onPress={() => HealthConnect.openHealthConnect()} />
+        </>
+      )}
+    </Card>
   );
 }
 

@@ -105,6 +105,13 @@ export class SyncEngine {
     this.changed();
   }
 
+  /** Notes that the workout is in Health Connect, so it isn't saved again by itself. */
+  async markHealthSaved(id: string) {
+    const row = await this.require(id);
+    await this.store.put({ ...row, healthSavedAt: new Date(this.now()).toISOString() });
+    this.changed();
+  }
+
   /** Saves an edit on the phone and queues it for upload. Refuses documents with errors. */
   async saveEdit(id: string, document: MatchDocument): Promise<{ ok: true; warnings: ValidationIssue[] } | { ok: false; errors: string[] }> {
     const parsed = parseMatch(document);
