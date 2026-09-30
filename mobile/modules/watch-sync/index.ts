@@ -7,6 +7,8 @@ export interface InboxItem {
   json: string;
   /** Epoch milliseconds. */
   receivedAt: number;
+  /** The umpire's workout during the match (JSON), sent with it but not part of it. */
+  fitness: string | null;
 }
 
 export interface Watch {

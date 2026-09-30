@@ -1,4 +1,5 @@
 import type { MatchDocument } from "@fh/shared";
+import { type Fitness, parseFitness } from "./fitness";
 import type { LocalMatch } from "./store";
 import type { ImportResult } from "./sync";
 
@@ -13,7 +14,7 @@ export interface Backup {
   format: typeof BACKUP_FORMAT;
   version: 1;
   exportedAt: string;
-  matches: { document: MatchDocument; umpireNames?: string[] }[];
+  matches: { document: MatchDocument; umpireNames?: string[]; fitness?: Fitness }[];
 }
 
 export function makeBackup(rows: LocalMatch[], now: Date): Backup {
@@ -23,7 +24,11 @@ export function makeBackup(rows: LocalMatch[], now: Date): Backup {
     exportedAt: now.toISOString(),
     matches: rows
       .filter((r) => r.document)
-      .map((r) => ({ document: r.document!, ...(r.umpireNames?.length ? { umpireNames: r.umpireNames } : {}) })),
+      .map((r) => ({
+        document: r.document!,
+        ...(r.umpireNames?.length ? { umpireNames: r.umpireNames } : {}),
+        ...(r.fitness ? { fitness: r.fitness } : {}),
+      })),
   };
 }
 
@@ -40,6 +45,7 @@ export interface ImportSummary {
 interface Engine {
   importMatch(input: unknown, source: "file"): Promise<ImportResult>;
   setUmpireNames(id: string, names: string[]): Promise<void>;
+  setFitness(id: string, fitness: Fitness): Promise<void>;
 }
 
 /**
@@ -49,20 +55,25 @@ interface Engine {
  */
 export async function importData(engine: Engine, data: unknown): Promise<ImportSummary> {
   const summary: ImportSummary = { added: 0, duplicate: 0, invalid: [] };
-  const entries: { document: unknown; umpireNames?: string[] }[] = isBackup(data)
+  const entries: { document: unknown; umpireNames?: string[]; fitness?: unknown }[] = isBackup(data)
     ? data.matches
     : [{ document: data && typeof data === "object" && "document" in data ? (data as { document: unknown }).document : data }];
   for (const entry of entries) {
     const result = await engine.importMatch(entry.document, "file");
+    if (result.status === "invalid") {
+      summary.invalid.push(...(result.errors ?? ["Not a match."]));
+      continue;
+    }
+    const id = (entry.document as MatchDocument).id;
     if (result.status === "added") {
       summary.added++;
-      const id = (entry.document as MatchDocument).id;
       if (entry.umpireNames?.length) await engine.setUmpireNames(id, entry.umpireNames);
-    } else if (result.status === "duplicate") {
-      summary.duplicate++;
     } else {
-      summary.invalid.push(...(result.errors ?? ["Not a match."]));
+      summary.duplicate++;
     }
+    // A workout goes with its match, even one already here (it's only added if the match has none).
+    const fitness = entry.fitness ? parseFitness(JSON.stringify(entry.fitness)) : null;
+    if (fitness) await engine.setFitness(id, fitness);
   }
   return summary;
 }

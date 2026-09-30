@@ -1,5 +1,6 @@
 import { type Match, type MatchDocument, type ValidationIssue, parseMatch } from "@fh/shared";
 import { type ApiClient, ApiError, NetworkError, errorMessage } from "./api";
+import type { Fitness } from "./fitness";
 import type { LocalMatch, MatchStore } from "./store";
 
 /**
@@ -94,6 +95,14 @@ export class SyncEngine {
     });
     this.changed();
     return { status: "added" };
+  }
+
+  /** The umpire's workout from the watch. A resend doesn't replace one already stored. */
+  async setFitness(id: string, fitness: Fitness) {
+    const row = await this.store.get(id);
+    if (!row || row.fitness) return;
+    await this.store.put({ ...row, fitness });
+    this.changed();
   }
 
   /** Saves an edit on the phone and queues it for upload. Refuses documents with errors. */

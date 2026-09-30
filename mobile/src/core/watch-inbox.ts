@@ -1,4 +1,5 @@
 import { SCHEMA_VERSION } from "@fh/shared";
+import { type Fitness, parseFitness } from "./fitness";
 import type { ImportResult } from "./sync";
 
 /** A match the watch sent, as the native module holds it. */
@@ -6,6 +7,8 @@ export interface InboxItem {
   id: string;
   json: string;
   receivedAt: number;
+  /** The umpire's workout during the match (JSON), if the watch recorded one. */
+  fitness?: string | null;
 }
 
 /** The native module's inbox (or a fake in tests). */
@@ -45,7 +48,10 @@ export interface DrainResult {
  */
 export async function drainInbox(
   inbox: NativeInbox,
-  engine: { importMatch(input: unknown, source: "watch"): Promise<ImportResult> },
+  engine: {
+    importMatch(input: unknown, source: "watch"): Promise<ImportResult>;
+    setFitness(id: string, fitness: Fitness): Promise<void>;
+  },
 ): Promise<DrainResult> {
   // Picks up anything the Data Layer holds that the listener missed.
   await inbox.pullPending().catch(() => 0);
@@ -72,6 +78,9 @@ export async function drainInbox(
       problem("invalid", result.errors ?? []);
       continue;
     }
+    // A workout that can't be read is dropped: the match matters more.
+    const fitness = item.fitness ? parseFitness(item.fitness) : null;
+    if (fitness) await engine.setFitness(item.id, fitness);
     await inbox.removeFromInbox(item.id);
     if (result.status === "added") added.push(item.id);
   }

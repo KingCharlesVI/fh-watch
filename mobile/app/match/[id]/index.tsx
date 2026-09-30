@@ -6,7 +6,7 @@ import { ActivityIndicator, Alert, View } from "react-native";
 import { ONLINE, WEB_URL } from "@/config";
 import { errorMessage } from "@/core/api";
 import type { LocalMatch } from "@/core/store";
-import { PeriodTable, ScoreCard, StatsCard, StatusBadges, Timeline, formatDateTime } from "@/features/match-view";
+import { FitnessCard, PeriodTable, ScoreCard, StatsCard, StatusBadges, Timeline, formatDateTime } from "@/features/match-view";
 import { sync } from "@/services";
 import { type ExportKind, saveMatch, shareMatch, shareReport } from "@/services/export";
 import { useMatch } from "@/state/sync";
@@ -101,6 +101,7 @@ export default function MatchScreen() {
       <Timeline doc={doc} summary={summary} />
       <PeriodTable doc={doc} summary={summary} />
       <StatsCard summary={summary} />
+      {m.fitness && <FitnessCard fitness={m.fitness} />}
       <Card title="Umpires">
         <T>
           {server?.umpires.length

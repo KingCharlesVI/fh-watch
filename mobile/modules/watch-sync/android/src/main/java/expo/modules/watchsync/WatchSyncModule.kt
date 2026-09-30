@@ -28,7 +28,7 @@ class WatchSyncModule : Module() {
     }
 
     AsyncFunction("listInbox") {
-      WatchInbox.list(context).map { mapOf("id" to it.id, "json" to it.json, "receivedAt" to it.receivedAt.toDouble()) }
+      WatchInbox.list(context).map { mapOf("id" to it.id, "json" to it.json, "receivedAt" to it.receivedAt.toDouble(), "fitness" to it.fitness) }
     }
 
     AsyncFunction("removeFromInbox") { id: String ->
