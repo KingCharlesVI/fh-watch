@@ -36,6 +36,29 @@ body {
   vertical-align: top;
 }
 
+/* Every row the same grey, rather than docsify's alternating stripes. */
+.markdown-section tr,
+.markdown-section tr:nth-child(2n) {
+  background-color: #f8f8f8;
+}
+
+@media (prefers-color-scheme: dark) {
+  .markdown-section tr,
+  .markdown-section tr:nth-child(2n) {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .markdown-section td,
+  .markdown-section th {
+    border-color: #555;
+  }
+
+  /* The dark theme's bold text is a dim blue-grey. */
+  .markdown-section strong {
+    color: #e6e6e6;
+  }
+}
+
 /* Keyboard-like labels for buttons on screen: <kbd>Start</kbd>. */
 .markdown-section kbd {
   border: 1px solid #ccc;
