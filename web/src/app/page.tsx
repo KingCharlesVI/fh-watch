@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getCurrentUser } from "@/lib/session";
-import { DOCS_URL, LANDING_URL } from "@/lib/site";
+import { DOCS_URL, LANDING_URL, SITE_NAME } from "@/lib/site";
+
+export const metadata = { title: { absolute: `${SITE_NAME}: field hockey results` } };
 
 const STEPS = [
   {
