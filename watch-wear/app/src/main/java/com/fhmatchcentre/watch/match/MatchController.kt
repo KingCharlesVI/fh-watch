@@ -20,6 +20,7 @@ import com.fhmatchcentre.watch.engine.Teams
 import com.fhmatchcentre.watch.engine.isUndoable
 import com.fhmatchcentre.watch.engine.tick
 import com.fhmatchcentre.watch.engine.undo
+import com.fhmatchcentre.watch.fitness.FitnessTracker
 import com.fhmatchcentre.watch.sync.WatchSync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -48,6 +49,7 @@ class MatchController(
     private val context: Context,
     private val dao: MatchDao,
     private val sync: WatchSync,
+    private val fitness: FitnessTracker,
     private val scope: CoroutineScope,
 ) {
     private val mutex = Mutex()
@@ -78,8 +80,10 @@ class MatchController(
     suspend fun restore() = mutex.withLock {
         val row = dao.active() ?: return@withLock
         createdAt = row.createdAt
-        _active.value = row.decode()
+        val record = row.decode()
+        _active.value = record
         MatchService.start(context)
+        if (record.clock.phase != Phase.READY) scope.launch { fitness.start(record.id) }
     }
 
     suspend fun create(settings: MatchSettings, teams: Teams, venue: String?) {
@@ -122,6 +126,8 @@ class MatchController(
             _active.value = next
             // One buzz whenever the clock starts or stops: the physical button or the on-screen one.
             if (next.clock.running != current.clock.running) haptics.buzz()
+            // The workout starts with the first period.
+            if (current.clock.phase == Phase.READY && next.clock.phase != Phase.READY) scope.launch { fitness.start(next.id) }
             if (undoLabel != null) {
                 val recorded = next.document.events.drop(current.document.events.size).lastOrNull(MatchEvent::isUndoable)
                 _undo.value = recorded?.let { UndoOffer(it.seq, undoLabel, now.elapsedMs + UNDO_WINDOW_MS) }
@@ -158,8 +164,9 @@ class MatchController(
         _undo.value = null
         _finished.tryEmit(record.id)
         scope.launch {
+            val workout = fitness.finish(record.id)
             try {
-                sync.send(record.document)
+                sync.send(record.document, workout)
             } catch (e: Exception) {
                 // It stays Not synced; "Send to phone" or the next start retries.
                 Log.w(WatchSync.TAG, "Couldn't queue match ${record.id}", e)

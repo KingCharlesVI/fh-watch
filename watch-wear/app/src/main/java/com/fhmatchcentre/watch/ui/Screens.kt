@@ -50,6 +50,7 @@ import com.fhmatchcentre.watch.engine.activeEvents
 import com.fhmatchcentre.watch.engine.penaltyCorners
 import com.fhmatchcentre.watch.engine.score
 import com.fhmatchcentre.watch.engine.shootout
+import com.fhmatchcentre.watch.fitness.FitnessTracker
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
@@ -328,6 +329,7 @@ fun SettingsScreen(services: Services) {
             )
         }
         item { ClockButtonSwitch(clockButton) { clockButton = it; services.prefs.clockButtonOnScreen = it } }
+        item { FitnessSwitch(services) }
         item {
             Text(
                 when {
@@ -345,6 +347,34 @@ fun SettingsScreen(services: Services) {
         }
         item { Text(versionText(LocalContext.current), fontSize = 12.sp, color = Color(0xFFB5B5B5)) }
     }
+}
+
+/**
+ * Records each match as a workout. Turning it on asks for the sensor permissions; it
+ * stays off if they're refused.
+ */
+@Composable
+private fun FitnessSwitch(services: Services) {
+    val context = LocalContext.current
+    var on by remember { mutableStateOf(services.fitness.wanted) }
+    val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
+        on = granted.values.all { it }
+        services.prefs.fitnessTracking = on
+    }
+    SwitchButton(
+        checked = on,
+        onCheckedChange = { checked ->
+            if (checked && !FitnessTracker.permitted(context)) {
+                ask.launch(FitnessTracker.PERMISSIONS)
+            } else {
+                on = checked
+                services.prefs.fitnessTracking = checked
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text("Record workout") },
+        secondaryLabel = { Text("Heart rate, steps, distance") },
+    )
 }
 
 /**

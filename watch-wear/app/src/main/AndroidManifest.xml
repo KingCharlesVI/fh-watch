@@ -10,6 +10,15 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- Recording the umpire's workout during a match, when turned on in Settings: steps
+         (and distance from them) and heart rate, whose permission was renamed in Wear OS 6. -->
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <uses-permission
+        android:name="android.permission.BODY_SENSORS"
+        android:maxSdkVersion="35" />
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
+
     <application
         android:name=".WatchApp"
         android:allowBackup="true"
@@ -41,7 +50,7 @@
         <service
             android:name=".match.MatchService"
             android:exported="false"
-            android:foregroundServiceType="specialUse">
+            android:foregroundServiceType="specialUse|health">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Running a field hockey match clock, suspension timers and alerts for the umpire during a match." />
