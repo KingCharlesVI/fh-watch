@@ -34,6 +34,9 @@ class FakeInbox implements NativeInbox {
  */
 const wearFixture = readFileSync(new URL("./fixtures/wear-full-match.json", import.meta.url), "utf8");
 
+/** The same for the Apple Watch app: written by its engine tests (mobile/targets, `swift test`). */
+const watchosFixture = readFileSync(new URL("./fixtures/watchos-full-match.json", import.meta.url), "utf8");
+
 describe("the watch inbox", () => {
   it("stores a match from the Wear OS app and empties the inbox", async () => {
     const t = await setup();
@@ -46,6 +49,19 @@ describe("the watch inbox", () => {
     expect(inbox.items).toEqual([]);
     const row = (await t.engine.get(doc.id))!;
     expect(row).toMatchObject({ source: "watch", seen: false, warnings: [] });
+    expect(row.document!.events.length).toBe(doc.events.length);
+  });
+
+  it("stores a match from the Apple Watch app", async () => {
+    const t = await setup();
+    const inbox = new FakeInbox();
+    const doc = JSON.parse(watchosFixture);
+    inbox.put(watchosFixture, doc.id);
+
+    expect(await drainInbox(inbox, t.engine)).toEqual({ added: [doc.id], problems: [] });
+    const row = (await t.engine.get(doc.id))!;
+    expect(row).toMatchObject({ source: "watch", warnings: [] });
+    expect(row.document!.createdOn).toBe("watchos");
     expect(row.document!.events.length).toBe(doc.events.length);
   });
 
