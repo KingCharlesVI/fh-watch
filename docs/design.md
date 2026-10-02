@@ -266,7 +266,7 @@ Upgrading a phone from the alpha to 1.0 keeps its matches: signing in clears the
 
 **Share link and QR code**
 
-- On first publish the API creates a short code, for example `https://fhmatchcentre.com/m/K7P2QX`, using 6 characters that don't include 0/O or 1/I.
+- On first publish the API creates a short code, for example `https://app.fhmatchcentre.com/m/K7P2QX`, using 6 characters that don't include 0/O or 1/I.
 - The QR code is drawn on the phone (`react-native-qrcode-svg`), so it still works offline once the code exists.
 - The link always shows the latest revision.
 
@@ -457,7 +457,7 @@ None at the moment.
 - Accounts hold a set of roles.
 - Live scoring is out of scope until v3 at the earliest.
 - The watch screen layout follows MatchGear's; screenshots will be supplied before the watch milestones.
-- The site is FH Match Centre at https://fhmatchcentre.com. Email goes out as no-reply@fhmatchcentre.com.
+- The site is FH Match Centre: the landing page at https://fhmatchcentre.com, the website and API at https://app.fhmatchcentre.com. Email goes out as no-reply@fhmatchcentre.com.
 - The website's UI uses shadcn/ui (Radix + Tailwind CSS v4), with light and dark themes.
 
 **Risks**

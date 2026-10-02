@@ -1,6 +1,6 @@
 # Deploying FH Match Centre
 
-Everything runs on one machine, **Windows or Linux**, with no containers. FH Match Centre's own server is **an old laptop running Ubuntu Desktop 24.04 LTS** (see [The laptop](#the-laptop-ubuntu-desktop)), so that's the path to follow; the Windows one stays for anyone else. It runs PostgreSQL, the API, the website, and a **Cloudflare Tunnel** that connects the machine to fhmatchcentre.com. The tunnel dials out to Cloudflare, so the machine needs no public IP address, no open ports and no certificates. A spare PC at home is enough while the user base is small; moving to a VPS later uses the same Linux setup (see [Moving to another machine](#moving-to-another-machine)).
+Everything runs on one machine, **Windows or Linux**, with no containers. FH Match Centre's own server is **an old laptop running Ubuntu Desktop 24.04 LTS** (see [The laptop](#the-laptop-ubuntu-desktop)), so that's the path to follow; the Windows one stays for anyone else. It runs PostgreSQL, the API, the website, and a **Cloudflare Tunnel** that connects the machine to app.fhmatchcentre.com. The tunnel dials out to Cloudflare, so the machine needs no public IP address, no open ports and no certificates. A spare PC at home is enough while the user base is small; moving to a VPS later uses the same Linux setup (see [Moving to another machine](#moving-to-another-machine)).
 
 The files live in [`deploy/`](../deploy): `fh.mjs` (the `fh` command, the same on both systems), `linux/` and `windows/` (setup scripts and service definitions), and `env/` (settings templates).
 
@@ -22,11 +22,16 @@ visitor ──HTTPS──> Cloudflare <══tunnel══ fh-tunnel (cloudflared
 ## 1. Put the domain on Cloudflare (once)
 
 1. In the Cloudflare dashboard, **Add a domain**: `fhmatchcentre.com`, Free plan.
-2. Cloudflare gives you two nameservers. At your domain registrar, replace the domain's nameservers with those two. Cloudflare emails you when the domain is active, usually within an hour.
-3. In Cloudflare, go to **SSL/TLS → Edge Certificates** and turn on **Always Use HTTPS**.
-4. Leave **Bot Fight Mode** and **Under Attack mode** off. They answer some requests with a browser challenge, which the phone app and watches can't complete.
+2. **Check the records Cloudflare imported** before going any further. Moving the nameservers moves *all* of the domain's DNS, so anything that doesn't come across stops working when the nameservers change:
+   - the landing page (`fhmatchcentre.com`) and the docs (`docs.fhmatchcentre.com`), both on Vercel — set these to **DNS only** (grey cloud) so Vercel serves its own certificates;
+   - the **email** records, if SES is already set up: the three Easy DKIM CNAMEs, the SPF TXT record and the `_dmarc` TXT record (see [Email](#email)). Miss these and mail keeps being accepted but starts failing authentication, so confirmations and password resets go to spam.
 
-You don't add the site's DNS records yourself: the setup script does that in step 2. From now on, any DNS records you add (e.g. for email) go in Cloudflare, not at the registrar.
+   Compare the imported list against the registrar's and add anything missing *before* step 3.
+3. Cloudflare gives you two nameservers. At your domain registrar, replace the domain's nameservers with those two. Cloudflare emails you when the domain is active, usually within an hour.
+4. In Cloudflare, go to **SSL/TLS → Edge Certificates** and turn on **Always Use HTTPS**.
+5. Leave **Bot Fight Mode** and **Under Attack mode** off. They answer some requests with a browser challenge, which the phone app and watches can't complete.
+
+This machine serves **`app.fhmatchcentre.com`** only: the API on `/v1/*` and the website on everything else. The apex stays with the landing page on Vercel. You don't add `app`'s DNS record yourself: the setup script does that in step 2, from `SITE_URL` in `web.env`. From now on, any DNS records you add (e.g. for email) go in Cloudflare, not at the registrar.
 
 ## 2. Set up the machine (once)
 
@@ -144,7 +149,7 @@ A branch name works in place of a tag (e.g. `fh deploy main`), but tags make it 
 
 ## 4. Create the first admin
 
-1. Register on https://fhmatchcentre.com/register.
+1. Register on https://app.fhmatchcentre.com/register.
 2. Make that account an admin: `fh admin you@example.com --verify` (with `sudo` on Linux).
 
    `--verify` also confirms your email address, so you can sign in before email is set up. From then on, use **Admin → Users** on the website to manage roles.
@@ -194,7 +199,7 @@ FH Match Centre sends its emails (sign-up confirmations, password resets) throug
 ## Monitoring
 
 - `fh status` shows the running release, whether each service is up and answering, whether the tunnel is connected, and the newest backup.
-- Point a free uptime monitor (e.g. UptimeRobot or Better Stack) at `https://fhmatchcentre.com/v1/health`. It should return `{"ok":true}`. At home this also tells you about power cuts and broadband outages.
+- Point a free uptime monitor (e.g. UptimeRobot or Better Stack) at `https://app.fhmatchcentre.com/v1/health`. It should return `{"ok":true}`. At home this also tells you about power cuts and broadband outages.
 
 ## Day-to-day
 

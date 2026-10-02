@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const apiUrl = process.env.API_URL ?? "http://127.0.0.1:3001";
-// Read at build time from web.env: the public address, e.g. https://fhmatchcentre.com.
+// Read at build time from web.env: the public address, e.g. https://app.fhmatchcentre.com.
 const site = new URL(process.env.SITE_URL ?? "http://localhost:3000");
 const https = site.protocol === "https:";
 

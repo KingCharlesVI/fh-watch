@@ -72,7 +72,18 @@ if (!hasKey) {
   console.log("\x1b[33m!! Signing with the debug key: these bundles can't go to Google Play.\x1b[0m");
 }
 
-const env = { ...process.env, ANDROID_HOME: sdk, JAVA_HOME: java, EXPO_PUBLIC_STAGE: stage, NODE_ENV: "production" };
+// mobile/.env is for development, and Expo reads it for release builds too, so its
+// localhost addresses would end up in the app. Set these to build against somewhere else.
+const SITE = "https://app.fhmatchcentre.com";
+const env = {
+  ...process.env,
+  ANDROID_HOME: sdk,
+  JAVA_HOME: java,
+  EXPO_PUBLIC_STAGE: stage,
+  EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL ?? SITE,
+  EXPO_PUBLIC_WEB_URL: process.env.EXPO_PUBLIC_WEB_URL ?? SITE,
+  NODE_ENV: "production",
+};
 
 function run(cwd, cmd, cmdArgs) {
   // gradlew.bat and npx are .cmd/.bat files on Windows, which only start through a shell.
