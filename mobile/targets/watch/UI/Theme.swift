@@ -61,7 +61,9 @@ func periodName(_ period: Int, _ periods: Int) -> String {
 
 func formatClock(_ ms: Int64) -> String {
     let totalSec = (max(ms, 0) + 999) / 1000
-    return String(format: "%d:%02d", totalSec / 60, totalSec % 60)
+    // Not String(format: "%d") with Int64s: on 32-bit watches (arm64_32) the seconds read as 0.
+    let seconds = totalSec % 60
+    return "\(totalSec / 60):\(seconds < 10 ? "0" : "")\(seconds)"
 }
 
 extension Side {
