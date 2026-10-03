@@ -21,17 +21,27 @@ export const SITE = {
 
 export const GITHUB_URL = `https://github.com/${SITE.githubRepo}`;
 
-/**
- * The GitHub project board, for anyone who wants to follow the work. This is the
- * repository's Projects tab, which lists its boards; to go straight to one board,
- * open it on GitHub and put its address here instead.
- */
-export const PROJECT_BOARD_URL = `${GITHUB_URL}/projects`;
+/** The GitHub project board, for anyone who wants to follow the work. */
+export const PROJECT_BOARD_URL = `${GITHUB_URL}/projects/11/views/1`;
 export const ISSUES_URL = `${GITHUB_URL}/issues`;
 
+/**
+ * Where the "join the testing" forms send what's typed into them. This is a static
+ * site with no server of its own, so one of these has to be set for a form to work:
+ *
+ * - `endpoint`: a URL that takes a JSON POST - a form service (Formspree, Tally and
+ *   the like), or an endpoint of your own. The body is { kind, name, email, devices, notes }.
+ * - otherwise `SITE.contactEmail`: the form opens the umpire's own email app with
+ *   everything filled in, which needs nothing hosted at all.
+ *
+ * With neither, the forms say invitations aren't open through them yet and point at
+ * the support page, so the page is never a dead end.
+ */
+export const ACCESS_FORM = { endpoint: null as string | null };
+
 /** The three stages the apps go through, in order. */
-export type Stage = "alpha" | "beta" | "release";
-export const STAGE_ORDER: Stage[] = ["alpha", "beta", "release"];
+export type Stage = "alpha" | "beta" | "public release";
+export const STAGE_ORDER: Stage[] = ["alpha", "beta", "public release"];
 
 /** Where the project is now. The stepper, the hero and the download cards all follow this. */
 export const CURRENT_STAGE: Stage = "beta";
@@ -68,7 +78,7 @@ export const DOWNLOADS: Download[] = [
   {
     stage: "alpha",
     title: "Alpha",
-    step: "The watch and phone apps, offline, with a handful of umpires",
+    step: "",
     summary: "The watch and phone apps on their own: umpire on a Wear OS watch, review and export matches on your Android phone. Nothing leaves your phone unless you send it.",
     audience: "Invited umpires. Ask to join, then use the Google Play link on your phone with the same Google account, or install the APKs directly.",
     links: [
@@ -82,7 +92,7 @@ export const DOWNLOADS: Download[] = [
   {
     stage: "beta",
     title: "Beta",
-    step: "Accounts, uploads and the website, plus Apple Watch and iPhone",
+    step: "",
     summary:
       "Everything the alpha does, and then your account: upload a match, correct it, publish the result and share it by link or QR code. Apple Watch and iPhone join through TestFlight.",
     audience: "Invited umpires, on Android and Wear OS or on iPhone and Apple Watch. Ask to join, then install from Google Play or TestFlight, or install the APKs directly.",
@@ -96,9 +106,9 @@ export const DOWNLOADS: Download[] = [
     ],
   },
   {
-    stage: "release",
-    title: "1.0",
-    step: "On Google Play and the App Store, open to every umpire and club",
+    stage: "public release",
+    title: "Public Release",
+    step: "",
     summary: "The finished apps and website for everyone: no invitation, published results for players and clubs, and club pages kept up to date by the clubs themselves.",
     audience: "Every umpire and club.",
     links: [
@@ -175,38 +185,24 @@ export const ROADMAP: RoadmapStep[] = [
     title: "Foundations",
     status: "done",
     items: [
-      "One match format shared by the watch, phone, server and website",
-      "Wear OS umpiring app, working fully offline",
-      "Phone app to review, correct and export matches",
-      "Server and website, ready for 1.0",
     ],
   },
   {
     title: "Alpha",
     status: "done",
     items: [
-      "Real matches with invited umpires on Android and Wear OS",
-      "Watch screens refined to feel like the tools umpires already know",
-      "Match reports as PDF, spreadsheets and backups, straight from the phone",
     ],
   },
   {
     title: "Beta",
     status: "now",
     items: [
-      "Accounts, uploads and published results on the website",
-      "Share a match by link or QR code; club and team pages",
-      "Apple Watch and iPhone apps, through TestFlight",
-      "Umpires testing all of it on real matches",
     ],
   },
   {
-    title: "1.0",
+    title: "Public Release",
     status: "next",
     items: [
-      "On Google Play and the App Store for every umpire and club",
-      "Registration open to anyone, with no invitation",
-      "Clubs keeping their own teams up to date",
     ],
   },
 ];

@@ -1,4 +1,5 @@
 import { ArrowUpRight, Check, FileText, Flag, Globe, Hand, LifeBuoy, Smartphone, Timer, Vibrate, Watch, WifiOff } from "lucide-react";
+import { AccessRequestForm } from "@/components/AccessRequestForm";
 import {
   ApkInstructions,
   Button,
@@ -202,6 +203,17 @@ export default function Home() {
             Needs a Wear OS 3 watch or later (Samsung Galaxy Watch 4 and newer, Google Pixel Watch) with an Android phone. Apple Watch and iPhone are in
             testing through TestFlight, and arrive for everyone in 1.0.
           </p>
+        </Section>
+
+        <Section
+          id="request"
+          eyebrow="Join the testing"
+          title="Ask for a place in the beta"
+          intro="Tell us what you umpire with and the invitation follows by email. Places are limited while it's in testing."
+        >
+          <div className="grid gap-6 md:grid-cols-2">
+            <AccessRequestForm kind="testflight" />
+          </div>
         </Section>
 
         <Section id="faq" eyebrow="Questions" title="Before you start">

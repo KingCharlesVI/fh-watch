@@ -87,14 +87,11 @@ export function StoreButton({ link }: { link: StoreLink }) {
   );
 }
 
+/** Points at the forms further down the page, which are what actually asks. */
 export function RequestAccess({ stage }: { stage: string }) {
-  if (!SITE.contactEmail) return null;
-  const href = `mailto:${SITE.contactEmail}?subject=${encodeURIComponent(`Join the FH Match Centre ${stage}`)}&body=${encodeURIComponent(
-    "Hello,\n\nI'd like to join the test. The Google account on my phone is:\n\nMy watch is a:\n\nThanks!",
-  )}`;
   return (
-    <a href={href} className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-      <Mail className="size-4" /> Ask to join
+    <a href="#request" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+      <Mail className="size-4" /> Ask to join the {stage}
     </a>
   );
 }
