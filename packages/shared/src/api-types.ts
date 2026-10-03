@@ -93,6 +93,22 @@ export interface ClubRequest {
   reviewedAt: string | null;
 }
 
+/** Someone asking to join a test, from the landing page's form. Admins only. */
+export interface AccessRequest {
+  id: string;
+  kind: "google-play" | "testflight";
+  name: string;
+  email: string;
+  /** Their watch and phone, as they described them. */
+  devices: string;
+  notes: string | null;
+  status: "pending" | "approved" | "denied";
+  /** What they were told when it was decided, if anything was added. */
+  decisionNote: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+}
+
 export interface Page<T> {
   items: T[];
   nextCursor: string | null;
