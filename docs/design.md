@@ -237,7 +237,8 @@ Upgrading a phone from the alpha to 1.0 keeps its matches: signing in clears the
 
 | Screen | Contents |
 | --- | --- |
-| Sign in / register | Email and password, forgot password. Tokens are kept in the Keychain (iOS) or Keystore (Android) via `expo-secure-store`. |
+| Sign in | Email and password, with a way in to Register. An unconfirmed address is told so and offered the confirmation email again. Forgot password opens the website. Tokens are kept in the Keychain (iOS) or Keystore (Android) via `expo-secure-store`. |
+| Register | The website's form in the app: name, email, password twice, and an optional club request (search the club directory, or ask for a club that isn't listed). The API emails a link to confirm the address, so the screen then points at the inbox, with a way to send the email again. |
 | Matches | Tabs: New from watch, Drafts, Published (alpha: New and Saved). Each row shows the teams, score, date and an upload status badge. Published matches with unlinked teams show a "Link teams" badge. |
 | Match detail | Score header, per-period summary, event timeline, and card and penalty-corner totals. |
 | Edit match | Link the home and away teams to clubs and teams (searchable), set venue and competition, add umpire 2, add, change or void events, and add notes. The score updates live as events change. |

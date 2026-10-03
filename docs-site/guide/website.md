@@ -12,7 +12,7 @@ The website is where results are published: umpires upload their matches, and an
 
 ## For umpires
 
-Register with your email address; there's no approval needed.
+Register with your email address, in the phone app (**Create an account** on the sign-in screen) or here; there's no approval needed. Either way you'll get an email with a link to confirm your address, and you can sign in once you've followed it.
 
 1. **Sign in on the phone app** too, with the same account.
 2. **Upload** a match from its page in the phone app. Nothing is uploaded until you ask; if there's no signal, it goes as soon as there is. If a match from your watch still isn't uploaded 2 hours after it reached your phone, the app reminds you.
