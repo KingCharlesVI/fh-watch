@@ -49,21 +49,37 @@ const tag = `${release.version}-${release.build}`;
 const out = join(ROOT, "dist", "play");
 const phone = { file: join(out, `fh-match-centre-phone-${tag}-${stage}.aab`), versionCode: release.build, track: TRACKS[trackArg] };
 const watch = { file: join(out, `fh-match-centre-watch-${tag}.aab`), versionCode: 1_000_000 + release.build, track: `wear:${TRACKS[trackArg]}` };
+const otherStage = stage === "beta" ? "alpha" : "beta";
 for (const b of [phone, watch]) {
-  if (!existsSync(b.file)) fail(`${b.file} isn't there. Build both bundles for this build first: pnpm release:android${stage === "beta" ? " --beta" : ""}`);
+  if (existsSync(b.file)) continue;
+  // The phone bundle's name carries the stage, so the usual slip is leaving --beta off, or on.
+  const other = b.file.replace(`-${stage}.aab`, `-${otherStage}.aab`);
+  if (other !== b.file && existsSync(other)) {
+    fail(`${b.file} isn't there, but this build's ${otherStage} bundle is. ${stage === "beta" ? "Leave --beta out" : "Add --beta"} to upload that one.`);
+  }
+  fail(`${b.file} isn't there. Build both bundles for this build first: pnpm release:android${stage === "beta" ? " --beta" : ""}`);
 }
 
 const keyFile = process.env.FH_PLAY_KEY ?? join(homedir(), ".fh", "play-service-account.json");
 if (!existsSync(keyFile)) fail(`No service account key at ${keyFile}. Set FH_PLAY_KEY, or see docs/play-store.md ("Uploading from the command line").`);
 
 /**
+ * The notes `pnpm release:github` wrote for this build: a pre-release's (from dev) first,
+ * then a full release's, which is named after the version alone from 1.0.0 and after the
+ * stage before it. Null when none of them is there.
+ */
+function notesFile() {
+  const names = [`v${release.version}-${stage}.${release.build}`, `v${release.version}`, `v${release.version}-${stage}`];
+  return names.map((tag) => join(out, `release-notes-${tag}.md`)).find(existsSync) ?? null;
+}
+
+/**
  * The GitHub release's features and fixes as plain text, cut to Play's limit (testers don't
  * need the docs and chores); a plain line if there are none.
  */
 function releaseNotes() {
-  const releaseTag = `v${release.version}-${stage}.${release.build}`;
-  const file = join(out, `release-notes-${releaseTag}.md`);
-  const lines = existsSync(file) ? readFileSync(file, "utf8").split(/\r?\n/) : [];
+  const file = notesFile();
+  const lines = file ? readFileSync(file, "utf8").split(/\r?\n/) : [];
   const kept = [];
   let keep = false;
   for (const line of lines) {
@@ -79,7 +95,9 @@ function releaseNotes() {
   return text.length <= NOTES_LIMIT ? text : `${text.slice(0, NOTES_LIMIT - 2).replace(/\n[^\n]*$/, "")}\n…`;
 }
 
+const notesFrom = notesFile();
 const notes = releaseNotes();
+if (!notesFrom) console.log(`No release notes in ${out} for this build (pnpm release:github writes them), so testers get a plain line.`);
 const play = androidpublisher({
   version: "v3",
   auth: new auth.GoogleAuth({ keyFile, scopes: ["https://www.googleapis.com/auth/androidpublisher"] }),
@@ -124,7 +142,7 @@ try {
     say(`Released to ${trackArg} testing${flags.has("--draft") ? " as drafts: roll them out in Play Console" : ""}.`);
     console.log("Testers get it from Google Play once Google has processed it, usually within minutes for internal testing.");
   }
-  console.log(`\nRelease notes:\n${notes}`);
+  console.log(`\nRelease notes${notesFrom ? ` (from ${notesFrom})` : ""}:\n${notes}`);
 } catch (err) {
   await play.edits.delete({ packageName: PACKAGE, editId }).catch(() => {});
   const message = err?.response?.data?.error?.message ?? err?.message ?? String(err);
