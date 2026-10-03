@@ -21,6 +21,7 @@
     "release:watch": "node scripts/release-android.mjs watch",
     "release:github": "node scripts/github-release.mjs",
     "release:play": "node scripts/play-upload.mjs",
+    "screenshots": "node scripts/screenshots.mjs",
     "release:ios": "cd mobile && npx --yes eas-cli build --platform ios --profile alpha --auto-submit"
   },
   "pnpm": {

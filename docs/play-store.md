@@ -59,6 +59,16 @@ This builds both bundles into `dist/play/`. To build one app on its own, use `pn
 3. **Add Wear OS:** Test and release → Advanced settings → Form factors → Add form factor → Wear OS. This creates separate Wear OS release tracks. The Wear OS app is reviewed against the [Wear OS app quality guidelines](https://developer.android.com/docs/quality-guidelines/wear-app-quality).
 4. **Store listing** (Grow users → Store presence → Main store listing): short and full description, a 512×512 icon, a 1024×500 feature graphic, at least two phone screenshots, and Wear OS screenshots (one of each match page: Timing, Cards and Goals show it best).
 
+   `pnpm screenshots <name>` takes one from every connected device at once, naming each by what the device says it is, and checks it against what Play accepts: 320-3840px a side and 16:9 or taller for a phone, square and at least 384px for a watch. They land in `dist/screens/`.
+
+   ```sh
+   pnpm screenshots --list       # what's connected
+   pnpm screenshots timing       # phone-timing.png and watch-timing.png
+   pnpm screenshots goals --watch
+   ```
+
+   The phone needs USB debugging and the cable; the watch needs wireless debugging and `adb connect <address>` (the same setup as installing its APK). Set a match up first: the empty screens make a poor listing.
+
 ## 4. Internal testing
 
 Internal testing reaches up to 100 testers you choose, and releases are usually available within minutes, without a full review.
