@@ -43,8 +43,7 @@ final class PhoneSync: NSObject, WCSessionDelegate {
             let json = String(decoding: try DocumentJSON.encode(document), as: UTF8.self)
             let workout = try fitness.map { String(decoding: try JSONEncoder().encode($0), as: UTF8.self) }
             // A resend replaces anything for this match still waiting to go.
-            for t in session.outstandingUserInfoTransfers where t.userInfo["id"] as? String == document.id { t.cancel() }
-            for t in session.outstandingFileTransfers where t.file.metadata?["id"] as? String == document.id { t.cancel() }
+            cancelPending(document.id)
 
             var info: [String: Any] = ["kind": "match", "id": document.id, "schemaVersion": schemaVersion]
             if let workout { info["fitness"] = workout }
@@ -60,6 +59,14 @@ final class PhoneSync: NSObject, WCSessionDelegate {
         } catch {
             NSLog("FH: couldn't queue match %@: %@", document.id, String(describing: error))
         }
+    }
+
+    /// Drops anything for this match still queued for the phone, so a match deleted here
+    /// (or about to be sent again) can't arrive later as one the umpire has already dealt with.
+    func cancelPending(_ id: String) {
+        guard let session else { return }
+        for t in session.outstandingUserInfoTransfers where t.userInfo["id"] as? String == id { t.cancel() }
+        for t in session.outstandingFileTransfers where t.file.metadata?["id"] as? String == id { t.cancel() }
     }
 
     /// Sends every finished match the phone hasn't confirmed. Returns how many.
