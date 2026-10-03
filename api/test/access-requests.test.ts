@@ -36,6 +36,30 @@ describe("access requests", () => {
     ]);
   });
 
+  it("emails the umpire to say we have it, saying what they sent and that there's nothing to do", async () => {
+    await post(request({ notes: "Oxfordshire league." }));
+    expect(t.mailer.sent).toHaveLength(1);
+    const mail = t.mailer.sent[0]!;
+    expect(mail.to).toBe("sam@example.com");
+    expect(mail.subject).toBe("Your request to join the Google Play test");
+    expect(mail.text).toContain("Pixel 8, Galaxy Watch 6");
+    expect(mail.text).toContain("Oxfordshire league.");
+    expect(mail.text).toContain("nothing to do for now");
+    expect(mail.text).not.toContain("replaces");
+
+    // Asking again says so, so it's clear which one we have.
+    await post(request({ devices: "Pixel 9, Galaxy Watch 8" }));
+    expect(t.mailer.sent).toHaveLength(2);
+    expect(t.mailer.sent[1]!.text).toContain("replaces the request we already had");
+    expect(t.mailer.sent[1]!.text).toContain("Pixel 9, Galaxy Watch 8");
+  });
+
+  it("says nothing about the request to anyone else, and sends nothing when the form is refused", async () => {
+    await post(request(), "https://not-us.example");
+    expect((await post(request({ email: "not-an-email" }))).statusCode).toBe(400);
+    expect(t.mailer.sent).toHaveLength(0);
+  });
+
   it("updates the one that's waiting when the same umpire asks again, and keeps the two tests apart", async () => {
     await post(request());
     await post(request({ devices: "Pixel 9, Galaxy Watch 8", notes: "New watch." }));

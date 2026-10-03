@@ -1,5 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
-import type { FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from "fastify";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { requireRole } from "../auth.js";
@@ -8,6 +8,7 @@ import type { AppDeps } from "../deps.js";
 import { HttpError, conflict, notFound } from "../lib/errors.js";
 import { RateLimiter } from "../lib/rate-limit.js";
 import { audit } from "../services/audit.js";
+import type { Mail } from "../services/mailer.js";
 import { Email } from "./auth.js";
 
 const Kind = z.enum(["google-play", "testflight"]);
@@ -40,6 +41,9 @@ const dto = (r: Row) => ({
 
 const Accepted = { message: "Thanks. We'll email you about it." };
 
+/** What to call each test in an email. */
+const TEST_NAME = { "google-play": "Google Play", testflight: "TestFlight" } as const;
+
 /**
  * Asking to join a test, from the landing page's form, and the admin side of
  * answering. The form is on another origin (the landing page is a static site on
@@ -48,7 +52,33 @@ const Accepted = { message: "Thanks. We'll email you about it." };
 export const accessRequestRoutes =
   (deps: AppDeps): FastifyPluginAsyncZod =>
   async (app) => {
-    const { db } = deps;
+    const { db, config } = deps;
+
+    /** Email never holds up an answer, and a request that's in isn't lost if it can't be sent. */
+    const sendMail = (log: FastifyBaseLogger, mail: Mail) =>
+      deps.mailer.send(mail).catch((err: unknown) => log.error({ err, to: mail.to }, "Failed to send email"));
+
+    /** Says we have it, so nobody is left wondering whether the form worked. */
+    const acknowledgement = (row: Row, replaced: boolean): Mail => ({
+      to: row.email,
+      subject: `Your request to join the ${TEST_NAME[row.kind]} test`,
+      text: [
+        `Thanks for asking to join the ${TEST_NAME[row.kind]} test of FH Match Centre.`,
+        replaced ? "This replaces the request we already had from you." : null,
+        "",
+        "What you sent:",
+        `  Name: ${row.name}`,
+        `  Watch and phone: ${row.devices}`,
+        ...(row.notes ? [`  Notes: ${row.notes}`] : []),
+        "",
+        "There's nothing to do for now. We'll email you again when a place is ready, with how to install the apps.",
+        "Places are limited while the apps are in testing, so it can take a few days.",
+        "",
+        `If you didn't ask for this, ignore this email: ${config.landingUrl}`,
+      ]
+        .filter((line) => line !== null)
+        .join("\n"),
+    });
     // The same allowance as sign-in, counted per address and per IP.
     const limiter = new RateLimiter(deps.authRateLimit.max, deps.authRateLimit.windowMs, deps.now);
 
@@ -71,6 +101,7 @@ export const accessRequestRoutes =
           if (!limiter.hit(key)) throw new HttpError(429, "rate_limited", "Too many requests. Try again in 15 minutes.");
         }
 
+        let replaced = false;
         const row = await db.transaction(async (tx) => {
           // Asking twice (a lost email, a changed watch) updates the one that's waiting.
           const [waiting] = await tx
@@ -78,6 +109,7 @@ export const accessRequestRoutes =
             .from(accessRequests)
             .where(and(eq(accessRequests.email, email), eq(accessRequests.kind, kind), eq(accessRequests.status, "pending")));
           if (waiting) {
+            replaced = true;
             const [updated] = await tx
               .update(accessRequests)
               .set({ name, devices, notes: notes ?? null })
@@ -90,6 +122,7 @@ export const accessRequestRoutes =
           return created!;
         });
         request.log.info({ id: row.id, kind }, "Access request");
+        void sendMail(request.log, acknowledgement(row, replaced));
         return reply.code(202).send(Accepted);
       },
     );
