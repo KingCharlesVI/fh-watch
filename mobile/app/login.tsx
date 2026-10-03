@@ -1,9 +1,7 @@
-import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { WEB_URL } from "@/config";
 import { ApiError, errorMessage } from "@/core/api";
 import { api } from "@/services";
 import { useAuth } from "@/state/auth";
@@ -68,7 +66,7 @@ export default function LoginScreen() {
             <Button title="Sign in" onPress={submit} loading={busy} disabled={!email || !password} />
           </Card>
           <Button title="Create an account" variant="ghost" onPress={() => router.push("/register")} />
-          <Button title="Forgotten your password?" variant="ghost" onPress={() => Linking.openURL(`${WEB_URL}/forgot-password`)} />
+          <Button title="Forgotten your password?" variant="ghost" onPress={() => router.push("/forgot-password")} />
         </Screen>
       </KeyboardAvoidingView>
     </SafeAreaView>

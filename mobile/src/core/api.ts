@@ -113,6 +113,14 @@ export class ApiClient {
   resendVerification = (email: string) =>
     this.request<{ message: string }>("/v1/auth/resend-verification", { method: "POST", auth: false, body: { email } });
 
+  /** Asks for a reset email. Answers the same way whether or not the address has an account. */
+  forgotPassword = (email: string) =>
+    this.request<{ message: string }>("/v1/auth/forgot-password", { method: "POST", auth: false, body: { email } });
+
+  /** Sets a new password from the token in that email. Ends every session the account had. */
+  resetPassword = (token: string, password: string) =>
+    this.request<void>("/v1/auth/reset-password", { method: "POST", auth: false, body: { token, password } });
+
   async hasSession(): Promise<boolean> {
     return (await this.opts.tokens.get()) !== null;
   }

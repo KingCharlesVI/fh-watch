@@ -27,6 +27,9 @@ export class FakeApi {
   /** Accounts created through /auth/register, and how many confirmation emails each got. */
   readonly registrations: { email: string; displayName: string; clubRequest?: unknown }[] = [];
   readonly verificationEmails: string[] = [];
+  /** Reset links emailed out, and the token the next reset will accept. */
+  readonly resetEmails: string[] = [];
+  resetToken = "reset-token-1";
   /** Every request, as "METHOD /path". */
   readonly calls: string[] = [];
   offline = false;
@@ -99,6 +102,18 @@ export class FakeApi {
     if (path === "/v1/auth/resend-verification" && method === "POST") {
       this.verificationEmails.push(body.email);
       return json(202, { message: "If the details are right, you'll get an email shortly." });
+    }
+    if (path === "/v1/auth/forgot-password" && method === "POST") {
+      if (body.email === USER.email) this.resetEmails.push(`https://app.example.com/reset-password?token=${this.resetToken}`);
+      return json(202, { message: "If the details are right, you'll get an email shortly." });
+    }
+    if (path === "/v1/auth/reset-password" && method === "POST") {
+      if (body.token !== this.resetToken) return problem(400, "This link is invalid or has expired.");
+      if (String(body.password).length < 10) return problem(400, "Use at least 10 characters.");
+      // One use only, and every session ends.
+      this.resetToken = "spent";
+      this.revokeSessions();
+      return new Response(null, { status: 204 });
     }
     if (path === "/v1/clubs" && method === "GET") {
       const q = (url.searchParams.get("q") ?? "").toLowerCase();

@@ -78,6 +78,7 @@ function Navigator() {
       <Stack.Protected guard={!open}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ title: "Create an account" }} />
+        <Stack.Screen name="forgot-password" options={{ title: "Reset your password" }} />
       </Stack.Protected>
     </Stack>
   );

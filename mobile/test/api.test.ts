@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ApiError, NetworkError } from "../src/core/api";
+import { resetTokenFrom } from "../src/core/reset-link";
 import { CLUBS, USER } from "./fake-api";
 import { setup } from "./helpers";
 
@@ -33,6 +34,16 @@ describe("ApiClient", () => {
     await t.api.register({ email: "admin@example.com", password: "a long enough one", displayName: "Jo", clubRequest: { clubId: CLUBS[0]!.id } });
     expect(t.server.registrations[0]?.clubRequest).toEqual({ clubId: CLUBS[0]!.id });
     expect(await t.api.searchClubs("hawks")).toEqual({ items: [CLUBS[0]] });
+  });
+
+  it("emails a reset link and sets a new password from its token", async () => {
+    const t = await setup({ signIn: false });
+    await t.api.forgotPassword(USER.email);
+    const link = t.server.resetEmails.at(-1)!;
+
+    await t.api.resetPassword(resetTokenFrom(link), "a brand new one");
+    // The token is spent, so the same link can't be used again.
+    await expect(t.api.resetPassword(resetTokenFrom(link), "another new one")).rejects.toThrow(/invalid or has expired/);
   });
 
   it("refreshes an access token that's about to expire, once, for parallel requests", async () => {
