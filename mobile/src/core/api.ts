@@ -1,4 +1,5 @@
 import type {
+  Club,
   FullMatch,
   Items,
   Match,
@@ -39,6 +40,14 @@ export class ApiError extends Error {
 export class NetworkError extends Error {}
 
 type Query = Record<string, string | number | boolean | undefined>;
+
+/** A new account. The club request, like the website's, asks an admin for a club or to run one. */
+export interface Registration {
+  email: string;
+  password: string;
+  displayName: string;
+  clubRequest?: { clubId: string } | { clubName: string; wantsAdmin: boolean };
+}
 
 interface RequestOptions {
   method?: string;
@@ -93,6 +102,17 @@ export class ApiClient {
     }
   }
 
+  /**
+   * Creates an account. The API answers the same way whether or not the email was
+   * already in use, so nothing here reveals that; it emails a link to confirm the
+   * address, and sign-in only works once that's done.
+   */
+  register = (body: Registration) => this.request<{ message: string }>("/v1/auth/register", { method: "POST", auth: false, body });
+
+  /** Another confirmation email, for one that never arrived. */
+  resendVerification = (email: string) =>
+    this.request<{ message: string }>("/v1/auth/resend-verification", { method: "POST", auth: false, body: { email } });
+
   async hasSession(): Promise<boolean> {
     return (await this.opts.tokens.get()) !== null;
   }
@@ -121,6 +141,8 @@ export class ApiClient {
   }
 
   searchTeams = (q: string) => this.request<Items<TeamWithClub>>("/v1/teams", { query: { q } });
+  /** Public, so it works from the registration screen, before there's an account. */
+  searchClubs = (q: string) => this.request<Items<Club>>("/v1/clubs", { query: { q }, auth: false });
   searchUmpires = (q: string) => this.request<Items<{ id: string; displayName: string }>>("/v1/umpires", { query: { q } });
 
   registerPushToken = (token: string, platform: "ios" | "android") =>
