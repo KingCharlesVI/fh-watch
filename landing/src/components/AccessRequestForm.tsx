@@ -30,6 +30,18 @@ const KINDS = {
 
 type State = "idle" | "sending" | "sent" | "handedToEmail" | "failed";
 
+/** The API answers a problem+json; anything else gets a general message. */
+async function problem(res: Response): Promise<string> {
+  const fallback = "That didn't send. Try again in a moment.";
+  try {
+    const body: unknown = await res.json();
+    const title = (body as { title?: unknown }).title;
+    return typeof title === "string" && title ? title : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 /**
  * Asks to be let into one of the tests. There's no server behind this site, so the
  * form either posts to the endpoint in `ACCESS_FORM` or opens the umpire's email app
@@ -43,6 +55,7 @@ export function AccessRequestForm({ kind }: { kind: AccessKind }) {
   const [devices, setDevices] = useState("");
   const [notes, setNotes] = useState("");
   const [state, setState] = useState<State>("idle");
+  const [error, setError] = useState("");
 
   const heading = (
     <div className="flex items-center gap-2">
@@ -77,10 +90,13 @@ export function AccessRequestForm({ kind }: { kind: AccessKind }) {
         const res = await fetch(ACCESS_FORM.endpoint, {
           method: "POST",
           headers: { "content-type": "application/json", accept: "application/json" },
-          body: JSON.stringify(request),
+          // An empty box is nothing to say, not an empty answer.
+          body: JSON.stringify({ ...request, notes: request.notes || undefined }),
         });
+        if (!res.ok) setError(await problem(res));
         setState(res.ok ? "sent" : "failed");
       } catch {
+        setError("That didn't send. Check your connection and try again.");
         setState("failed");
       }
       return;
@@ -138,11 +154,11 @@ export function AccessRequestForm({ kind }: { kind: AccessKind }) {
         <Field id={`${id}-notes`} label="Anything else (optional)" value={notes} onChange={setNotes} maxLength={500} required={false} textarea />
         {state === "failed" && (
           <p className="text-sm text-red-600 dark:text-red-400" role="alert">
-            That didn&apos;t send. Try again, or use the ways to get in touch on the{" "}
+            {error} The{" "}
             <a href="/support" className="font-medium underline">
               support page
-            </a>
-            .
+            </a>{" "}
+            has other ways to get in touch.
           </p>
         )}
         <button

@@ -29,18 +29,20 @@ export const BUG_REPORT_URL = `${ISSUES_URL}/new?template=bug_report.yml`;
 export const FEATURE_REQUEST_URL = `${ISSUES_URL}/new?template=feature_request.yml`;
 
 /**
- * Where the "join the testing" forms send what's typed into them. This is a static
- * site with no server of its own, so one of these has to be set for a form to work:
+ * Where the "join the testing" forms send what's typed into them.
  *
- * - `endpoint`: a URL that takes a JSON POST - a form service (Formspree, Tally and
- *   the like), or an endpoint of your own. The body is { kind, name, email, devices, notes }.
+ * - `endpoint`: a URL that takes a JSON POST of { kind, name, email, devices, notes }.
+ *   The project's own API answers that at `/v1/access-requests`, which emails the
+ *   umpire straight away and the admins' decision later (api/src/routes/access-requests.ts).
+ *   The API only accepts it from this site's address, set as LANDING_URL there.
+ *   A form service (Formspree, Tally and the like) would work here too.
  * - otherwise `SITE.contactEmail`: the form opens the umpire's own email app with
  *   everything filled in, which needs nothing hosted at all.
  *
  * With neither, the forms say invitations aren't open through them yet and point at
  * the support page, so the page is never a dead end.
  */
-export const ACCESS_FORM = { endpoint: null as string | null };
+export const ACCESS_FORM = { endpoint: SITE.appUrl ? `${SITE.appUrl}/v1/access-requests` : (null as string | null) };
 
 /** The three stages the apps go through, in order. */
 export type Stage = "alpha" | "beta" | "public release";

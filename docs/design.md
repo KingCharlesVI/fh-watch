@@ -293,6 +293,9 @@ The API is a versioned REST service (`/v1`) written in Fastify, and all input is
 | Method + path | Who | Purpose |
 | --- | --- | --- |
 | `POST /auth/register` | Public | Create an account, optionally with a club request. Always answers 202, so it can't be used to find out which emails are registered. |
+| `POST /access-requests` | Public (the landing page's origin only) | Ask to join the Google Play or TestFlight test: kind, name, email, devices, notes. Always answers 202. Asking again replaces the request still waiting, and the same per-IP and per-address limit as sign-in applies. |
+| `GET /access-requests?status=&kind=` | Admin | Every request, newest first |
+| `POST /access-requests/{id}/approve` · `POST …/deny` | Admin | Answer one, once, with an optional `note` for the umpire |
 | `POST /auth/resend-verification` | Public | Send a new verification link |
 | `POST /auth/login` / `refresh` / `logout` | Public / signed in | Issue, renew and revoke tokens |
 | `POST /auth/verify-email`, `/auth/forgot-password`, `/auth/reset-password` | Public | Email flows |

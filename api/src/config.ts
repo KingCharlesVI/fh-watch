@@ -12,6 +12,11 @@ const Env = z.object({
   JWT_SECRET: z.string().min(32).optional(),
   /** Public website origin, used in email links and share URLs. */
   WEB_URL: z.url().default("http://localhost:3000"),
+  /**
+   * The landing page, which is on its own domain and hosts the "join the testing"
+   * forms. Its origin (and its www form) may post them here; nothing else may.
+   */
+  LANDING_URL: z.url().default("http://localhost:3002"),
   MAIL_FROM: z.string().default("FH Match Centre <no-reply@fhmatchcentre.com>"),
   /** nodemailer SMTP URL, e.g. smtps://user:pass@smtp.example.com. Unset: emails are logged. */
   SMTP_URL: z.string().optional(),
@@ -37,6 +42,9 @@ export interface Config {
   databaseUrl: string;
   jwtSecret: Uint8Array;
   webUrl: string;
+  landingUrl: string;
+  /** Origins allowed to post the access-request form: the landing page, either way round. */
+  formOrigins: string[];
   mailFrom: string;
   smtpUrl: string | undefined;
   expoAccessToken: string | undefined;
@@ -51,6 +59,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (!e.JWT_SECRET && e.NODE_ENV === "production") {
     throw new Error("JWT_SECRET must be set in production (at least 32 characters).");
   }
+  const landing = e.LANDING_URL.replace(/\/$/, "");
   return {
     env: e.NODE_ENV,
     host: e.HOST,
@@ -58,6 +67,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     databaseUrl: e.DATABASE_URL,
     jwtSecret: e.JWT_SECRET ? new TextEncoder().encode(e.JWT_SECRET) : randomBytes(32),
     webUrl: e.WEB_URL.replace(/\/$/, ""),
+    landingUrl: landing,
+    formOrigins: formOrigins(landing),
     mailFrom: e.MAIL_FROM,
     smtpUrl: e.SMTP_URL,
     expoAccessToken: e.EXPO_ACCESS_TOKEN,
@@ -65,4 +76,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     pdfCacheDir: e.PDF_CACHE_DIR,
     clientIpHeader: e.CLIENT_IP_HEADER?.toLowerCase(),
   };
+}
+
+/** The landing page's origin, with and without www: a browser sends whichever one it's on. */
+function formOrigins(landingUrl: string): string[] {
+  const { protocol, host } = new URL(landingUrl);
+  const bare = host.replace(/^www\./, "");
+  return [...new Set([`${protocol}//${bare}`, `${protocol}//www.${bare}`])];
 }

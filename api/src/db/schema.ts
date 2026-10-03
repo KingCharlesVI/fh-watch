@@ -12,6 +12,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -86,6 +87,38 @@ export const clubRequests = pgTable(
     createdAt: createdAt(),
   },
   (t) => [check("club_requests_target", sql`${t.clubId} is not null or ${t.clubName} is not null`)],
+);
+
+/**
+ * Someone asking to join a test, from the landing page's form. There's no account
+ * behind it, so the email address is all we have to reply to and to recognise a
+ * repeat request by.
+ */
+export const accessRequests = pgTable(
+  "access_requests",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    /** Which test: the Google Play one or the TestFlight one. */
+    kind: text({ enum: ["google-play", "testflight"] }).notNull(),
+    name: text().notNull(),
+    email: text().notNull(),
+    /** Their watch and phone, as they described them. */
+    devices: text().notNull(),
+    notes: text(),
+    status: text({ enum: ["pending", "approved", "denied"] })
+      .notNull()
+      .default("pending"),
+    /** What the umpire was told when it was approved or denied, if anything was added. */
+    decisionNote: text(),
+    reviewedBy: uuid().references(() => users.id, { onDelete: "set null" }),
+    reviewedAt: tstz(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("access_requests_status").on(t.status, t.createdAt),
+    // One pending request per address and test, so asking twice doesn't make two.
+    uniqueIndex("access_requests_pending").on(t.email, t.kind).where(sql`${t.status} = 'pending'`),
+  ],
 );
 
 export const matches = pgTable(
