@@ -212,6 +212,7 @@ export default function Home() {
           intro="Tell us what you umpire with and the invitation follows by email. Places are limited while it's in testing."
         >
           <div className="grid gap-6 md:grid-cols-2">
+            <AccessRequestForm kind="google-play" />
             <AccessRequestForm kind="testflight" />
           </div>
         </Section>
