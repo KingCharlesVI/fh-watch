@@ -1,3 +1,39 @@
+## [1.0.0-beta.13] - 2026-10-03
+
+### 🚀 Features
+
+- *(wear)* A break leads to the next period, which waits for the whistle
+- *(watchos)* A break leads to the next period, which waits for the whistle
+- *(mobile)* Create an account in the app, not on the website
+- *(mobile)* Reset a forgotten password in the app
+- *(landing)* A front page that answers the obvious questions
+- *(landing)* A support page
+- *(web)* A support page
+- *(landing)* A form to ask for a place in the TestFlight test
+- *(landing)* A form to ask for a place in the Google Play test
+- Issue forms for bugs and features, linked from both sites
+- *(landing)* Grey out the stages that are done
+- *(landing)* A changelog page
+- *(landing)* The join forms ask for an email address
+- *(api)* Endpoints behind the join-the-testing forms
+- *(api)* Confirm a testing request by email
+- *(api)* Email the decision, with what to do next
+- *(landing)* Drop the roadmap, keep the progress stepper
+- *(web)* An admin panel for testing requests
+
+### 🐛 Bug Fixes
+
+- *(release)* The Play upload matches how the apps are built now
+
+### 📚 Documentation
+
+- The break and the next period on the watch
+- Registering in the phone app
+- *(deploy)* SES is in eu-north-1, not eu-west-2
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* Build 13
 ## [1.0.0-beta.12] - 2026-10-03
 
 ### 🚀 Features
