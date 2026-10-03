@@ -456,7 +456,7 @@ None at the moment.
 - Only one watch uploads each match (umpire 1's).
 - No public beta: the alpha goes straight to 1.0.
 - No auto-publish: a match stays a draft until an umpire publishes it. The phone reminds the umpire to upload a match from the watch that isn't uploaded 2 hours after it arrived.
-- Email goes through Amazon SES (SMTP), in eu-west-2.
+- Email goes through Amazon SES (SMTP), in eu-north-1.
 - The server is an old laptop running Ubuntu Desktop 24.04 LTS, behind a Cloudflare Tunnel; a VPS later if needed.
 - Only admins create clubs; club admins add and edit their own club's teams; users can request clubs and club-admin status.
 - Anyone can register as an umpire, with no approval.

@@ -158,12 +158,16 @@ A branch name works in place of a tag (e.g. `fh deploy main`), but tags make it 
 
 FH Match Centre sends its emails (sign-up confirmations, password resets) through **Amazon SES**, over SMTP. Another provider with SMTP works the same way from step 5.
 
-1. **In the AWS console, open Amazon SES** in **Europe (London), eu-west-2**. Keep to that one region: identities and credentials belong to a region.
+1. **In the AWS console, open Amazon SES** in **Europe (Stockholm), eu-north-1**, the region this deployment uses. Keep to one region: an identity, its DKIM records and the SMTP credentials all belong to the region they were made in, and the SMTP host names it.
 2. **Verify the domain:** *Configuration → Identities → Create identity → Domain*, `fhmatchcentre.com`, with **Easy DKIM** (RSA 2048). SES shows three CNAME records: add them in **Cloudflare's DNS**, set to **DNS only** (grey cloud). Also in Cloudflare:
    - **SPF:** a TXT record on `fhmatchcentre.com`, `v=spf1 include:amazonses.com ~all` (or add `include:amazonses.com` to an SPF record that's already there).
-   - **DMARC:** a TXT record on `_dmarc.fhmatchcentre.com`, `v=DMARC1; p=none; rua=mailto:YOUR-ADDRESS`. Tighten `p=` later, once the reports show all mail passing.
+   - **DMARC:** a TXT record on `_dmarc.fhmatchcentre.com`, `v=DMARC1; p=none; rua=mailto:dmarc@fhmatchcentre.com`. Tighten `p=` later, once the reports show all mail passing.
 
-   Without these, mail from `no-reply@fhmatchcentre.com` lands in spam. SES shows the identity as verified once it sees the records, usually within an hour.
+     The reporting address has to be **on this domain**: a receiver asked to send reports somewhere else (a Gmail address, say) first looks for a record authorising it at `fhmatchcentre.com._report._dmarc.THAT-DOMAIN`, which you can't add to someone else's domain, so most simply don't report. Cloudflare's **Email Routing** gives you `dmarc@fhmatchcentre.com` for nothing and forwards it wherever you read mail. Or leave `rua=` out: the policy still applies, you just see no reports.
+
+   Of the three, **DKIM is the one that matters** for getting mail delivered and for DMARC to pass: it signs as `fhmatchcentre.com`, which is what alignment needs. The SPF record is worth having but doesn't align on its own, because SES's envelope sender is `amazonses.com` unless you set up a custom MAIL FROM (optional, below). SES shows the identity as verified once it sees the DKIM records, usually within an hour.
+
+   **Optional, for SPF alignment as well:** *Identities → fhmatchcentre.com → Custom MAIL FROM*, with a subdomain such as `mail.fhmatchcentre.com`. SES then asks for an MX record on it, `feedback-smtp.eu-north-1.amazonses.com` at priority 10, and a TXT record on it, `v=spf1 include:amazonses.com ~all`. Both **DNS only**.
 3. **Leave the sandbox.** A new SES account only sends to addresses you've verified. *Account dashboard → Request production access*: say it's transactional mail only (account confirmations and password resets) for a sports results site, sent to people who register. AWS usually answers within a day.
 4. **Make SMTP credentials:** *SMTP settings → Create SMTP credentials*. It creates an IAM user and shows an **SMTP user name and password**, once: save them. They aren't your AWS access keys.
 5. **Add the SMTP URL** to `api.env` (`/etc/fh/api.env` or `C:\ProgramData\fh\config\api.env`). SES passwords usually contain `/` or `+`, which must be URL-encoded (`%2F`, `%2B`); this prints the encoded form:
@@ -173,7 +177,7 @@ FH Match Centre sends its emails (sign-up confirmations, password resets) throug
    ```
 
    ```
-   SMTP_URL=smtps://SMTP-USER-NAME:ENCODED-PASSWORD@email-smtp.eu-west-2.amazonaws.com:465
+   SMTP_URL=smtps://SMTP-USER-NAME:ENCODED-PASSWORD@email-smtp.eu-north-1.amazonaws.com:465
    MAIL_FROM=FH Match Centre <no-reply@fhmatchcentre.com>
    ```
 
