@@ -128,6 +128,9 @@ export function MobileMenu({ user, docsUrl, githubUrl }: { user: NavUser | null;
           </DropdownMenuItem>
         ))}
         <DropdownMenuItem asChild>
+          <Link href="/support">Support</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
           <a href={docsUrl}>Docs</a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
