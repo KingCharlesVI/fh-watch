@@ -282,25 +282,26 @@ export default function Home() {
   );
 }
 
+/** How each card looks: a finished stage is greyed out, and the one we're in is ringed. */
 const STATUS = {
-  done: { label: "Done", className: "bg-muted text-foreground" },
-  now: { label: "Now", className: "bg-primary text-primary-foreground" },
-  next: { label: "Next", className: "border text-foreground" },
-  later: { label: "Later", className: "border text-muted-foreground" },
+  done: { label: "Done", pill: "bg-muted text-muted-foreground", card: "bg-muted/40 opacity-75", title: "text-muted-foreground", tick: "text-muted-foreground/60" },
+  now: { label: "Now", pill: "bg-primary text-primary-foreground", card: "bg-card ring-2 ring-primary", title: "", tick: "text-muted-foreground/40" },
+  next: { label: "Next", pill: "border text-foreground", card: "bg-card", title: "", tick: "text-muted-foreground/40" },
+  later: { label: "Later", pill: "border text-muted-foreground", card: "bg-card", title: "", tick: "text-muted-foreground/40" },
 };
 
 function RoadmapCard({ step }: { step: RoadmapStep }) {
   const status = STATUS[step.status];
   return (
-    <li className={`rounded-xl border bg-card p-5 ${step.status === "now" ? "ring-2 ring-primary" : ""}`}>
+    <li className={`rounded-xl border p-5 ${status.card}`}>
       <div className="flex items-center justify-between gap-2">
-        <h3 className="font-semibold">{step.title}</h3>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${status.className}`}>{status.label}</span>
+        <h3 className={`font-semibold ${status.title}`}>{step.title}</h3>
+        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${status.pill}`}>{status.label}</span>
       </div>
       <ul className="mt-4 space-y-2.5">
         {step.items.map((item) => (
           <li key={item} className="flex gap-2 text-sm text-muted-foreground">
-            <Check className={`mt-0.5 size-4 shrink-0 ${step.status === "done" ? "text-primary" : "text-muted-foreground/40"}`} />
+            <Check className={`mt-0.5 size-4 shrink-0 ${status.tick}`} />
             {item}
           </li>
         ))}
