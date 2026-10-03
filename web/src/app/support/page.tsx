@@ -1,11 +1,11 @@
-import { BookOpen, Bug, CloudUpload, KeyRound, LifeBuoy, ShieldCheck, Smartphone, Users } from "lucide-react";
+import { Activity, BookOpen, Bug, CloudUpload, KeyRound, LifeBuoy, ShieldCheck, Smartphone, Users } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/session";
-import { BUG_REPORT_URL, DOCS_URL, FEATURE_REQUEST_URL, LANDING_URL, SITE_NAME } from "@/lib/site";
+import { BUG_REPORT_URL, DOCS_URL, FEATURE_REQUEST_URL, LANDING_URL, SITE_NAME, STATUS_URL } from "@/lib/site";
 
 export const metadata = {
   title: "Support",
@@ -69,6 +69,16 @@ export default async function SupportPage() {
               admin reviews the request.
             </li>
             <li>Club admins can see every match their teams played, including drafts, but only an umpire can change one.</li>
+          </ul>
+        </Topic>
+
+        <Topic icon={Activity} title="Is it just you?">
+          <ul className="space-y-2">
+            <li>
+              The <a href={STATUS_URL}>status page</a> checks this website and the API while you look at it, and lists anything going on or planned.
+            </li>
+            <li>If something there is down, it&apos;s us: no need to report it, and the page says when it&apos;s fixed.</li>
+            <li>Matches on your phone are safe either way. Nothing is uploaded until you ask, and nothing is removed until an upload is confirmed.</li>
           </ul>
         </Topic>
 

@@ -26,6 +26,7 @@ It's made for club umpires: the watch does the timekeeping and remembers everyth
 
 | | |
 | --- | --- |
+| Whether everything is working | [status.fhmatchcentre.com](https://status.fhmatchcentre.com) |
 | The apps, the stages and downloads | [fhmatchcentre.com](https://fhmatchcentre.com) |
 | The website | [app.fhmatchcentre.com](https://app.fhmatchcentre.com) (from 1.0) |
 | These docs | [docs.fhmatchcentre.com](https://docs.fhmatchcentre.com) |

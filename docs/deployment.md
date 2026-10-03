@@ -202,6 +202,8 @@ FH Match Centre sends its emails (sign-up confirmations, password resets) throug
 
 ## Monitoring
 
+The public status page is a separate site that checks this one from outside, so it still answers when this machine doesn't: [status/README.md](../status/README.md). Post an incident there (`/admin`) when something's wrong — it's where people look before they report anything.
+
 - `fh status` shows the running release, whether each service is up and answering, whether the tunnel is connected, and the newest backup.
 - Point a free uptime monitor (e.g. UptimeRobot or Better Stack) at `https://app.fhmatchcentre.com/v1/health`. It should return `{"ok":true}`. At home this also tells you about power cuts and broadband outages.
 

@@ -14,6 +14,7 @@ Field hockey match system: umpire watch apps, a phone app, an API and a public w
 | `watch-wear` | Wear OS umpire app (Kotlin, Compose for Wear OS). See [watch-wear/README.md](watch-wear/README.md) |
 | `docs-site` | The documentation site, user guide and technical (docsify, for Vercel at docs.fhmatchcentre.com). See [docs-site/README.md](docs-site/README.md) |
 | `landing` | The public landing page (static, for Vercel): what it does, the stage it's in, download links, the changelog, support and the privacy policy. See [landing/README.md](landing/README.md) |
+| `status` | The status page (for Vercel): whether the apps, website and API are working, with incidents and uptime. Its own SQLite database, and no connection to the API. See [status/README.md](status/README.md) |
 | `deploy` | Runs the server on a Linux or Windows machine behind a Cloudflare Tunnel: setup scripts, services, and the `fh` command for deploys and backups. See [docs/deployment.md](docs/deployment.md) |
 
 ## Development

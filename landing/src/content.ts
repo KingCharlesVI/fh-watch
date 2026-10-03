@@ -17,6 +17,8 @@ export const SITE = {
   appUrl: "https://app.fhmatchcentre.com" as string | null,
   /** The user guide and technical documentation (docs-site/). */
   docsUrl: "https://docs.fhmatchcentre.com",
+  /** Whether everything is working (status/). */
+  statusUrl: "https://status.fhmatchcentre.com",
 };
 
 export const GITHUB_URL = `https://github.com/${SITE.githubRepo}`;

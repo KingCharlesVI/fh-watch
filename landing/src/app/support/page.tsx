@@ -1,4 +1,4 @@
-import { ArrowUpRight, BookOpen, Bug, MessageSquarePlus, ShieldCheck, Wrench } from "lucide-react";
+import { Activity, ArrowUpRight, BookOpen, Bug, MessageSquarePlus, ShieldCheck, Wrench } from "lucide-react";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Container, GitHubIcon, Logo } from "@/components/parts";
@@ -75,6 +75,13 @@ export default function Support() {
               </p>
             </Panel>
 
+            <Panel icon={<Activity className="size-5 text-primary" />} title="Is it just you?" action={{ href: SITE.statusUrl, label: "Status page" }}>
+              <p>
+                The status page checks the website and the API as you look at it, and lists anything that&apos;s going on or planned. Worth a glance
+                before anything else: if something there is down, it&apos;s us, and you don&apos;t need to report it.
+              </p>
+            </Panel>
+
             <Panel
               icon={<Wrench className="size-5 text-primary" />}
               title="Something not working?"
@@ -134,6 +141,7 @@ export default function Support() {
             {[
               { href: SITE.docsUrl, label: "Documentation", detail: "Guides for every app" },
               { href: PROJECT_BOARD_URL, label: "Project board", detail: "What's in progress" },
+              { href: SITE.statusUrl, label: "Status", detail: "Whether it's all working" },
               { href: "/changelog", label: "Changelog", detail: "Every change, newest first" },
               { href: `${GITHUB_URL}/releases`, label: "Releases", detail: "Every version, with its notes" },
               { href: GITHUB_URL, label: "The code", detail: "All of it, open" },

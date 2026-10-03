@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DOCS_URL, GITHUB_URL, LANDING_URL, SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
+import { DOCS_URL, GITHUB_URL, LANDING_URL, SITE_DESCRIPTION, SITE_NAME, STATUS_URL } from "@/lib/site";
 import { GitHubIcon } from "./GitHubIcon";
 import { Logo } from "./Logo";
 
@@ -31,6 +31,7 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
     title: "About",
     links: [
       { href: "/support", label: "Support" },
+      { href: STATUS_URL, label: "Status", external: true },
       { href: DOCS_URL, label: "Documentation", external: true },
       { href: GITHUB_URL, label: "GitHub", external: true, github: true },
       { href: `${LANDING_URL}/privacy`, label: "Privacy", external: true },

@@ -248,6 +248,9 @@ export default function Home() {
             <a href="/changelog" className="hover:text-foreground">
               Changelog
             </a>
+            <a href={SITE.statusUrl} className="hover:text-foreground">
+              Status
+            </a>
             <a href="/support" className="flex items-center gap-1.5 hover:text-foreground">
               <LifeBuoy size={15} /> Support
             </a>
