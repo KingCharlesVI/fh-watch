@@ -2,7 +2,7 @@
 
 The project's public front page: what FH Match Centre is, the roadmap, and download links for the alpha, beta and public release. It's separate from the main website (`web/`), which runs on your own server; this one is a static site for Vercel.
 
-Also serves the app's privacy policy at `/privacy`, the public address Google Play asks for.
+Also serves the app's privacy policy at `/privacy`, the public address Google Play asks for, and support at `/support`: how to report a problem, where the guides are, and where the work is tracked.
 
 ## Editing
 
