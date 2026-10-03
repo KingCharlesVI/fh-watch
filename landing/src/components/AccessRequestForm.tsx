@@ -4,16 +4,18 @@ import { Apple, Check, Send } from "lucide-react";
 import { type FormEvent, useId, useState } from "react";
 import { ACCESS_FORM, SITE } from "@/content";
 
-/** Which test is being asked for. The two differ only in the account they need. */
+/** Which test is being asked for. The two differ only in the devices they ask about. */
 export type AccessKind = "testflight" | "google-play";
+
+const EMAIL_LABEL = "Email address";
+/** All that's needed to reply: what the invitation itself needs comes later, in that email. */
+const EMAIL_HINT = "Where your invitation and the steps to install the apps are sent.";
 
 const KINDS = {
   testflight: {
     title: "iPhone and Apple Watch",
     via: "TestFlight",
     icon: Apple,
-    emailLabel: "The Apple ID your iPhone uses",
-    emailHint: "TestFlight invitations go to this address, and only that Apple ID can accept one.",
     devicesLabel: "Your iPhone and watch",
     devicesPlaceholder: "e.g. iPhone 14, Apple Watch Series 9",
   },
@@ -21,8 +23,6 @@ const KINDS = {
     title: "Android and Wear OS",
     via: "Google Play",
     icon: null,
-    emailLabel: "The Google account on your phone",
-    emailHint: "Internal testing is tied to this account: the opt-in link only works when you're signed in with it.",
     devicesLabel: "Your phone and watch",
     devicesPlaceholder: "e.g. Pixel 8, Galaxy Watch 6",
   },
@@ -90,7 +90,7 @@ export function AccessRequestForm({ kind }: { kind: AccessKind }) {
     const subject = `${SITE.name}: join the ${spec.via} test`;
     const body = [
       `Name: ${request.name}`,
-      `${spec.emailLabel}: ${request.email}`,
+      `${EMAIL_LABEL}: ${request.email}`,
       `${spec.devicesLabel}: ${request.devices}`,
       ...(request.notes ? ["", request.notes] : []),
     ].join("\n");
@@ -119,8 +119,8 @@ export function AccessRequestForm({ kind }: { kind: AccessKind }) {
         <Field id={`${id}-name`} label="Your name" value={name} onChange={setName} autoComplete="name" maxLength={80} />
         <Field
           id={`${id}-email`}
-          label={spec.emailLabel}
-          hint={spec.emailHint}
+          label={EMAIL_LABEL}
+          hint={EMAIL_HINT}
           type="email"
           value={email}
           onChange={setEmail}
