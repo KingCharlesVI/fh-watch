@@ -28,7 +28,9 @@ SQLite, through libSQL: a file in development, [Turso](https://turso.tech) in pr
 | `incident_updates` | The timeline: one entry per thing you told people, with the stage it was at |
 | `component_notes` | A component's state set by hand, for the ones nothing can check |
 
-Post them from `/admin`, which asks for `STATUS_ADMIN_PASSWORD`.
+Post them from `/admin`, which asks for `STATUS_ADMIN_PASSWORD` and nothing else: one password, no accounts, and no sign-in through the API — which would be no use on the day the API is what's broken. The cookie it sets is signed with the password, so changing the password signs you out everywhere. Use a long random one.
+
+From there you can post an incident or schedule maintenance, add an update (optionally marking it over), end one without an update, delete one, and set the state of a component by hand. A hand-set state can only make things look worse, never better: the page takes the worst of the check, the note and any open incident, so a stale "operational" note can't hide a real outage.
 
 **Uptime** is worked out from the incidents: the time a component spent in a partial or major outage against the whole 90 days. Degraded performance and planned maintenance don't count against it, which is how Cachet's own uptime reads. There's no per-minute history, so the bar strip shows the worst thing that happened each day rather than pretending to a precision it hasn't got.
 
