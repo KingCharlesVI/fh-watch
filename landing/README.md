@@ -4,6 +4,8 @@ The project's public front page: what FH Match Centre is, the roadmap, and downl
 
 Also serves the app's privacy policy at `/privacy`, the public address Google Play asks for, and support at `/support`: how to report a problem, where the guides are, and where the work is tracked.
 
+`/changelog` is the repository's own `CHANGELOG.md`, read and parsed when the site is built (`src/changelog.ts`), so a release that updates it updates the page on the next deploy. Nothing to edit, and if the file can't be read the page points at the GitHub releases instead.
+
 ## Editing
 
 Almost everything that changes lives in [`src/content.ts`](src/content.ts):

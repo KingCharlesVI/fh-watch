@@ -134,6 +134,7 @@ export default function Support() {
             {[
               { href: SITE.docsUrl, label: "Documentation", detail: "Guides for every app" },
               { href: PROJECT_BOARD_URL, label: "Project board", detail: "What's in progress" },
+              { href: "/changelog", label: "Changelog", detail: "Every change, newest first" },
               { href: `${GITHUB_URL}/releases`, label: "Releases", detail: "Every version, with its notes" },
               { href: GITHUB_URL, label: "The code", detail: "All of it, open" },
               ...(SITE.appUrl ? [{ href: SITE.appUrl, label: "The website", detail: "Published results and your account" }] : []),

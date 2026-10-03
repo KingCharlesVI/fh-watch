@@ -130,6 +130,9 @@ export default function Home() {
             <a href={PROJECT_BOARD_URL} className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline">
               <GitHubIcon size={15} /> Project board <ArrowUpRight className="size-3.5" />
             </a>
+            <a href="/changelog" className="font-medium text-primary hover:underline">
+              What's shipped so far
+            </a>
           </div>
         </Section>
 
@@ -251,6 +254,9 @@ export default function Home() {
             )}
             <a href={SITE.docsUrl} className="hover:text-foreground">
               Docs
+            </a>
+            <a href="/changelog" className="hover:text-foreground">
+              Changelog
             </a>
             <a href="/support" className="flex items-center gap-1.5 hover:text-foreground">
               <LifeBuoy size={15} /> Support
