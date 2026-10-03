@@ -36,6 +36,27 @@ describe("receiving matches", () => {
     await t.engine.deleteLocal(doc.id);
     expect(await t.engine.get(doc.id)).toBeNull();
   });
+
+  it("doesn't take a deleted match back from the watch", async () => {
+    const t = await setup();
+    const doc = matchDoc();
+    await t.engine.importMatch(doc, "watch");
+    await t.engine.deleteLocal(doc.id);
+    expect(await t.engine.importMatch(doc, "watch")).toEqual({ status: "deleted" });
+    expect(await t.engine.get(doc.id)).toBeNull();
+    expect(await t.engine.list()).toHaveLength(0);
+  });
+
+  it("takes a deleted match back from a file, and from the watch again after that", async () => {
+    const t = await setup();
+    const doc = matchDoc();
+    await t.engine.importMatch(doc, "watch");
+    await t.engine.deleteLocal(doc.id);
+    expect(await t.engine.importMatch(doc, "file")).toEqual({ status: "added" });
+    await t.engine.deleteLocal(doc.id);
+    await t.engine.importMatch(doc, "file");
+    expect((await t.engine.get(doc.id))!.source).toBe("file");
+  });
 });
 
 describe("nothing uploads unless asked", () => {

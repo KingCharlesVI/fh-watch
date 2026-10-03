@@ -57,10 +57,21 @@ export interface MatchStore {
   put(match: LocalMatch): Promise<void>;
   remove(id: string): Promise<void>;
   clear(): Promise<void>;
+  /**
+   * Matches the umpire deleted here. The watch keeps a match until the phone
+   * confirms it, and a Data Layer item the watch couldn't clear is read again
+   * every time the app looks, so without this a deleted match comes straight
+   * back under "New". Kept after a sign-out: a match id is a UUID, so it can
+   * never be another umpire's.
+   */
+  wasDeleted(id: string): Promise<boolean>;
+  markDeleted(id: string): Promise<void>;
+  forgetDeleted(id: string): Promise<void>;
 }
 
 export class MemoryMatchStore implements MatchStore {
   private readonly rows = new Map<string, string>();
+  private readonly deleted = new Set<string>();
   async list() {
     return [...this.rows.values()].map((r) => JSON.parse(r) as LocalMatch);
   }
@@ -76,5 +87,14 @@ export class MemoryMatchStore implements MatchStore {
   }
   async clear() {
     this.rows.clear();
+  }
+  async wasDeleted(id: string) {
+    return this.deleted.has(id);
+  }
+  async markDeleted(id: string) {
+    this.deleted.add(id);
+  }
+  async forgetDeleted(id: string) {
+    this.deleted.delete(id);
   }
 }

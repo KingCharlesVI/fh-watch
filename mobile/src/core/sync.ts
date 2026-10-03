@@ -18,7 +18,8 @@ import type { LocalMatch, MatchStore } from "./store";
 export type SyncState = "local" | "pending" | "uploading" | "synced" | "conflict" | "error" | "server";
 
 export interface ImportResult {
-  status: "added" | "duplicate" | "invalid";
+  /** `deleted`: the watch sent one the umpire deleted here, so it isn't stored again. */
+  status: "added" | "duplicate" | "invalid" | "deleted";
   errors?: string[];
 }
 
@@ -75,6 +76,10 @@ export class SyncEngine {
     const parsed = parseMatch(input);
     if (!parsed.ok) return { status: "invalid", errors: parsed.errors.map((e) => e.message) };
     if (await this.store.get(parsed.match.id)) return { status: "duplicate" };
+    // The watch resends until the phone confirms, and a Data Layer item it couldn't clear
+    // is read again every time: a match deleted here mustn't come back. An import from a
+    // file is the umpire asking for it, so that one is let through (and clears the mark).
+    if (source === "watch" && (await this.store.wasDeleted(parsed.match.id))) return { status: "deleted" };
     const at = new Date(this.now()).toISOString();
     await this.store.put({
       id: parsed.match.id,
@@ -94,6 +99,7 @@ export class SyncEngine {
       receivedAt: at,
       updatedAt: at,
     });
+    await this.store.forgetDeleted(parsed.match.id);
     this.changed();
     return { status: "added" };
   }
@@ -171,6 +177,8 @@ export class SyncEngine {
   /** Removes a match from this phone. It stays on the server if it was uploaded. */
   async deleteLocal(id: string) {
     await this.store.remove(id);
+    // Remembered so the watch can't send it straight back (see importMatch).
+    await this.store.markDeleted(id);
     this.changed();
   }
 

@@ -86,6 +86,21 @@ describe("the watch inbox", () => {
     expect(await t.engine.list()).toHaveLength(1);
   });
 
+  it("empties the inbox of a match the umpire deleted, without storing it again", async () => {
+    const t = await setup();
+    const inbox = new FakeInbox();
+    const doc = matchDoc();
+    inbox.put(JSON.stringify(doc), doc.id);
+    await drainInbox(inbox, t.engine);
+    await t.engine.deleteLocal(doc.id);
+
+    // The watch couldn't clear its Data Layer item, so the phone reads it again.
+    inbox.pending.push({ id: doc.id, json: JSON.stringify(doc), receivedAt: 2 });
+    expect(await drainInbox(inbox, t.engine)).toEqual({ added: [], problems: [] });
+    expect(inbox.items).toEqual([]);
+    expect(await t.engine.list()).toHaveLength(0);
+  });
+
   it("keeps a match from a newer watch app until the phone app is updated", async () => {
     const t = await setup();
     const inbox = new FakeInbox();
