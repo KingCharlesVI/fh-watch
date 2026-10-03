@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { setupTestApp } from "./helpers.js";
 
-const t = await setupTestApp({ env: { LANDING_URL: "https://fhmatchcentre.test" } });
+const t = await setupTestApp({
+  env: {
+    LANDING_URL: "https://fhmatchcentre.test",
+    PLAY_TEST_URL: "https://play.google.com/apps/internaltest/123",
+    TESTFLIGHT_URL: "https://testflight.apple.com/join/abc",
+  },
+});
 
 const LANDING = "https://fhmatchcentre.test";
 
@@ -114,6 +120,76 @@ describe("access requests", () => {
 
     const list = await t.app.inject({ method: "GET", url: "/v1/access-requests?status=denied", headers: admin.headers });
     expect(list.json().items).toHaveLength(1);
+  });
+
+  it("emails an approved umpire their invitation and the steps to install both apps", async () => {
+    await post(request());
+    const admin = await t.createUser({ roles: ["admin"] });
+    const [waiting] = (await t.app.inject({ method: "GET", url: "/v1/access-requests", headers: admin.headers })).json().items;
+    t.mailer.sent.length = 0;
+
+    await t.app.inject({
+      method: "POST",
+      url: `/v1/access-requests/${waiting.id}/approve`,
+      headers: admin.headers,
+      payload: { note: "You're in from build 14." },
+    });
+    const mail = t.mailer.sent.at(-1)!;
+    expect(mail).toMatchObject({ to: "sam@example.com", subject: "You're in the Google Play test" });
+    expect(mail.text).toContain("https://play.google.com/apps/internaltest/123");
+    expect(mail.text).toContain("open the Play Store there and install it too");
+    expect(mail.text).toContain("You're in from build 14.");
+    expect(mail.text).toContain("https://fhmatchcentre.test/support");
+  });
+
+  it("sends the TestFlight steps for a TestFlight request", async () => {
+    await post(request({ kind: "testflight", devices: "iPhone 14, Apple Watch SE" }));
+    const admin = await t.createUser({ roles: ["admin"] });
+    const [waiting] = (await t.app.inject({ method: "GET", url: "/v1/access-requests", headers: admin.headers })).json().items;
+    t.mailer.sent.length = 0;
+
+    await t.app.inject({ method: "POST", url: `/v1/access-requests/${waiting.id}/approve`, headers: admin.headers });
+    const mail = t.mailer.sent.at(-1)!;
+    expect(mail.subject).toBe("You're in the TestFlight test");
+    expect(mail.text).toContain("https://testflight.apple.com/join/abc");
+    expect(mail.text).toContain("install TestFlight from the App Store");
+    expect(mail.text).not.toContain("Google Play");
+  });
+
+  it("emails a refusal with the reason, and what happens instead", async () => {
+    await post(request());
+    const admin = await t.createUser({ roles: ["admin"] });
+    const [waiting] = (await t.app.inject({ method: "GET", url: "/v1/access-requests", headers: admin.headers })).json().items;
+    t.mailer.sent.length = 0;
+
+    await t.app.inject({
+      method: "POST",
+      url: `/v1/access-requests/${waiting.id}/deny`,
+      headers: admin.headers,
+      payload: { note: "The Wear OS test is full for now." },
+    });
+    const mail = t.mailer.sent.at(-1)!;
+    expect(mail).toMatchObject({ to: "sam@example.com", subject: "Your request to join the Google Play test" });
+    expect(mail.text).toContain("can't offer you a place");
+    expect(mail.text).toContain("The Wear OS test is full for now.");
+    expect(mail.text).toContain("open to everyone at the 1.0 release");
+    expect(mail.text).toContain("ask again when the next stage opens");
+  });
+
+  it("emails nothing when a decision is refused", async () => {
+    await post(request());
+    const admin = await t.createUser({ roles: ["admin"] });
+    const [waiting] = (await t.app.inject({ method: "GET", url: "/v1/access-requests", headers: admin.headers })).json().items;
+    await t.app.inject({ method: "POST", url: `/v1/access-requests/${waiting.id}/approve`, headers: admin.headers });
+    t.mailer.sent.length = 0;
+
+    // Already decided, and a non-admin.
+    const again = await t.app.inject({ method: "POST", url: `/v1/access-requests/${waiting.id}/deny`, headers: admin.headers });
+    expect(again.statusCode).toBe(409);
+    const umpire = await t.createUser();
+    const forbidden = await t.app.inject({ method: "POST", url: `/v1/access-requests/${waiting.id}/deny`, headers: umpire.headers });
+    expect(forbidden.statusCode).toBe(403);
+    expect(t.mailer.sent).toHaveLength(0);
   });
 
   it("answers the browser's preflight for the landing page, and nobody else's", async () => {

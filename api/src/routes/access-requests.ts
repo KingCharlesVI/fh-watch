@@ -79,6 +79,61 @@ export const accessRequestRoutes =
         .filter((line) => line !== null)
         .join("\n"),
     });
+
+    /** The steps that actually get the apps onto an umpire's wrist, which differ by store. */
+    const nextSteps = (kind: Row["kind"]): string[] => {
+      if (kind === "google-play") {
+        const link = config.playTestUrl;
+        return [
+          "What to do next:",
+          link
+            ? `  1. On the Android phone you umpire with, open ${link} and accept the invitation.`
+            : "  1. We'll send you the Google Play opt-in link in a moment; open it on the Android phone you umpire with.",
+          "  2. Install FH Match Centre from Google Play.",
+          "  3. On the watch, open the Play Store there and install it too.",
+          "",
+          "Take both from Google Play: a watch app and phone app from different places can't talk to each other.",
+          "Google Play has to be signed in with the account you use on that phone. If it says you aren't a tester, that's usually a different account.",
+        ];
+      }
+      const link = config.testflightUrl;
+      return [
+        "What to do next:",
+        "  1. On your iPhone, install TestFlight from the App Store.",
+        link ? `  2. Open ${link} on the iPhone and accept the invitation.` : "  2. Accept the TestFlight invitation Apple emails to this address.",
+        "  3. Install FH Match Centre from TestFlight. The watch app comes with it: open the Watch app on the iPhone to put it on your watch.",
+      ];
+    };
+
+    /** Yes: the invitation, the steps, and anything the admin added. */
+    const approval = (row: Row): Mail => ({
+      to: row.email,
+      subject: `You're in the ${TEST_NAME[row.kind]} test`,
+      text: [
+        `You have a place in the ${TEST_NAME[row.kind]} test of FH Match Centre. Thanks for umpiring with it.`,
+        "",
+        ...nextSteps(row.kind),
+        ...(row.decisionNote ? ["", row.decisionNote] : []),
+        "",
+        `The guide, and how to tell us when something's wrong: ${config.landingUrl}/support`,
+      ].join("\n"),
+    });
+
+    /** No: said plainly, with what to do instead. */
+    const refusal = (row: Row): Mail => ({
+      to: row.email,
+      subject: `Your request to join the ${TEST_NAME[row.kind]} test`,
+      text: [
+        `We can't offer you a place in the ${TEST_NAME[row.kind]} test at the moment.`,
+        ...(row.decisionNote ? ["", row.decisionNote] : []),
+        "",
+        "The apps open to everyone at the 1.0 release, with nothing to join and no invitation needed.",
+        `Where that's up to, and the stage after this one: ${config.landingUrl}`,
+        "",
+        "You're welcome to ask again when the next stage opens.",
+      ].join("\n"),
+    });
+
     // The same allowance as sign-in, counted per address and per IP.
     const limiter = new RateLimiter(deps.authRateLimit.max, deps.authRateLimit.windowMs, deps.now);
 
@@ -190,7 +245,11 @@ export const accessRequestRoutes =
           body: Decision,
         },
       },
-      async (request) => dto(await decide(request, request.params.id, "approved", request.body?.note)),
+      async (request) => {
+        const row = await decide(request, request.params.id, "approved", request.body?.note);
+        void sendMail(request.log, approval(row));
+        return dto(row);
+      },
     );
 
     app.post(
@@ -198,7 +257,11 @@ export const accessRequestRoutes =
       {
         schema: { tags: ["access"], summary: "Turn it down. `note` says why, in the email.", params: Params, body: Decision },
       },
-      async (request) => dto(await decide(request, request.params.id, "denied", request.body?.note)),
+      async (request) => {
+        const row = await decide(request, request.params.id, "denied", request.body?.note);
+        void sendMail(request.log, refusal(row));
+        return dto(row);
+      },
     );
   };
 

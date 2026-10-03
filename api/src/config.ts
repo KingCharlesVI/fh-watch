@@ -17,6 +17,13 @@ const Env = z.object({
    * forms. Its origin (and its www form) may post them here; nothing else may.
    */
   LANDING_URL: z.url().default("http://localhost:3002"),
+  /**
+   * The Google Play internal testing opt-in link (Play Console -> Internal testing ->
+   * Testers -> "Join on Android"), and the TestFlight invitation link. They go in the
+   * email that tells an umpire they're in; unset, it says the invitation follows.
+   */
+  PLAY_TEST_URL: z.url().optional(),
+  TESTFLIGHT_URL: z.url().optional(),
   MAIL_FROM: z.string().default("FH Match Centre <no-reply@fhmatchcentre.com>"),
   /** nodemailer SMTP URL, e.g. smtps://user:pass@smtp.example.com. Unset: emails are logged. */
   SMTP_URL: z.string().optional(),
@@ -45,6 +52,9 @@ export interface Config {
   landingUrl: string;
   /** Origins allowed to post the access-request form: the landing page, either way round. */
   formOrigins: string[];
+  /** Where an approved tester accepts their invitation. Unset: the email says it follows. */
+  playTestUrl: string | undefined;
+  testflightUrl: string | undefined;
   mailFrom: string;
   smtpUrl: string | undefined;
   expoAccessToken: string | undefined;
@@ -69,6 +79,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     webUrl: e.WEB_URL.replace(/\/$/, ""),
     landingUrl: landing,
     formOrigins: formOrigins(landing),
+    playTestUrl: e.PLAY_TEST_URL,
+    testflightUrl: e.TESTFLIGHT_URL,
     mailFrom: e.MAIL_FROM,
     smtpUrl: e.SMTP_URL,
     expoAccessToken: e.EXPO_ACCESS_TOKEN,
