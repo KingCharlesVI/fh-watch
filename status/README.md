@@ -45,12 +45,19 @@ From there you can post an incident or schedule maintenance, add an update (opti
 
 ## Deploying on Vercel (once)
 
-1. [Turso](https://turso.tech): create a database (the free tier is far more than this needs), and copy its URL and a token.
-2. Apply the migrations to it from your own machine. Vercel never migrates anything:
+1. [Turso](https://turso.tech): create a database (the free tier is far more than this needs), and copy its URL and a token. The dashboard is the easy way on Windows; the `turso` CLI needs WSL.
+2. Apply the migrations to it from your own machine — Vercel never migrates anything. Put the two values in `status/.env`, which is gitignored and which `db:migrate` reads:
+
+   ```
+   TURSO_DATABASE_URL=libsql://your-database.turso.io
+   TURSO_AUTH_TOKEN=your-token
+   ```
 
    ```sh
-   TURSO_DATABASE_URL=libsql://… TURSO_AUTH_TOKEN=… pnpm --filter @fh/status db:migrate
+   pnpm --filter @fh/status db:migrate
    ```
+
+   Running it again does nothing: drizzle keeps a record of what it has applied, in a `__drizzle_migrations` table.
 
 3. In Vercel, **Add New → Project**, import this repository, and set **Root Directory** to `status`. It picks up the rest from [`vercel.json`](vercel.json), which installs only this app's packages.
 4. Add the three settings above as environment variables, then deploy.
