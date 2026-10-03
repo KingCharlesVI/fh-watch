@@ -42,12 +42,20 @@ On a **Galaxy Watch**, press the **lower side button**. It works on every page:
 
 | When | The button… |
 | --- | --- |
-| Before kickoff, or in a break | Starts the next period |
+| Before kickoff | Starts the first period |
 | In a period, clock running | Stops the clock (a stoppage) |
 | In a period, clock stopped | Restarts it |
 | Time is up | Ends the period |
+| In a break | Moves on to the next period, without starting it |
+| Next period up, not started | Starts it |
 
 Watches without a usable button (a Pixel Watch, say): turn on **Start/stop on screen** in Settings for a button on the Timing page.
+
+### Breaks and the next period
+
+When a period ends, the break clock counts down. A **Next: Q2** button (or H2, P2) is on the Timing page throughout the break, whether or not you have the on-screen Start/stop button turned on.
+
+Tapping it — or pressing the side button — moves the watch on to the next period and shows it at **Q2 · ready**, with the clock at the full period length and **not running**. It starts when you press the side button again, or tap **Start Q2**, so the clock begins with the whistle rather than with the end of the break.
 
 Stoppages don't count towards the period, and the watch keeps perfect time through them, with the screen off, and even if the app restarts or the watch reboots.
 
