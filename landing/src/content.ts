@@ -1,6 +1,6 @@
 /**
  * Everything on the landing page that changes as the project moves on: the
- * stage, the download links and the roadmap. Edit here and redeploy.
+ * stage, the download links and the questions. Edit here and redeploy.
  *
  * A link left as null shows as "Coming soon".
  */
@@ -176,38 +176,5 @@ export const FAQS: Faq[] = [
     question: "How do I follow what's being built?",
     answer:
       "The project board on GitHub shows what's in progress and what's next, the repository has every change, and the documentation covers each app in detail. All three are linked from this page.",
-  },
-];
-
-export interface RoadmapStep {
-  title: string;
-  status: "done" | "now" | "next" | "later";
-  items: string[];
-}
-
-export const ROADMAP: RoadmapStep[] = [
-  {
-    title: "Foundations",
-    status: "done",
-    items: [
-    ],
-  },
-  {
-    title: "Alpha",
-    status: "done",
-    items: [
-    ],
-  },
-  {
-    title: "Beta",
-    status: "now",
-    items: [
-    ],
-  },
-  {
-    title: "Public Release",
-    status: "next",
-    items: [
-    ],
   },
 ];

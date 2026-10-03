@@ -26,10 +26,10 @@ It's made for club umpires: the watch does the timekeeping and remembers everyth
 
 | | |
 | --- | --- |
-| The apps, the roadmap and downloads | [fhmatchcentre.com](https://fhmatchcentre.com) |
+| The apps, the stages and downloads | [fhmatchcentre.com](https://fhmatchcentre.com) |
 | The website | [app.fhmatchcentre.com](https://app.fhmatchcentre.com) (from 1.0) |
 | These docs | [docs.fhmatchcentre.com](https://docs.fhmatchcentre.com) |
 | The code | [github.com/KingCharlesVI/fh-watch](https://github.com/KingCharlesVI/fh-watch) |
 | Privacy policy | [fhmatchcentre.com/privacy](https://fhmatchcentre.com/privacy) |
 
-?> FH Match Centre is in **alpha**: the watch and phone apps on their own, with no account. It goes straight from here to **1.0**, which adds accounts, uploads and the website. The [roadmap](https://fhmatchcentre.com/#roadmap) says what's next.
+?> FH Match Centre is in **beta**: the watch and phone apps, accounts, uploads and the website, with invited umpires. **1.0** opens it to everyone. [Where it's up to](https://fhmatchcentre.com/#progress) says what's next.
