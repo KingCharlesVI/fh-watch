@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+/* The landing page's palette (landing/src/app/globals.css), plus the four status colours. */
+@theme inline {
+  --font-sans: var(--font-geist);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-border: var(--border);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --color-info: var(--info);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --primary: oklch(0.47 0.11 155);
+  --primary-foreground: oklch(0.985 0 0);
+  --primary-soft: oklch(0.96 0.02 155);
+  --border: oklch(0.922 0 0);
+  /* Operational, degraded, outage, maintenance. Distinguishable without the labels. */
+  --ok: oklch(0.58 0.14 150);
+  --warn: oklch(0.72 0.16 75);
+  --bad: oklch(0.56 0.19 25);
+  --info: oklch(0.58 0.13 250);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --primary: oklch(0.74 0.14 155);
+    --primary-foreground: oklch(0.2 0.03 155);
+    --primary-soft: oklch(0.26 0.04 155);
+    --border: oklch(1 0 0 / 10%);
+    --ok: oklch(0.74 0.16 150);
+    --warn: oklch(0.8 0.16 75);
+    --bad: oklch(0.68 0.19 25);
+    --info: oklch(0.7 0.14 250);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply scroll-smooth font-sans antialiased;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
