@@ -1,0 +1,77 @@
+name: Bug report
+description: Something in the watch app, phone app or website doesn't work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. Issues here are **public**, so please leave out players' names
+        and anything else private, and don't attach a match file unless you're asked for one.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where it happens
+      options:
+        - Watch app (Wear OS)
+        - Watch app (Apple Watch)
+        - Phone app (Android)
+        - Phone app (iPhone)
+        - The website
+        - The documentation
+        - Somewhere else, or not sure
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, and what the app did.
+      placeholder: I deleted a match on the phone, and it came back under New a minute later.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen again
+      description: Step by step, if you can. "It happened once, mid-match" is still worth reporting.
+      placeholder: |
+        1. Record a match on the watch and let it reach the phone.
+        2. Open it on the phone and delete it.
+        3. Pull to refresh.
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: At the bottom of the phone app's Settings page. The watch app's is in its own Settings.
+      placeholder: 1.0.0 (13)
+    validations:
+      required: true
+  - type: input
+    id: devices
+    attributes:
+      label: Your watch and phone
+      description: The models, and which version of Wear OS, watchOS, Android or iOS they run.
+      placeholder: Galaxy Watch 6 (Wear OS 5), Pixel 8 (Android 16)
+    validations:
+      required: true
+  - type: input
+    id: when
+    attributes:
+      label: When it happened
+      description: Roughly is fine. If it was during a match, that helps line it up with the match's own log.
+      placeholder: Saturday 3 October, about 14:30
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you post
+      options:
+        - label: I've looked for an existing issue about this.
+          required: true
+        - label: There's nothing private in what I've written above.
+          required: true

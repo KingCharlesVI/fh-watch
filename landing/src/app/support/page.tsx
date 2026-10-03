@@ -1,15 +1,15 @@
-import { ArrowUpRight, BookOpen, Bug, Mail, MessageSquarePlus, ShieldCheck, Wrench } from "lucide-react";
+import { ArrowUpRight, BookOpen, Bug, MessageSquarePlus, ShieldCheck, Wrench } from "lucide-react";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Container, GitHubIcon, Logo } from "@/components/parts";
-import { CURRENT_STAGE, DOWNLOADS, GITHUB_URL, ISSUES_URL, PROJECT_BOARD_URL, SITE } from "@/content";
+import { BUG_REPORT_URL, CURRENT_STAGE, DOWNLOADS, FEATURE_REQUEST_URL, GITHUB_URL, ISSUES_URL, PROJECT_BOARD_URL, SITE } from "@/content";
 
 export const metadata: Metadata = {
   title: "Support",
   description: `How to get help with ${SITE.name}: the guide, troubleshooting, and how to report a problem or ask for something.`,
 };
 
-const NEW_ISSUE_URL = `${ISSUES_URL}/new`;
+const BROWSE_ISSUES_URL = `${ISSUES_URL}?q=is%3Aissue+is%3Aopen`;
 
 /** What to put in a report, so a problem can actually be found. */
 const REPORT_DETAILS = [
@@ -55,14 +55,16 @@ export default function Support() {
             <Panel
               icon={<Bug className="size-5 text-primary" />}
               title="Report a problem"
-              action={{ href: NEW_ISSUE_URL, label: "Open an issue on GitHub" }}
+              action={{ href: BUG_REPORT_URL, label: "Report a bug" }}
             >
               <p>
-                Problems are tracked in the open on GitHub, so you can see what&apos;s already known and follow a fix. You need a free GitHub account to
-                post one.
+                Problems are tracked in the open on GitHub, so you can{" "}
+                <a href={BROWSE_ISSUES_URL} className="font-medium text-primary hover:underline">
+                  see what&apos;s already known
+                </a>{" "}
+                and follow a fix. You need a free GitHub account to post one, and the form asks for:
               </p>
-              <p className="mt-3 font-medium text-foreground">What to include</p>
-              <ul className="mt-1 list-disc space-y-1 pl-5">
+              <ul className="mt-2 list-disc space-y-1 pl-5">
                 {REPORT_DETAILS.map((detail) => (
                   <li key={detail}>{detail}</li>
                 ))}
@@ -97,15 +99,18 @@ export default function Support() {
             <Panel
               icon={<MessageSquarePlus className="size-5 text-primary" />}
               title="Ask for something, or join the test"
-              action={
-                SITE.contactEmail
-                  ? { href: `mailto:${SITE.contactEmail}?subject=${encodeURIComponent(`${SITE.name}: ${current.title}`)}`, label: `Email ${SITE.contactEmail}`, mail: true }
-                  : { href: NEW_ISSUE_URL, label: "Ask on GitHub" }
-              }
+              action={{ href: FEATURE_REQUEST_URL, label: "Ask for a feature" }}
             >
               <p>
-                Ideas from umpires are how most of this got built. If you want to join the {current.title.toLowerCase()}, say which watch and phone you
-                have{SITE.contactEmail ? "" : " — a GitHub issue is fine for that too"}.
+                Ideas from umpires are how most of this got built. The form asks what you&apos;d like and what it would let you do on the pitch, which
+                is the part that decides whether and how it gets built.
+              </p>
+              <p className="mt-3">
+                To join the {current.title.toLowerCase()} instead, the{" "}
+                <a href="/#request" className="font-medium text-primary hover:underline">
+                  form on the front page
+                </a>{" "}
+                asks for what&apos;s needed.
               </p>
               <p className="mt-3">
                 What&apos;s being worked on now, and what&apos;s next, is on the{" "}
@@ -182,7 +187,7 @@ function Panel({
 }: {
   icon: ReactNode;
   title: string;
-  action: { href: string; label: string; mail?: boolean };
+  action: { href: string; label: string };
   children: ReactNode;
 }) {
   return (
@@ -193,7 +198,7 @@ function Panel({
           <h2 className="font-semibold">{title}</h2>
           <div className="mt-2 text-sm text-muted-foreground">{children}</div>
           <a href={action.href} className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-            {action.mail ? <Mail className="size-4" /> : <ArrowUpRight className="size-4" />}
+            <ArrowUpRight className="size-4" />
             {action.label}
           </a>
         </div>

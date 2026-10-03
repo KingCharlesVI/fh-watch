@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/session";
-import { DOCS_URL, ISSUES_URL, LANDING_URL, SITE_NAME } from "@/lib/site";
+import { BUG_REPORT_URL, DOCS_URL, FEATURE_REQUEST_URL, LANDING_URL, SITE_NAME } from "@/lib/site";
 
 export const metadata = {
   title: "Support",
@@ -88,17 +88,25 @@ export default async function SupportPage() {
           </ul>
         </Topic>
 
-        <Topic icon={Bug} title="Report a problem">
-          <p>Problems are tracked in the open on GitHub, so you can see what&apos;s already known and follow a fix. Please include:</p>
+        <Topic icon={Bug} title="Report a bug, or ask for a feature">
+          <p>Both are tracked in the open on GitHub, so you can see what&apos;s already known and follow it. The bug form asks for:</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {REPORT_DETAILS.map((detail) => (
               <li key={detail}>{detail}</li>
             ))}
           </ul>
-          <p className="mt-2">An issue is public, so leave out players&apos; names and anything else private.</p>
-          <Button variant="outline" size="sm" className="mt-4" asChild>
-            <a href={`${ISSUES_URL}/new`}>Open an issue</a>
-          </Button>
+          <p className="mt-2">
+            An issue is public, so leave out players&apos; names and anything else private. A feature request asks what you&apos;d like and what it
+            would let you do on the pitch.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <a href={BUG_REPORT_URL}>Report a bug</a>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <a href={FEATURE_REQUEST_URL}>Ask for a feature</a>
+            </Button>
+          </div>
         </Topic>
 
         <Topic icon={ShieldCheck} title="Your matches and your data">

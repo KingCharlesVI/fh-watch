@@ -21,7 +21,8 @@ import {
   DOWNLOADS,
   FAQS,
   GITHUB_URL,
-  ISSUES_URL,
+  BUG_REPORT_URL,
+  FEATURE_REQUEST_URL,
   PROJECT_BOARD_URL,
   ROADMAP,
   type RoadmapStep,
@@ -257,8 +258,11 @@ export default function Home() {
             <a href={PROJECT_BOARD_URL} className="hover:text-foreground">
               Project board
             </a>
-            <a href={ISSUES_URL} className="hover:text-foreground">
-              Report a problem
+            <a href={BUG_REPORT_URL} className="hover:text-foreground">
+              Report a bug
+            </a>
+            <a href={FEATURE_REQUEST_URL} className="hover:text-foreground">
+              Ask for a feature
             </a>
             <a href={GITHUB_URL} className="flex items-center gap-1.5 hover:text-foreground">
               <GitHubIcon size={15} /> GitHub

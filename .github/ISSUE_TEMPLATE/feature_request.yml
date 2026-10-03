@@ -1,0 +1,49 @@
+name: Feature request
+description: Something you'd like the apps or the website to do.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideas from umpires are how most of this got built. Issues here are **public**, so please
+        leave out anything private.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where it belongs
+      options:
+        - Watch app (Wear OS)
+        - Watch app (Apple Watch)
+        - Phone app
+        - The website
+        - The documentation
+        - Somewhere else, or not sure
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What you'd like
+      placeholder: A way to record a penalty corner that was awarded but not taken.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: What it would let you do
+      description: The umpiring reason, not the design. It's the part that decides whether and how this gets built.
+      placeholder: Our league's reports count corners awarded, so I have to keep a tally on paper as well.
+    validations:
+      required: true
+  - type: textarea
+    id: now
+    attributes:
+      label: How you manage at the moment
+      description: Including "I don't" — that's useful to know.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you post
+      options:
+        - label: I've looked for an existing issue about this.
+          required: true

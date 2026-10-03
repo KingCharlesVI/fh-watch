@@ -11,3 +11,6 @@ export const DOCS_URL = process.env.DOCS_URL ?? "https://docs.fhmatchcentre.com"
 export const GITHUB_URL = "https://github.com/KingCharlesVI/fh-watch";
 /** Where problems are reported, in the open. */
 export const ISSUES_URL = `${GITHUB_URL}/issues`;
+/** The issue forms in .github/ISSUE_TEMPLATE, so a link opens the right one already chosen. */
+export const BUG_REPORT_URL = `${ISSUES_URL}/new?template=bug_report.yml`;
+export const FEATURE_REQUEST_URL = `${ISSUES_URL}/new?template=feature_request.yml`;
