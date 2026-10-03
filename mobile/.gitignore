@@ -5,3 +5,4 @@ expo-env.d.ts
 *.apk
 modules/*/android/build/
 modules/*/android/.cxx/
+modules/*/android/.gradle/

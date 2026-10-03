@@ -1,4 +1,4 @@
-import { Building2, ClipboardList, Inbox, Users } from "lucide-react";
+import { Building2, ClipboardList, Inbox, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PageHeader } from "@/components/PageHeader";
@@ -6,14 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { requireAdmin } from "@/lib/session";
-import type { ClubRequest, Items, Page, User } from "@/lib/types";
+import type { AccessRequest, ClubRequest, Items, Page, User } from "@/lib/types";
 
 export const metadata = { title: "Admin" };
 
 export default async function AdminPage() {
   await requireAdmin("/admin");
-  const [requests, deletions] = await Promise.all([
+  const [requests, access, deletions] = await Promise.all([
     api<Items<ClubRequest>>("/v1/club-requests", { query: { status: "pending" } }),
+    api<Items<AccessRequest>>("/v1/access-requests", { query: { status: "pending" } }),
     api<Page<User>>("/v1/users", { query: { deletionRequested: true, limit: 100 } }),
   ]);
   return (
@@ -22,6 +23,9 @@ export default async function AdminPage() {
       <div className="grid gap-4 sm:grid-cols-2">
         <Tile href="/admin/requests" icon={<Inbox />} title="Club requests" count={requests.items.length}>
           {requests.items.length ? "Waiting for review" : "Nothing waiting"}
+        </Tile>
+        <Tile href="/admin/access-requests" icon={<UserPlus />} title="Testing requests" count={access.items.length}>
+          {access.items.length ? "Umpires asking to join" : "Nobody waiting"}
         </Tile>
         <Tile href="/admin/users" icon={<Users />} title="Users" count={deletions.items.length}>
           {deletions.items.length ? "Asked to be deleted" : "Roles, clubs and accounts"}

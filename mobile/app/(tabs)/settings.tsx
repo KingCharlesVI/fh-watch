@@ -206,14 +206,14 @@ function AccountCards({ notUploaded }: { notUploaded: number }) {
 
       <Card title="Notifications">
         {push?.state === "on" ? (
-          <T variant="muted">On. You'll hear when a match publishes itself and needs its teams linking.</T>
+          <T variant="muted">On. You'll get a reminder when a match from your watch hasn't been uploaded 2 hours after it arrived.</T>
         ) : push?.state === "unavailable" ? (
           <Banner tone="warn" icon="notifications-off-outline" title="Not available">
             {push.reason}
           </Banner>
         ) : (
           <>
-            <T variant="muted">Get told when a match publishes itself and needs its teams linking.</T>
+            <T variant="muted">Get a reminder when a match from your watch hasn't been uploaded 2 hours after it arrived.</T>
             {push?.state === "denied" && <T variant="small">Notifications are turned off for this app in your phone's settings.</T>}
             <Button
               title="Turn on notifications"

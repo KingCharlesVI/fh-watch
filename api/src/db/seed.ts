@@ -99,7 +99,7 @@ async function seed() {
   shootout.teams.away.teamId = clubTeams["Bristol University"]!.L1!;
   await upload(shootout, true);
 
-  // A match just finished: a draft with its auto-publish timer running, teams not yet linked.
+  // A match just finished: a draft waiting for its umpire to publish it, teams not yet linked.
   const recent = fixture("league-match.json");
   const start = Date.now() - 80 * 60 * 1000;
   recent.id = crypto.randomUUID();

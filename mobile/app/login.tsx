@@ -1,9 +1,9 @@
-import * as Linking from "expo-linking";
+import { router } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { WEB_URL } from "@/config";
-import { errorMessage } from "@/core/api";
+import { ApiError, errorMessage } from "@/core/api";
+import { api } from "@/services";
 import { useAuth } from "@/state/auth";
 import { Banner, Button, Card, Field, Ionicons, Screen, T } from "@/ui/kit";
 import { space, useColors } from "@/ui/theme";
@@ -15,6 +15,9 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A new account that hasn't been confirmed yet: offer the email again rather than a dead end.
+  const [unverified, setUnverified] = useState(false);
+  const [resent, setResent] = useState(false);
 
   async function submit() {
     setBusy(true);
@@ -22,10 +25,16 @@ export default function LoginScreen() {
     try {
       await signIn(email, password);
     } catch (err) {
+      setUnverified(err instanceof ApiError && err.problem.type === "/problems/email_not_verified");
       setError(errorMessage(err));
     } finally {
       setBusy(false);
     }
+  }
+
+  async function resend() {
+    setResent(true);
+    await api.resendVerification(email.trim()).catch(() => {});
   }
 
   return (
@@ -43,11 +52,21 @@ export default function LoginScreen() {
           <Card>
             <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />
             <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" textContentType="password" onSubmitEditing={submit} />
-            {error && <Banner tone="danger" icon="alert-circle-outline" title={error} />}
+            {error && !unverified && <Banner tone="danger" icon="alert-circle-outline" title={error} />}
+            {unverified && (
+              <Banner
+                tone="warn"
+                icon="mail-outline"
+                title={error ?? ""}
+                action={<Button title={resent ? "Email sent" : "Send the email again"} variant="ghost" small onPress={resend} disabled={resent} />}
+              >
+                Follow the link in the email we sent you, then sign in.
+              </Banner>
+            )}
             <Button title="Sign in" onPress={submit} loading={busy} disabled={!email || !password} />
           </Card>
-          <Button title="Create an account" variant="ghost" onPress={() => Linking.openURL(`${WEB_URL}/register`)} />
-          <Button title="Forgotten your password?" variant="ghost" onPress={() => Linking.openURL(`${WEB_URL}/forgot-password`)} />
+          <Button title="Create an account" variant="ghost" onPress={() => router.push("/register")} />
+          <Button title="Forgotten your password?" variant="ghost" onPress={() => router.push("/forgot-password")} />
         </Screen>
       </KeyboardAvoidingView>
     </SafeAreaView>

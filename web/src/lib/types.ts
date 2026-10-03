@@ -1,6 +1,7 @@
 // The API's response shapes live in the shared package, used by the website and the phone app.
 export type {
   Club,
+  AccessRequest,
   ClubRequest,
   ClubWithTeams,
   FullMatch,

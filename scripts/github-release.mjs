@@ -11,7 +11,7 @@
 //
 // The branch decides the kind of release:
 //   dev    a pre-release, tagged v<version>-<stage>.<build>   (e.g. v0.4.1-alpha.10)
-//   main   a full release, tagged v<version>-<stage>          (e.g. v0.4.0-alpha; v0.4.0 from the public release)
+//   main   a full release, tagged v<version>-<stage> before 1.0.0 (e.g. v0.4.0-alpha), v<version> from 1.0.0 (e.g. v1.0.0)
 // A pre-release's notes cover everything since the last tag of either kind; a full release's
 // cover everything since the last full release, so they include all of that version's pre-releases.
 // A pre-release tag is one ending in .<build>; tags from before 0.4.0 (v0.2.0) have no stage.
@@ -78,9 +78,11 @@ const remote = capture("git", ["rev-parse", `origin/${branch}`]);
 if (head !== remote) fail(`${branch} and origin/${branch} differ. Push (or pull) first: the release tags the commit that's on GitHub.`);
 
 const release = JSON.parse(readFileSync(join(ROOT, "version.json"), "utf8"));
-// The stage stays in full releases' tags until the public release, when there's no stage left to name.
-const tag = prerelease ? `v${release.version}-${stage}.${release.build}` : `v${release.version}-${stage}`;
-const title = prerelease ? `${release.version} ${stage} (build ${release.build})` : `${release.version} ${stage}`;
+// Before 1.0.0 a full release still names its stage (v0.4.0-alpha); 1.0.0 is the public release, and
+// from then on a full release is just its version (v1.0.0). Pre-releases always name the stage.
+const isPublic = Number(release.version.split(".")[0]) >= 1;
+const tag = prerelease ? `v${release.version}-${stage}.${release.build}` : isPublic ? `v${release.version}` : `v${release.version}-${stage}`;
+const title = prerelease ? `${release.version} ${stage} (build ${release.build})` : isPublic ? release.version : `${release.version} ${stage}`;
 
 if (capture("git", ["rev-parse", "--verify", "--quiet", `refs/tags/${tag}`], { allowFail: true }) !== null) {
   fail(

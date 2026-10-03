@@ -43,7 +43,6 @@ export interface Match {
   shareCode: string | null;
   shareUrl: string | null;
   publishedAt: string | null;
-  autoPublishAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -90,6 +89,22 @@ export interface ClubRequest {
   clubName: string | null;
   wantsAdmin: boolean;
   status: "pending" | "approved" | "rejected";
+  createdAt: string;
+  reviewedAt: string | null;
+}
+
+/** Someone asking to join a test, from the landing page's form. Admins only. */
+export interface AccessRequest {
+  id: string;
+  kind: "google-play" | "testflight";
+  name: string;
+  email: string;
+  /** Their watch and phone, as they described them. */
+  devices: string;
+  notes: string | null;
+  status: "pending" | "approved" | "denied";
+  /** What they were told when it was decided, if anything was added. */
+  decisionNote: string | null;
   createdAt: string;
   reviewedAt: string | null;
 }

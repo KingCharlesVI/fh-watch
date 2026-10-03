@@ -1,6 +1,6 @@
 # The website
 
-?> The website arrives with the **beta**, at [app.fhmatchcentre.com](https://app.fhmatchcentre.com). In the alpha, matches stay on your phone.
+?> The website arrives with **1.0**, at [app.fhmatchcentre.com](https://app.fhmatchcentre.com). In the alpha, matches stay on your phone.
 
 The website is where results are published: umpires upload their matches, and anyone can see published results, by match and by club.
 
@@ -12,11 +12,11 @@ The website is where results are published: umpires upload their matches, and an
 
 ## For umpires
 
-Register with your email address; there's no approval needed.
+Register with your email address, in the phone app (**Create an account** on the sign-in screen) or here; there's no approval needed. Either way you'll get an email with a link to confirm your address, and you can sign in once you've followed it.
 
 1. **Sign in on the phone app** too, with the same account.
-2. **Upload** a match from its page in the phone app. Nothing is uploaded until you ask; if there's no signal, it goes as soon as there is.
-3. The match is a **draft** on the website: only you and your colleague can see it. **Publish** it from the phone or the website, or it publishes itself **2 hours after the final whistle**, with a notification first.
+2. **Upload** a match from its page in the phone app. Nothing is uploaded until you ask; if there's no signal, it goes as soon as there is. If a match from your watch still isn't uploaded 2 hours after it reached your phone, the app reminds you.
+3. The match is a **draft** on the website: only you and your colleague can see it. **Publish** it from the phone or the website when you're happy with it: nothing is published until you do.
 4. **Share** a published match with a link or QR code.
 
 Both umpires on a match can edit it; the website keeps every revision.

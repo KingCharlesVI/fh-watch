@@ -85,6 +85,7 @@ class MatchService : LifecycleService() {
             Phase.READY -> "Ready"
             Phase.PLAYING -> periodName(record.clock.period, record.settings.periods) + if (record.clock.running) "" else " · stopped"
             Phase.BREAK -> "Break"
+            Phase.NEXT_PERIOD -> periodName(record.clock.period, record.settings.periods) + " · ready"
             Phase.FULL_TIME -> "Full time"
             Phase.SHOOTOUT -> "Shootout"
             Phase.ENDED -> "Ended"

@@ -17,8 +17,19 @@ interface StoredMatch {
 export const USER = { id: "u1", email: "sam@example.com", displayName: "Sam", roles: ["umpire"], clubId: null, emailVerified: true, deletionRequested: false, createdAt: "2026-01-01T00:00:00Z" };
 const PASSWORD = "correct horse battery";
 
+export const CLUBS = [
+  { id: "c1", name: "Oxford Hawks", slug: "oxford-hawks" },
+  { id: "c2", name: "Reading", slug: "reading" },
+];
+
 export class FakeApi {
   readonly matches = new Map<string, StoredMatch>();
+  /** Accounts created through /auth/register, and how many confirmation emails each got. */
+  readonly registrations: { email: string; displayName: string; clubRequest?: unknown }[] = [];
+  readonly verificationEmails: string[] = [];
+  /** Reset links emailed out, and the token the next reset will accept. */
+  readonly resetEmails: string[] = [];
+  resetToken = "reset-token-1";
   /** Every request, as "METHOD /path". */
   readonly calls: string[] = [];
   offline = false;
@@ -78,6 +89,35 @@ export class FakeApi {
     if (path === "/v1/auth/login" && method === "POST") {
       if (body.email !== USER.email || body.password !== PASSWORD) return problem(401, "Email or password is wrong.");
       return json(200, this.issueTokens());
+    }
+    // Always 202, whether or not the email is in use, like the real one.
+    if (path === "/v1/auth/register" && method === "POST") {
+      if (String(body.password).length < 10) return problem(400, "Use at least 10 characters.");
+      if (body.email !== USER.email) {
+        this.registrations.push({ email: body.email, displayName: body.displayName, clubRequest: body.clubRequest });
+        this.verificationEmails.push(body.email);
+      }
+      return json(202, { message: "If the details are right, you'll get an email shortly." });
+    }
+    if (path === "/v1/auth/resend-verification" && method === "POST") {
+      this.verificationEmails.push(body.email);
+      return json(202, { message: "If the details are right, you'll get an email shortly." });
+    }
+    if (path === "/v1/auth/forgot-password" && method === "POST") {
+      if (body.email === USER.email) this.resetEmails.push(`https://app.example.com/reset-password?token=${this.resetToken}`);
+      return json(202, { message: "If the details are right, you'll get an email shortly." });
+    }
+    if (path === "/v1/auth/reset-password" && method === "POST") {
+      if (body.token !== this.resetToken) return problem(400, "This link is invalid or has expired.");
+      if (String(body.password).length < 10) return problem(400, "Use at least 10 characters.");
+      // One use only, and every session ends.
+      this.resetToken = "spent";
+      this.revokeSessions();
+      return new Response(null, { status: 204 });
+    }
+    if (path === "/v1/clubs" && method === "GET") {
+      const q = (url.searchParams.get("q") ?? "").toLowerCase();
+      return json(200, { items: CLUBS.filter((c) => c.name.toLowerCase().includes(q)) });
     }
     if (path === "/v1/auth/refresh" && method === "POST") {
       const state = this.refreshTokens.get(body.refreshToken);
@@ -180,7 +220,6 @@ export class FakeApi {
       shareCode: m.shareCode,
       shareUrl: m.shareCode ? `https://fhmatchcentre.com/m/${m.shareCode}` : null,
       publishedAt: null,
-      autoPublishAt: null,
       createdAt: m.createdAt,
       updatedAt: m.createdAt,
     };

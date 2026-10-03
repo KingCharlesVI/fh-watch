@@ -15,7 +15,8 @@ Notifications.setNotificationHandler({
 
 /**
  * Asks for permission, gets this device's Expo push token and registers it
- * with the API, so auto-publish reminders reach the umpire.
+ * with the API. Upload reminders are local (services/upload-reminders.ts); the push token is
+ * registered for messages from the server later.
  */
 export async function enablePush(askIfNeeded: boolean): Promise<PushStatus> {
   if (!Device.isDevice) return { state: "unavailable", reason: "Push notifications need a real phone, not an emulator." };

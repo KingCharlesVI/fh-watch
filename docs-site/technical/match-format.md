@@ -34,7 +34,7 @@ Every part of the system reads and writes the same **match document**. Its autho
 | `createdOn` | `wear`, `watchos`, `mobile` or `web`. |
 | `settings` | The format. `breakLengthsSec` has one entry per break (periods − 1). |
 | `teams` | Names, colours (`#RRGGBB`), optional captains. `teamId` links to a club's team on the website, or is `null`. |
-| `startedAt`, `endedAt` | Kickoff and the final whistle (UTC). `endedAt` starts the 2-hour auto-publish window. |
+| `startedAt`, `endedAt` | Kickoff and the final whistle (UTC). |
 | `events` | The log, in the order recorded. |
 
 Optional fields are left out rather than set to `null`, and unknown fields are refused.

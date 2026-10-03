@@ -13,7 +13,8 @@ Field hockey match system: umpire watch apps, a phone app, an API and a public w
 | `mobile` | Phone app for umpires (Expo / React Native), with the watch-sync native module in `mobile/modules/watch-sync` |
 | `watch-wear` | Wear OS umpire app (Kotlin, Compose for Wear OS). See [watch-wear/README.md](watch-wear/README.md) |
 | `docs-site` | The documentation site, user guide and technical (docsify, for Vercel at docs.fhmatchcentre.com). See [docs-site/README.md](docs-site/README.md) |
-| `landing` | The public landing page (static, for Vercel): teasers, roadmap, download links and the privacy policy. See [landing/README.md](landing/README.md) |
+| `landing` | The public landing page (static, for Vercel): what it does, the stage it's in, download links, the changelog, support and the privacy policy. See [landing/README.md](landing/README.md) |
+| `status` | The status page (for Vercel): whether the apps, website and API are working, with incidents and uptime. Its own SQLite database, and no connection to the API. See [status/README.md](status/README.md) |
 | `deploy` | Runs the server on a Linux or Windows machine behind a Cloudflare Tunnel: setup scripts, services, and the `fh` command for deploys and backups. See [docs/deployment.md](docs/deployment.md) |
 
 ## Development
@@ -155,7 +156,7 @@ For the commands in order (build number, changelog, GitHub release, TestFlight),
 | Branch | Release | Tag | Notes cover |
 | --- | --- | --- | --- |
 | `dev` | A **pre-release**, for testing | `v<version>-alpha.<build>`, e.g. `v0.4.1-alpha.10` | Commits since the last tag (the previous pre-release) |
-| `main` | A full release, marked **Latest** | `v<version>-alpha`, e.g. `v0.4.0-alpha` (`v<version>` from the public release) | Commits since the last full release, so every pre-release of that version together |
+| `main` | A full release, marked **Latest** | `v<version>-alpha` before 1.0.0, e.g. `v0.4.0-alpha`; `v<version>` from 1.0.0 | Commits since the last full release, so every pre-release of that version together |
 
 Each release has the phone and watch APKs from the same build attached. On GitHub: **Releases**.
 

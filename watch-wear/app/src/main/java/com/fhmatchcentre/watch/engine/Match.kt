@@ -40,6 +40,9 @@ enum class Phase {
     /** Between periods. */
     BREAK,
 
+    /** The break is over: the next period is up on screen, waiting to be started. */
+    NEXT_PERIOD,
+
     /** The last period has ended; a shootout may follow if the score is level. */
     FULL_TIME,
     SHOOTOUT,
@@ -149,7 +152,9 @@ private fun MatchRecord.append(vararg make: (seq: Int) -> MatchEvent): MatchReco
 
 /** The physical button: start, stop or resume the clock, or end a period whose time is up. */
 fun MatchRecord.toggleClock(now: Moment): MatchRecord = when (clock.phase) {
-    Phase.READY, Phase.BREAK -> startPeriod(now)
+    Phase.READY, Phase.NEXT_PERIOD -> startPeriod(now)
+    // A break leads to the next period, which then waits for the whistle.
+    Phase.BREAK -> nextPeriod()
     Phase.PLAYING -> when {
         isTimeUp(now) -> endPeriod(now)
         clock.running -> stopClock(now)
@@ -158,9 +163,23 @@ fun MatchRecord.toggleClock(now: Moment): MatchRecord = when (clock.phase) {
     else -> this
 }
 
+/**
+ * Leaves the break with the next period up but its clock at zero and stopped, so the
+ * umpire starts it when play restarts. Nothing is logged: the period begins when it starts.
+ */
+fun MatchRecord.nextPeriod(): MatchRecord {
+    rule(clock.phase == Phase.BREAK) { "There's no break to leave." }
+    return copy(clock = clock.copy(phase = Phase.NEXT_PERIOD, period = clock.period + 1, bankedMs = 0, breakStartedAt = null))
+}
+
+/** Starts a period: the first one, the one the break led to, or the next one straight from a break. */
 fun MatchRecord.startPeriod(now: Moment): MatchRecord {
-    rule(clock.phase == Phase.READY || clock.phase == Phase.BREAK) { "A period is already under way." }
-    val period = if (clock.phase == Phase.READY) 1 else clock.period + 1
+    rule(clock.phase == Phase.READY || clock.phase == Phase.BREAK || clock.phase == Phase.NEXT_PERIOD) { "A period is already under way." }
+    val period = when (clock.phase) {
+        Phase.READY -> 1
+        Phase.BREAK -> clock.period + 1
+        else -> clock.period
+    }
     val started = if (period == 1) copy(document = document.copy(startedAt = now.iso)) else this
     return started
         .append({ PeriodStart(it, now.iso, period, 0) })

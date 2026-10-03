@@ -35,7 +35,7 @@ The iPhone app comes through **TestFlight**. Install TestFlight from the App Sto
    Or set it up on your phone, where typing is easier: see [Setting up on the phone](guide/phone.md?id=setting-up-a-match-on-the-phone).
 3. **Start the first period**: on a Galaxy Watch press the lower side button, on an Apple Watch tap **Start**. The clock runs.
 4. **During the match**, swipe between the pages: **Timing** (the clock and score), **Goals**, **Cards** and **Settings**. The button stops and restarts the clock.
-5. **At the end of each period** the watch buzzes; press the button to end the period. After the last one, tap **End match**.
+5. **At the end of each period** the watch buzzes; press the button to end the period. The break counts down; tap **Next: Q2** (or press the button) to move on, then start the clock when play restarts. After the last period, tap **End match**.
 6. **The match goes to your phone** by itself when it's in reach. Open the phone app: it's under **New**.
 
 The [Wear OS](guide/wear-os.md) and [Apple Watch](guide/apple-watch.md) pages go through everything in detail.

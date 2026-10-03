@@ -17,5 +17,9 @@ mobile/targets/watch/Info.plist
 mobile/targets/.build/
 mobile/targets/.swiftpm/
 
+# The status page's local SQLite database (production uses Turso).
+status/*.db
+status/*.db-journal
+
 # The docs site's build output (node docs-site/build.mjs).
 docs-site/dist/

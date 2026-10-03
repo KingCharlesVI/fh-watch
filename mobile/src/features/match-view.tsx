@@ -195,7 +195,7 @@ export function StatusBadges({ match, state }: { match: LocalMatch; state: SyncS
       {state === "conflict" && <Badge label="Changed elsewhere" tone="danger" icon="git-compare-outline" />}
       {state === "error" && <Badge label="Upload refused" tone="danger" icon="alert-circle-outline" />}
       {s?.status === "published" && <Badge label="Published" tone="primary" />}
-      {s?.status === "draft" && <Badge label={s.autoPublishAt ? `Draft · auto ${formatDateTime(s.autoPublishAt)}` : "Draft"} />}
+      {s?.status === "draft" && <Badge label="Draft" />}
       {unlinked && <Badge label="Link teams" tone="warn" />}
     </View>
   );

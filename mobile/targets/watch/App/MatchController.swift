@@ -164,8 +164,11 @@ final class MatchController {
         }
     }
 
-    /// Deletes a match from the watch. One the phone already has stays on the phone.
+    /// Deletes a match from the watch. One the phone already has stays on the phone; one
+    /// still queued for it is withdrawn, so it doesn't turn up there later (the Wear OS app
+    /// does the same with its Data Layer item).
     func delete(_ id: String) {
+        sync.cancelPending(id)
         store.delete(id)
         storeVersion += 1
     }

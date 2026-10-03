@@ -11,6 +11,7 @@ import {
 import { registerAuth } from "./auth.js";
 import type { AppDeps } from "./deps.js";
 import { HttpError, isUniqueViolation } from "./lib/errors.js";
+import { accessRequestRoutes } from "./routes/access-requests.js";
 import { authRoutes } from "./routes/auth.js";
 import { clubRoutes } from "./routes/clubs.js";
 import { matchRoutes } from "./routes/matches.js";
@@ -96,6 +97,7 @@ export async function buildApp(deps: AppDeps, options: { logger?: FastifyBaseLog
       await v1.register(userRoutes(deps));
       await v1.register(clubRoutes(deps));
       await v1.register(matchRoutes(deps));
+      await v1.register(accessRequestRoutes(deps));
     },
     { prefix: "/v1" },
   );

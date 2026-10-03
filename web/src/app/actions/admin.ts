@@ -102,6 +102,20 @@ export async function deleteTeam(_: FormState, fd: FormData): Promise<FormState>
   return done("Team deleted.", `/admin/clubs/${clubId}`);
 }
 
+// ---- Testing requests ----
+
+export async function reviewAccessRequest(_: FormState, fd: FormData): Promise<FormState> {
+  const decision = text(fd, "decision") === "approve" ? "approve" : "deny";
+  const note = optionalText(fd, "note");
+  try {
+    // Both decisions email the umpire; the note goes in it.
+    await api(`/v1/access-requests/${text(fd, "id")}/${decision}`, { method: "POST", body: note ? { note } : {} });
+  } catch (err) {
+    return formError(err);
+  }
+  return done(decision === "approve" ? "Approved, and emailed." : "Denied, and emailed.", "/admin/access-requests", "/admin");
+}
+
 // ---- Club requests ----
 
 export async function reviewRequest(_: FormState, fd: FormData): Promise<FormState> {

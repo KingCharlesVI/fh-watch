@@ -74,9 +74,40 @@ final class EngineTests: XCTestCase {
         XCTAssertEqual(m.clock.phase, .breakTime)
         guard case let .periodEnd(end) = m.document.events.last else { return XCTFail("no period end") }
         XCTAssertEqual(end.clockMs, 15 * MIN)
+        // The break leads to the next period, which waits for a second press before the clock runs.
         m = try m.toggleClock(t.now)
+        XCTAssertEqual(m.clock.phase, .nextPeriod)
         XCTAssertEqual(m.clock.period, 2)
+        XCTAssertFalse(m.clock.running)
+        XCTAssertEqual(types(m), ["period_start", "clock_stop", "clock_resume", "period_end"])
+        m = try m.toggleClock(t.now)
+        XCTAssertEqual(m.clock.phase, .playing)
+        XCTAssertTrue(m.clock.running)
         XCTAssertEqual(types(m), ["period_start", "clock_stop", "clock_resume", "period_end", "period_start"])
+    }
+
+    func testTheNextPeriodWaitsForTheWhistleAndStartsFromZero() throws {
+        var m = try newMatch().startPeriod(t.now)
+        t.advance(15 * MIN)
+        m = try m.endPeriod(t.now)
+        t.advance(30_000)
+        m = try m.nextPeriod()
+        XCTAssertEqual(m.clock.phase, .nextPeriod)
+        XCTAssertEqual(m.clock.period, 2)
+        // Nothing is logged and no time runs until the period actually starts.
+        XCTAssertEqual(types(m), ["period_start", "period_end"])
+        t.advance(2 * MIN)
+        XCTAssertEqual(m.periodElapsedMs(t.now), 0)
+        XCTAssertEqual(m.matchTimeMs(t.now), 15 * MIN)
+        XCTAssertTrue(m.tick(t.now).alerts.isEmpty())
+
+        m = try m.startPeriod(t.now)
+        XCTAssertEqual(m.clock.period, 2)
+        guard case let .periodStart(start) = m.document.events.last else { return XCTFail("no period start") }
+        XCTAssertEqual(start, PeriodStart(seq: 3, wallTime: t.now.iso, period: 2, clockMs: 0))
+        t.advance(MIN)
+        XCTAssertEqual(m.periodElapsedMs(t.now), MIN)
+        XCTAssertThrowsError(try m.nextPeriod())
     }
 
     func testKickoffSetsStartedAtAndEachPeriodStartsAtZero() throws {

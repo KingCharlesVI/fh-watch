@@ -9,5 +9,5 @@ export const STAGE: "alpha" | "beta" = process.env.EXPO_PUBLIC_STAGE === "beta" 
 export const ONLINE = STAGE === "beta";
 
 // Set in mobile/.env (development) or the build environment (releases).
-export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? "https://fhmatchcentre.com").replace(/\/$/, "");
-export const WEB_URL = (process.env.EXPO_PUBLIC_WEB_URL ?? "https://fhmatchcentre.com").replace(/\/$/, "");
+export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? "https://app.fhmatchcentre.com").replace(/\/$/, "");
+export const WEB_URL = (process.env.EXPO_PUBLIC_WEB_URL ?? "https://app.fhmatchcentre.com").replace(/\/$/, "");

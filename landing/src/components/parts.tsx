@@ -1,7 +1,7 @@
-import { ArrowUpRight, Download, Mail } from "lucide-react";
+import { ArrowUpRight, Check, ChevronDown, Download, Mail, Quote } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
-import { SITE, type StoreLink } from "@/content";
+import { type Faq, SITE, type StoreLink, TESTIMONIALS } from "@/content";
 import { LatestApk } from "./LatestApk";
 
 export function Container({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -87,14 +87,11 @@ export function StoreButton({ link }: { link: StoreLink }) {
   );
 }
 
+/** Points at the forms further down the page, which are what actually asks. */
 export function RequestAccess({ stage }: { stage: string }) {
-  if (!SITE.contactEmail) return null;
-  const href = `mailto:${SITE.contactEmail}?subject=${encodeURIComponent(`Join the FH Match Centre ${stage}`)}&body=${encodeURIComponent(
-    "Hello,\n\nI'd like to join the test. The Google account on my phone is:\n\nMy watch is a:\n\nThanks!",
-  )}`;
   return (
-    <a href={href} className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-      <Mail className="size-4" /> Ask to join
+    <a href="#request" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+      <Mail className="size-4" /> Ask to join the {stage}
     </a>
   );
 }
@@ -165,5 +162,118 @@ export function ApkInstructions() {
         </div>
       </div>
     </details>
+  );
+}
+
+export interface Step {
+  title: string;
+  detail: string;
+  status: "done" | "now" | "next";
+}
+
+const STEP_LOOK = {
+  done: { circle: "bg-primary text-primary-foreground", line: "bg-primary", label: "Done" },
+  now: { circle: "bg-primary text-primary-foreground ring-4 ring-primary-soft", line: "bg-border", label: "We are here" },
+  next: { circle: "border bg-background text-muted-foreground", line: "bg-border", label: "Next" },
+} as const;
+
+/**
+ * Which stage the project is in: a row of numbered steps on a line, stacked on a
+ * phone. The step we're in is filled and ringed, and finished ones carry a tick.
+ */
+export function Stepper({ steps }: { steps: Step[] }) {
+  return (
+    <ol className="grid gap-x-4 sm:grid-cols-3">
+      {steps.map((step, i) => {
+        const look = STEP_LOOK[step.status];
+        const last = i === steps.length - 1;
+        return (
+          <li key={step.title} className="flex gap-4 sm:block">
+            {/* The rail: down the side on a phone, along the top on a wider screen. */}
+            <div className="flex flex-col items-center sm:flex-row">
+              <span
+                aria-hidden="true"
+                className={`flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${look.circle}`}
+              >
+                {step.status === "done" ? <Check className="size-4" /> : i + 1}
+              </span>
+              {!last && <span aria-hidden="true" className={`w-px flex-1 sm:h-px sm:w-full ${look.line}`} />}
+            </div>
+            <div className={`pb-8 sm:mt-4 sm:pr-6 ${last ? "pb-0" : ""}`}>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold">{step.title}</h3>
+                {step.status === "now" && (
+                  <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">Now</span>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">{step.detail}</p>
+              <p className="mt-2 text-xs font-medium text-muted-foreground uppercase">{look.label}</p>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** What umpires say, or an honest note while the testing is still private. */
+export function Testimonials({ askHref }: { askHref: string }) {
+  if (TESTIMONIALS.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed bg-card p-6">
+        <p className="font-medium">A small group of umpires is using it on real matches.</p>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+          What they say will appear here as they&apos;re happy to be quoted. If you&apos;re testing it,{" "}
+          <a href={askHref} className="font-medium text-primary underline">
+            tell us how it went
+          </a>
+          .
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {TESTIMONIALS.map((t) => (
+        <figure key={t.name} className="flex flex-col rounded-xl border bg-card p-5">
+          <Quote className="size-5 text-primary" aria-hidden="true" />
+          <blockquote className="mt-3 text-sm">{t.quote}</blockquote>
+          <figcaption className="mt-4 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{t.name}</span>
+            {t.detail && <span> · {t.detail}</span>}
+          </figcaption>
+        </figure>
+      ))}
+    </div>
+  );
+}
+
+/** The questions, as a plain list that opens and closes without any JavaScript. */
+export function FaqList({ faqs }: { faqs: Faq[] }) {
+  return (
+    <div className="rounded-xl border bg-card px-5">
+      {faqs.map((faq) => (
+        <details key={faq.question} className="group border-b py-4 last:border-b-0">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium [&::-webkit-details-marker]:hidden">
+            {faq.question}
+            <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden="true" />
+          </summary>
+          <p className="mt-3 max-w-3xl text-sm text-muted-foreground">{faq.answer}</p>
+        </details>
+      ))}
+    </div>
+  );
+}
+
+/** The closing call to action, for anyone who has read the whole page. */
+export function CtaBand({ title, intro, children }: { title: string; intro: string; children: ReactNode }) {
+  return (
+    <section className="border-t bg-primary-soft py-16">
+      <Container className="text-center">
+        <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">{title}</h2>
+        <p className="mx-auto mt-3 max-w-xl text-lg text-muted-foreground">{intro}</p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">{children}</div>
+      </Container>
+    </section>
   );
 }

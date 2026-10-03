@@ -64,8 +64,11 @@ class WatchSync(private val context: Context, private val dao: MatchDao, private
 
     suspend fun acknowledged(id: String) {
         if (dao.markSynced(id, System.currentTimeMillis()) > 0) Log.i(TAG, "Phone has match $id")
-        // No host: the item this watch put, wherever the Data Layer holds it.
-        data.deleteDataItems(Uri.Builder().scheme("wear").path("$MATCH_PATH$id").build()).await()
+        // No host: the item this watch put, wherever the Data Layer holds it. A failure here
+        // mustn't throw out of the listener service: the phone confirms again next time it
+        // looks, and this runs again then.
+        runCatching { data.deleteDataItems(Uri.Builder().scheme("wear").path("$MATCH_PATH$id").build()).await() }
+            .onFailure { Log.w(TAG, "Couldn't clear match $id from the Data Layer", it) }
     }
 
     /**

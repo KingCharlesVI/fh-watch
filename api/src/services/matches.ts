@@ -1,14 +1,10 @@
 import { type MatchAccess, type MatchDocument, summarizeMatch } from "@fh/shared";
-import { and, asc, eq, inArray, isNotNull, isNull, lt, lte, or } from "drizzle-orm";
-import type { FastifyBaseLogger } from "fastify";
+import { and, asc, eq, inArray, isNotNull, lt, or } from "drizzle-orm";
 import type { DbOrTx } from "../db/client.js";
-import { emailTokens, matchUmpires, matches, pushTokens, refreshTokens, teams } from "../db/schema.js";
+import { emailTokens, matchUmpires, matches, refreshTokens, teams } from "../db/schema.js";
 import type { AppDeps } from "../deps.js";
 import { shareCode } from "../lib/crypto.js";
-import { audit } from "./audit.js";
-import type { PushMessage } from "./push.js";
 
-export const AUTO_PUBLISH_DELAY_MS = 2 * 60 * 60 * 1000;
 export const SOFT_DELETE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 
 export type MatchRow = typeof matches.$inferSelect;
@@ -74,7 +70,6 @@ export function matchDto(m: MatchRow, umpires: UmpireRow[], webUrl: string) {
     shareCode: m.shareCode,
     shareUrl: m.shareCode ? `${webUrl}/m/${m.shareCode}` : null,
     publishedAt: m.publishedAt?.toISOString() ?? null,
-    autoPublishAt: m.autoPublishAt?.toISOString() ?? null,
     createdAt: m.createdAt.toISOString(),
     updatedAt: m.updatedAt.toISOString(),
   };
@@ -95,86 +90,12 @@ export async function publishMatch(db: DbOrTx, match: MatchRow, now: Date): Prom
     .set({
       status: "published",
       publishedAt: now,
-      autoPublishAt: null,
       shareCode: match.shareCode ?? (await freshShareCode(db)),
       updatedAt: now,
     })
     .where(eq(matches.id, match.id))
     .returning();
   return row!;
-}
-
-/**
- * Publishes drafts whose 2-hour window has passed, then pushes a notification
- * to their registered umpires. `FOR UPDATE SKIP LOCKED` means two runs at once
- * never publish or notify for the same match twice.
- */
-export async function autoPublishDue(
-  deps: Pick<AppDeps, "db" | "push" | "now">,
-  log: FastifyBaseLogger,
-  options: { matchId?: string } = {},
-): Promise<string[]> {
-  const now = deps.now();
-  const published = await deps.db.transaction(async (tx) => {
-    const due = await tx
-      .select()
-      .from(matches)
-      .where(
-        and(
-          eq(matches.status, "draft"),
-          isNull(matches.deletedAt),
-          lte(matches.autoPublishAt, now),
-          options.matchId ? eq(matches.id, options.matchId) : undefined,
-        ),
-      )
-      .limit(200)
-      .for("update", { skipLocked: true });
-    const rows: MatchRow[] = [];
-    for (const m of due) {
-      rows.push(await publishMatch(tx, m, now));
-      await audit(tx, null, "auto_publish", "match", m.id);
-    }
-    return rows;
-  });
-
-  if (published.length > 0) {
-    await notifyAutoPublished(deps, log, published).catch((err: unknown) =>
-      log.error({ err }, "Failed to send auto-publish notifications"),
-    );
-  }
-  return published.map((m) => m.id);
-}
-
-async function notifyAutoPublished(deps: Pick<AppDeps, "db" | "push">, log: FastifyBaseLogger, published: MatchRow[]) {
-  const umpires = await umpiresFor(
-    deps.db,
-    published.map((m) => m.id),
-  );
-  const userIds = [...new Set([...umpires.values()].flat().flatMap((u) => (u.userId ? [u.userId] : [])))];
-  if (userIds.length === 0) return;
-  const tokens = await deps.db.select().from(pushTokens).where(inArray(pushTokens.userId, userIds));
-
-  const messages: PushMessage[] = [];
-  for (const m of published) {
-    const needsLinking = m.homeTeamId === null || m.awayTeamId === null;
-    const title = `${m.homeName} v ${m.awayName} published`;
-    const body = needsLinking
-      ? "Your match was published automatically. Link the teams so it shows on club pages."
-      : "Your match was published automatically.";
-    const recipients = new Set((umpires.get(m.id) ?? []).map((u) => u.userId));
-    for (const t of tokens) {
-      if (recipients.has(t.userId)) {
-        messages.push({ to: t.token, title, body, data: { matchId: m.id, action: needsLinking ? "link_teams" : "view" } });
-      }
-    }
-  }
-  if (messages.length === 0) return;
-
-  const { invalidTokens } = await deps.push.send(messages);
-  if (invalidTokens.length > 0) {
-    await deps.db.delete(pushTokens).where(inArray(pushTokens.token, invalidTokens));
-    log.info({ count: invalidTokens.length }, "Removed invalid push tokens");
-  }
 }
 
 /** Permanently removes matches soft-deleted over 30 days ago, and spent or expired tokens. */

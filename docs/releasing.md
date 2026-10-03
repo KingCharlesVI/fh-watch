@@ -78,9 +78,9 @@ Run it in your own terminal: it can ask you to log in to Apple. It builds in Exp
 | Where | Tag | For |
 | --- | --- | --- |
 | `dev` | `v0.4.1-alpha.10`: version, stage, build | Test builds (pre-releases) |
-| `main` | `v0.4.1-alpha`: version and stage | A version that's been tested: marked Latest on GitHub |
+| `main` | `v0.4.0-alpha` before 1.0.0; `v1.0.0` from then on | A version that's been tested: marked Latest on GitHub |
 
-A fix gets the next patch version (0.4.0 → 0.4.1), new features the next minor one (0.4 → 0.5). Every build, on either branch, gets a new build number. The stage leaves the tag at the public release (`v1.0.0`).
+`dev` is working towards **1.0.0**, the public release, with no public beta in between: accounts, uploads, the website and the Apple apps included. Test builds until then are `v1.0.0-alpha.<build>`, then `v1.0.0-beta.<build>` once the phone app is built with `--beta` (the build switch for accounts and uploads). From 1.0.0, a fix gets the next patch version (1.0.0 → 1.0.1) and new features the next minor one (1.0 → 1.1). Every build, on either branch, gets a new build number.
 
 ## A full release (from `main`)
 
@@ -89,7 +89,7 @@ When a test release from `dev` has been tried and is good:
 1. Merge `dev` into `main` on GitHub (a pull request), then `git checkout main` and `git pull`.
 2. `pnpm release:github --skip-build`. This makes `v0.4.0-alpha`, marked Latest, from the APKs of the test release you tried (they're in `dist/play/`; leave out `--skip-build` to build them again). Its notes cover everything since the last full release.
 3. The iPhone build is already in TestFlight: nothing to do.
-4. `git checkout dev`. For a fix, set `"version"` in `version.json` to the next patch (`0.4.1`), bump the build, and carry on with a test release.
+4. `git checkout dev`. For a fix after a release, set `"version"` in `version.json` to the next patch (e.g. `1.0.1`), bump the build, and carry on with a test release.
 
 ## If something fails
 

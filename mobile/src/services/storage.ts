@@ -32,6 +32,8 @@ export const cachedUser = {
 export function sqliteMatchStore(): MatchStore {
   const db = SQLite.openDatabaseSync("fh.db");
   db.execSync("create table if not exists matches (id text primary key not null, data text not null)");
+  // Deleted on this phone (see MatchStore.wasDeleted). Ids only, so it stays tiny.
+  db.execSync("create table if not exists deleted_matches (id text primary key not null, at integer not null)");
   return {
     async list() {
       const rows = await db.getAllAsync<{ id: string; data: string }>("select id, data from matches");
@@ -52,5 +54,19 @@ export function sqliteMatchStore(): MatchStore {
     async clear() {
       await db.runAsync("delete from matches");
     },
+    async wasDeleted(id) {
+      const row = await db.getFirstAsync<{ id: string }>("select id from deleted_matches where id = ?", id);
+      return row !== null;
+    },
+    async markDeleted(id) {
+      await db.runAsync("insert or replace into deleted_matches (id, at) values (?, ?)", id, Date.now());
+      // An umpire deletes a handful; keep the newest few hundred so this can't grow without end.
+      await db.runAsync("delete from deleted_matches where id not in (select id from deleted_matches order by at desc limit ?)", DELETED_KEPT);
+    },
+    async forgetDeleted(id) {
+      await db.runAsync("delete from deleted_matches where id = ?", id);
+    },
   };
 }
+
+const DELETED_KEPT = 500;

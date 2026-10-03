@@ -111,7 +111,7 @@ export function summarizeMatch(match: MatchDocument): MatchSummary {
 
 /**
  * When the final whistle blew: `endedAt` if set, otherwise the wall time of the
- * last recorded `period_end`. Null if neither is known. Drives auto-publish.
+ * last recorded `period_end`. Null if neither is known.
  */
 export function finalWhistle(match: MatchDocument): string | null {
   if (match.endedAt) return match.endedAt;

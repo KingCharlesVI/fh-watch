@@ -1,5 +1,5 @@
 import { hasRole } from "@fh/shared";
-import { Clock, Link2, Pencil, TriangleAlert } from "lucide-react";
+import { EyeOff, Link2, Pencil, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { deleteMatch, publishMatch, unpublishMatch } from "@/app/actions/matches";
@@ -66,7 +66,7 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
                     submitLabel="Unpublish"
                     variant="outline"
                     inline
-                    confirm={{ title: "Unpublish this match?", description: "The share link will show nothing, and the match won't publish itself again." }}
+                    confirm={{ title: "Unpublish this match?", description: "The share link will show nothing until you publish it again." }}
                   >
                     <input type="hidden" name="id" value={id} />
                   </ActionForm>
@@ -88,11 +88,11 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
         }
       />
 
-      {m.status === "draft" && m.autoPublishAt && (
+      {m.status === "draft" && (
         <Alert>
-          <Clock />
+          <EyeOff />
           <AlertTitle>This match is a draft</AlertTitle>
-          <AlertDescription>It publishes itself at {formatDateTime(m.autoPublishAt)} unless you publish or unpublish it first.</AlertDescription>
+          <AlertDescription>Only its umpires can see it. Publish it when it&apos;s ready, and it gets a share link.</AlertDescription>
         </Alert>
       )}
       {canEdit && unlinked && (

@@ -1,3 +1,77 @@
+## [1.0.0-beta.13] - 2026-10-03
+
+### 🚀 Features
+
+- *(wear)* A break leads to the next period, which waits for the whistle
+- *(watchos)* A break leads to the next period, which waits for the whistle
+- *(mobile)* Create an account in the app, not on the website
+- *(mobile)* Reset a forgotten password in the app
+- *(landing)* A front page that answers the obvious questions
+- *(landing)* A support page
+- *(web)* A support page
+- *(landing)* A form to ask for a place in the TestFlight test
+- *(landing)* A form to ask for a place in the Google Play test
+- Issue forms for bugs and features, linked from both sites
+- *(landing)* Grey out the stages that are done
+- *(landing)* A changelog page
+- *(landing)* The join forms ask for an email address
+- *(api)* Endpoints behind the join-the-testing forms
+- *(api)* Confirm a testing request by email
+- *(api)* Email the decision, with what to do next
+- *(landing)* Drop the roadmap, keep the progress stepper
+- *(web)* An admin panel for testing requests
+
+### 🐛 Bug Fixes
+
+- *(release)* The Play upload matches how the apps are built now
+
+### 📚 Documentation
+
+- The break and the next period on the watch
+- Registering in the phone app
+- *(deploy)* SES is in eu-north-1, not eu-west-2
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* Build 13
+## [1.0.0-beta.12] - 2026-10-03
+
+### 🚀 Features
+
+- *(web)* A front page, with the results on their own page
+- *(web)* Brand header with a phone menu, and a proper footer
+- *(web)* Icons, share previews, and designed 404, error and loading pages
+- *(web)* Results grouped by day, with the scores in one column
+- *(web)* A scoreboard, a two-sided timeline and statistic bars on match pages
+- *(web)* Club and team pages with badges, team cards, record and form
+- *(web)* Dashboard summary, branded sign-in pages, aligned scores
+- *(api)* [**breaking**] Remove auto-publish
+- *(web)* Drafts wait for their umpire, with no auto-publish
+- *(phone)* Remind to upload matches, with no auto-publish
+
+### 🐛 Bug Fixes
+
+- *(deploy)* The website and API live at app.fhmatchcentre.com
+- *(mobile)* A deleted match no longer comes back from the watch
+
+### 📚 Documentation
+
+- *(deploy)* Amazon SES for email, and the Ubuntu Desktop laptop server
+- No public beta, straight from the alpha to 1.0
+
+### ⚙️ Miscellaneous Tasks
+
+- From 1.0.0, main releases are tagged with just their version
+- Start 1.0.0
+- Build bump to 11
+- *(mobile)* Ignore the native modules' .gradle folders
+
+### 💼 Other
+
+- Merge pull request #24 from KingCharlesVI/main
+
+v0.4.1 remerge
+- Merge branch 'dev' of https://github.com/KingCharlesVI/fh-watch into dev
 ## [0.4.0-alpha.9] - 2026-09-30
 
 ### 🚀 Features
