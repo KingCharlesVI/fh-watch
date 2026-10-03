@@ -147,7 +147,7 @@ class MainActivity : ComponentActivity() {
 
     private fun matchUnderWay(): Boolean {
         val phase = services.controller.active.value?.clock?.phase
-        return phase == Phase.READY || phase == Phase.PLAYING || phase == Phase.BREAK
+        return phase == Phase.READY || phase == Phase.PLAYING || phase == Phase.BREAK || phase == Phase.NEXT_PERIOD
     }
 
     private companion object {

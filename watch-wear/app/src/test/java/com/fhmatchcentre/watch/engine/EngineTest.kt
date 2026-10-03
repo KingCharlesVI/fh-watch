@@ -72,9 +72,40 @@ class EngineTest {
         assertEquals(Phase.BREAK, m.clock.phase)
         val end = m.document.events.last() as PeriodEnd
         assertEquals(15 * MIN, end.clockMs)
+        // The break leads to the next period, which waits for a second press before the clock runs.
         m = m.toggleClock(t.now)
+        assertEquals(Phase.NEXT_PERIOD, m.clock.phase)
         assertEquals(2, m.clock.period)
+        assertFalse(m.clock.running)
+        assertEquals(listOf("period_start", "clock_stop", "clock_resume", "period_end"), m.types())
+        m = m.toggleClock(t.now)
+        assertEquals(Phase.PLAYING, m.clock.phase)
+        assertTrue(m.clock.running)
         assertEquals(listOf("period_start", "clock_stop", "clock_resume", "period_end", "period_start"), m.types())
+    }
+
+    @Test
+    fun `the next period waits for the whistle, and its clock starts from zero then`() {
+        var m = newMatch().startPeriod(t.now)
+        t.advance(15 * MIN)
+        m = m.endPeriod(t.now)
+        t.advance(30_000)
+        m = m.nextPeriod()
+        assertEquals(Phase.NEXT_PERIOD, m.clock.phase)
+        assertEquals(2, m.clock.period)
+        // Nothing is logged and no time runs until the period actually starts.
+        assertEquals(listOf("period_start", "period_end"), m.types())
+        t.advance(2 * MIN)
+        assertEquals(0L, m.periodElapsedMs(t.now))
+        assertEquals(15 * MIN, m.matchTimeMs(t.now))
+        assertTrue(m.tick(t.now).alerts.isEmpty())
+
+        m = m.startPeriod(t.now)
+        assertEquals(2, m.clock.period)
+        assertEquals(PeriodStart(3, t.now.iso, 2, 0), m.document.events.last())
+        t.advance(MIN)
+        assertEquals(MIN, m.periodElapsedMs(t.now))
+        assertThrows(MatchRuleException::class.java) { m.nextPeriod() }
     }
 
     @Test

@@ -161,14 +161,16 @@ private fun TimingPage(m: MatchRecord, now: Moment, countDown: Boolean, clockBut
             if (clock.isNotEmpty()) Text(clock, fontSize = 50.sp, fontWeight = FontWeight.Bold, color = clockColor, style = TABULAR)
             MiniScore(m)
             val suspensions = m.suspensions(now)
-            if (suspensions.isNotEmpty() && (m.clock.phase == Phase.PLAYING || m.clock.phase == Phase.BREAK)) {
+            if (suspensions.isNotEmpty() && m.clock.phase in setOf(Phase.PLAYING, Phase.BREAK, Phase.NEXT_PERIOD)) {
                 SuspensionChips(m, suspensions)
             }
             when (m.clock.phase) {
-                Phase.READY, Phase.BREAK -> {
-                    val next = periodName(if (m.clock.phase == Phase.READY) 1 else m.clock.period + 1, m.settings.periods)
+                Phase.READY, Phase.NEXT_PERIOD -> {
+                    val next = periodName(if (m.clock.phase == Phase.READY) 1 else m.clock.period, m.settings.periods)
                     if (clockButton) PillButton("Start $next", BRAND, onClick = toggle)
                 }
+                // Always on screen, button or no button: moving on from the break isn't a clock control.
+                Phase.BREAK -> PillButton("Next: ${periodName(m.clock.period + 1, m.settings.periods)}", BRAND, onClick = toggle)
                 Phase.PLAYING -> {
                     val timeUp = m.isTimeUp(now)
                     val period = periodName(m.clock.period, m.settings.periods)
@@ -219,6 +221,8 @@ private fun clockDisplay(m: MatchRecord, now: Moment, countDown: Boolean): Tripl
             val left = m.breakRemainingMs(now)
             Triple("Break after ${periodName(m.clock.period, periods)}", if (left >= 0) formatClock(left) else "+" + formatClock(-left), if (left >= 0) Color.White else Color(0xFFFF6B5B))
         }
+        Phase.NEXT_PERIOD ->
+            Triple(periodName(m.clock.period, periods) + " · ready", formatClock(if (countDown) m.settings.periodLengthMs else 0), Color.White)
         Phase.FULL_TIME -> Triple("Full time", "", Color.White)
         Phase.SHOOTOUT -> Triple("Shootout", "", Color.White)
         Phase.ENDED -> Triple("Ended", "", Color.White)
@@ -444,7 +448,7 @@ private fun SettingsPage(
             Phase.PLAYING -> if (!m.isTimeUp(now)) item { ChoiceButton("End $period early") { onConfirm("End $period now?" to { controller.perform { endPeriod(it) } }) } }
             else -> {}
         }
-        if (m.clock.phase == Phase.PLAYING || m.clock.phase == Phase.BREAK) {
+        if (m.clock.phase in setOf(Phase.PLAYING, Phase.BREAK, Phase.NEXT_PERIOD)) {
             item { ChoiceButton("End match", color = END_RED) { onConfirm("End the match now?" to { controller.perform { endMatch(it) } }) } }
         }
     }
