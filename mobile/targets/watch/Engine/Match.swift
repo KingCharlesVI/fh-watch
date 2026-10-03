@@ -40,6 +40,8 @@ enum Phase: String, Codable {
     case playing = "PLAYING"
     /// Between periods.
     case breakTime = "BREAK"
+    /// The break is over: the next period is up on screen, waiting to be started.
+    case nextPeriod = "NEXT_PERIOD"
     /// The last period has ended; a shootout may follow if the score is level.
     case fullTime = "FULL_TIME"
     case shootout = "SHOOTOUT"
@@ -199,7 +201,9 @@ extension MatchRecord {
     /// The physical button: start, stop or resume the clock, or end a period whose time is up.
     func toggleClock(_ now: Moment) throws -> MatchRecord {
         switch clock.phase {
-        case .ready, .breakTime: return try startPeriod(now)
+        case .ready, .nextPeriod: return try startPeriod(now)
+        // A break leads to the next period, which then waits for the whistle.
+        case .breakTime: return try nextPeriod()
         case .playing:
             if isTimeUp(now) { return try endPeriod(now) }
             return try clock.running ? stopClock(now) : resumeClock(now)
@@ -207,9 +211,26 @@ extension MatchRecord {
         }
     }
 
+    /// Leaves the break with the next period up but its clock at zero and stopped, so the
+    /// umpire starts it when play restarts. Nothing is logged: the period begins when it starts.
+    func nextPeriod() throws -> MatchRecord {
+        try rule(clock.phase == .breakTime, "There's no break to leave.")
+        var next = self
+        next.clock.phase = .nextPeriod
+        next.clock.period = clock.period + 1
+        next.clock.bankedMs = 0
+        next.clock.breakStartedAt = nil
+        return next
+    }
+
+    /// Starts a period: the first one, the one the break led to, or the next one straight from a break.
     func startPeriod(_ now: Moment) throws -> MatchRecord {
-        try rule(clock.phase == .ready || clock.phase == .breakTime, "A period is already under way.")
-        let period = clock.phase == .ready ? 1 : clock.period + 1
+        try rule(clock.phase == .ready || clock.phase == .breakTime || clock.phase == .nextPeriod, "A period is already under way.")
+        let period = switch clock.phase {
+        case .ready: 1
+        case .breakTime: clock.period + 1
+        default: clock.period
+        }
         var next = self
         if period == 1 { next.document.startedAt = now.iso }
         next = next.appending { .periodStart(PeriodStart(seq: $0, wallTime: now.iso, period: period, clockMs: 0)) }

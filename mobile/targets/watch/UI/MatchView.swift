@@ -53,7 +53,7 @@ private struct TimingPage: View {
             }
             MiniScore(m: m)
             let suspensions = m.suspensions(now)
-            if !suspensions.isEmpty && (m.clock.phase == .playing || m.clock.phase == .breakTime) {
+            if !suspensions.isEmpty && [.playing, .breakTime, .nextPeriod].contains(m.clock.phase) {
                 SuspensionChips(suspensions: suspensions)
             }
             controls
@@ -64,9 +64,11 @@ private struct TimingPage: View {
     @ViewBuilder
     private var controls: some View {
         switch m.clock.phase {
-        case .ready, .breakTime:
-            let next = periodName(m.clock.phase == .ready ? 1 : m.clock.period + 1, m.settings.periods)
+        case .ready, .nextPeriod:
+            let next = periodName(m.clock.phase == .ready ? 1 : m.clock.period, m.settings.periods)
             pill("Start \(next)", .brand)
+        case .breakTime:
+            pill("Next: \(periodName(m.clock.period + 1, m.settings.periods))", .brand)
         case .playing:
             let timeUp = m.isTimeUp(now)
             let period = periodName(m.clock.period, m.settings.periods)
@@ -107,6 +109,8 @@ func clockDisplay(_ m: MatchRecord, _ now: Moment, _ countDown: Bool) -> (label:
     case .breakTime:
         let left = m.breakRemainingMs(now)
         return ("Break after \(periodName(m.clock.period, periods))", left >= 0 ? formatClock(left) : "+" + formatClock(-left), left >= 0 ? .white : .timeUp)
+    case .nextPeriod:
+        return (periodName(m.clock.period, periods) + " · ready", formatClock(countDown ? m.settings.periodLengthMs : 0), .white)
     case .fullTime: return ("Full time", "", .white)
     case .shootout: return ("Shootout", "", .white)
     case .ended: return ("Ended", "", .white)
@@ -306,7 +310,7 @@ private struct MatchSettingsPage: View {
             default:
                 EmptyView()
             }
-            if m.clock.phase == .playing || m.clock.phase == .breakTime {
+            if [.playing, .breakTime, .nextPeriod].contains(m.clock.phase) {
                 ChoiceButton(label: "End match", color: .endRed) { confirm = Confirm(title: "End the match now?") { controller.perform { try $0.endMatch($1) } } }
             }
         }
