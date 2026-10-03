@@ -1,3 +1,41 @@
+## [1.0.0-beta.12] - 2026-10-03
+
+### 🚀 Features
+
+- *(web)* A front page, with the results on their own page
+- *(web)* Brand header with a phone menu, and a proper footer
+- *(web)* Icons, share previews, and designed 404, error and loading pages
+- *(web)* Results grouped by day, with the scores in one column
+- *(web)* A scoreboard, a two-sided timeline and statistic bars on match pages
+- *(web)* Club and team pages with badges, team cards, record and form
+- *(web)* Dashboard summary, branded sign-in pages, aligned scores
+- *(api)* [**breaking**] Remove auto-publish
+- *(web)* Drafts wait for their umpire, with no auto-publish
+- *(phone)* Remind to upload matches, with no auto-publish
+
+### 🐛 Bug Fixes
+
+- *(deploy)* The website and API live at app.fhmatchcentre.com
+- *(mobile)* A deleted match no longer comes back from the watch
+
+### 📚 Documentation
+
+- *(deploy)* Amazon SES for email, and the Ubuntu Desktop laptop server
+- No public beta, straight from the alpha to 1.0
+
+### ⚙️ Miscellaneous Tasks
+
+- From 1.0.0, main releases are tagged with just their version
+- Start 1.0.0
+- Build bump to 11
+- *(mobile)* Ignore the native modules' .gradle folders
+
+### 💼 Other
+
+- Merge pull request #24 from KingCharlesVI/main
+
+v0.4.1 remerge
+- Merge branch 'dev' of https://github.com/KingCharlesVI/fh-watch into dev
 ## [0.4.0-alpha.9] - 2026-09-30
 
 ### 🚀 Features
