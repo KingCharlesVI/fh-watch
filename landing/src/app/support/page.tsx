@@ -1,4 +1,4 @@
-import { Activity, ArrowUpRight, BookOpen, Bug, MessageSquarePlus, ShieldCheck, Wrench } from "lucide-react";
+import { Activity, ArrowUpRight, BookOpen, Bug, MessageSquarePlus, ShieldCheck, Trash2, Wrench } from "lucide-react";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Container, GitHubIcon, Logo } from "@/components/parts";
@@ -125,6 +125,44 @@ export default function Support() {
                   project board
                 </a>
                 .
+              </p>
+            </Panel>
+
+            <Panel
+              icon={<Trash2 className="size-5 text-primary" />}
+              title="Deleting your account, or your data"
+              action={
+                SITE.contactEmail
+                  ? { href: `mailto:${SITE.contactEmail}?subject=${encodeURIComponent("Deleting my FH Match Centre account")}`, label: `Email ${SITE.contactEmail}` }
+                  : { href: "/support", label: "Get in touch" }
+              }
+            >
+              <p className="font-medium text-foreground">Your account</p>
+              <p className="mt-1">
+                Sign in on the website, open <strong>Your account</strong>, and use <strong>Delete account</strong>. It reaches us straight away and an
+                admin removes it; you&apos;ll get an email when it&apos;s done. If you can&apos;t sign in, email us from the address the account uses and
+                we&apos;ll do the same.
+              </p>
+              <p className="mt-3 font-medium text-foreground">Your data, without closing the account</p>
+              <ul className="mt-1 list-disc space-y-1 pl-5">
+                <li>
+                  <strong>Matches on your phone or watch:</strong> delete them in the app. They were never anywhere else unless you uploaded them.
+                </li>
+                <li>
+                  <strong>A match you uploaded:</strong> unpublish it on the website or in the phone app and it stops being public at once. To have the
+                  copy itself removed, email us the teams and the date, or its link. Deleted matches are purged after 30 days.
+                </li>
+                <li>
+                  <strong>Notifications:</strong> turning them off in the phone app&apos;s settings removes the token we hold for your device.
+                </li>
+                <li>
+                  <strong>Workouts:</strong> they never leave your devices, so there&apos;s nothing here to delete. Remove them in Health Connect or the
+                  Health app.
+                </li>
+              </ul>
+              <p className="mt-3">
+                One thing we keep: a published match stays on the website as the record of that game, with its umpire shown as a deleted user. Ask and
+                we&apos;ll remove those too.
               </p>
             </Panel>
 
