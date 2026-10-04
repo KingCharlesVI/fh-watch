@@ -32,4 +32,4 @@ The app is intended for match officials aged 18 and over.
 
 ## Contact
 
-Questions about this policy: [your contact email].
+Questions about this policy, or to delete your account or your data: kcvi@tuta.com.

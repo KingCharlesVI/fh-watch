@@ -9,6 +9,8 @@ export const SITE_DESCRIPTION = "Field hockey results, straight from the umpire'
 export const LANDING_URL = process.env.LANDING_URL ?? "https://fhmatchcentre.com";
 export const DOCS_URL = process.env.DOCS_URL ?? "https://docs.fhmatchcentre.com";
 export const STATUS_URL = process.env.STATUS_URL ?? "https://status.fhmatchcentre.com";
+/** Where people write about their account or their data. The same address as the landing page's. */
+export const CONTACT_EMAIL = "kcvi@tuta.com";
 export const GITHUB_URL = "https://github.com/KingCharlesVI/fh-watch";
 /** Where problems are reported, in the open. */
 export const ISSUES_URL = `${GITHUB_URL}/issues`;

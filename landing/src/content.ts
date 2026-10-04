@@ -9,8 +9,8 @@ export const SITE = {
   name: "FH Match Centre",
   url: "https://fhmatchcentre.com",
   description: "A field hockey umpiring app for Wear OS and Apple Watch, with a phone app for match reports and, soon, published results for clubs.",
-  /** Where people ask to join a test. Null hides the request buttons. */
-  contactEmail: null as string | null,
+  /** Where people write: joining a test, deleting an account, anything else. */
+  contactEmail: "kcvi@tuta.com" as string | null,
   /** The public GitHub repository whose releases hold the APKs (see `pnpm release:github`). */
   githubRepo: "KingCharlesVI/fh-watch",
   /** The website (results, accounts, clubs), from 1.0. Null hides the links to it. */

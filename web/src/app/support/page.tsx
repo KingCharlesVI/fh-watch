@@ -1,11 +1,11 @@
-import { Activity, BookOpen, Bug, CloudUpload, KeyRound, LifeBuoy, ShieldCheck, Smartphone, Users } from "lucide-react";
+import { Activity, BookOpen, Bug, CloudUpload, KeyRound, LifeBuoy, ShieldCheck, Smartphone, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/session";
-import { BUG_REPORT_URL, DOCS_URL, FEATURE_REQUEST_URL, LANDING_URL, SITE_NAME, STATUS_URL } from "@/lib/site";
+import { BUG_REPORT_URL, CONTACT_EMAIL, DOCS_URL, FEATURE_REQUEST_URL, LANDING_URL, SITE_NAME, STATUS_URL } from "@/lib/site";
 
 export const metadata = {
   title: "Support",
@@ -122,14 +122,34 @@ export default async function SupportPage() {
         <Topic icon={ShieldCheck} title="Your matches and your data">
           <ul className="space-y-2">
             <li>A match stays on the umpire&apos;s watch and phone until they upload it, and stays a draft until they publish it.</li>
-            <li>
-              Deleting a match from the phone leaves an uploaded copy here; ask us to remove a published match if you need it gone. Deleting an account
-              keeps its published matches, with its umpire shown as a deleted user.
-            </li>
+            <li>Deleting a match from the phone leaves the uploaded copy here, if you uploaded one.</li>
             <li>
               The <a href={`${LANDING_URL}/privacy`}>privacy policy</a> has the detail of what&apos;s stored and where.
             </li>
           </ul>
+        </Topic>
+
+        <Topic icon={Trash2} title="Deleting your account, or your data">
+          <p className="font-medium text-foreground">Your account</p>
+          <p className="mt-1">
+            <Link href="/account">Your account page</Link> has <strong>Delete account</strong> at the bottom. An admin removes it and you&apos;ll get an
+            email when it&apos;s done. Can&apos;t sign in? Email <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> from the address the account
+            uses.
+          </p>
+          <p className="mt-3 font-medium text-foreground">Your data, without closing the account</p>
+          <ul className="mt-1 space-y-2">
+            <li>Matches on your phone or watch: delete them in the app.</li>
+            <li>
+              A match you uploaded: unpublish it and it stops being public at once. To have the copy removed, email us its link. Deleted matches are
+              purged after 30 days.
+            </li>
+            <li>Notifications: turn them off in the phone app and the token we hold for your device goes with them.</li>
+            <li>Workouts never reach this website at all.</li>
+          </ul>
+          <p className="mt-3">
+            A published match stays as the record of that game when an account goes, with its umpire shown as a deleted user. Ask and we&apos;ll remove
+            those too.
+          </p>
         </Topic>
       </div>
 
