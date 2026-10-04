@@ -97,11 +97,11 @@ export function RequestAccess({ stage }: { stage: string }) {
 }
 
 /** A round watch face showing a real screenshot from the app. */
-export function WatchFrame({ src, alt }: { src: string; alt: string }) {
+export function WatchFrame({ src, alt, size = 432 }: { src: string; alt: string; size?: number }) {
   return (
     <div className="relative size-56 shrink-0 rounded-full bg-neutral-900 p-3 shadow-xl ring-1 ring-black/10 sm:size-64">
       <div className="size-full overflow-hidden rounded-full bg-black">
-        <Image src={src} alt={alt} width={454} height={454} className="size-full object-cover" />
+        <Image src={src} alt={alt} width={size} height={size} className="size-full object-cover" />
       </div>
       {/* The two buttons of a Galaxy Watch: the lower one starts and stops the clock. */}
       <span className="absolute top-[28%] -right-1.5 h-8 w-2 rounded-r-md bg-neutral-700" />
@@ -111,11 +111,11 @@ export function WatchFrame({ src, alt }: { src: string; alt: string }) {
 }
 
 /** A phone outline showing a real screenshot from the app. */
-export function PhoneFrame({ src, alt }: { src: string; alt: string }) {
+export function PhoneFrame({ src, alt, width = 945, height = 2048 }: { src: string; alt: string; width?: number; height?: number }) {
   return (
     <div className="w-52 shrink-0 rounded-[2.2rem] bg-neutral-900 p-2 shadow-xl ring-1 ring-black/10 sm:w-60">
       <div className="overflow-hidden rounded-[1.8rem] bg-white">
-        <Image src={src} alt={alt} width={1080} height={2400} className="h-auto w-full" />
+        <Image src={src} alt={alt} width={width} height={height} className="h-auto w-full" />
       </div>
     </div>
   );

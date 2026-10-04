@@ -24,7 +24,7 @@ export const SITE = {
 export const GITHUB_URL = `https://github.com/${SITE.githubRepo}`;
 
 /** The GitHub project board, for anyone who wants to follow the work. */
-export const PROJECT_BOARD_URL = `${GITHUB_URL}/projects/11/views/1`;
+export const PROJECT_BOARD_URL = "https://github.com/users/KingCharlesVI/projects/11/views/1";
 export const ISSUES_URL = `${GITHUB_URL}/issues`;
 /** The issue forms in .github/ISSUE_TEMPLATE, so a link opens the right one already chosen. */
 export const BUG_REPORT_URL = `${ISSUES_URL}/new?template=bug_report.yml`;

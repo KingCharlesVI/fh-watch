@@ -109,9 +109,9 @@ export default function Home() {
             </ul>
           </div>
           <div className="flex items-end justify-center gap-6">
-            <WatchFrame src="/screens/watch-match.png" alt="The timing page on a Wear OS watch: period, clock, score and a Stop button" />
+            <WatchFrame src="/screens/watch-match.png" alt="The timing page on a Wear OS watch: the half, the clock counting down, the score, and a suspension with 1:43 left" />
             <div className="hidden sm:block">
-              <PhoneFrame src="/screens/phone-match.png" alt="A match on the phone app" />
+              <PhoneFrame src="/screens/phone-match.jpg" alt="A finished match on the phone app: the score, and a timeline of goals, penalty corners and cards" />
             </div>
           </div>
         </Container>
