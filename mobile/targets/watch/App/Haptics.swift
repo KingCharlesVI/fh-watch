@@ -7,7 +7,7 @@ import WatchKit
 /// - clock started or stopped, a suspension over: one buzz
 /// - two minutes left in the period: two buzzes
 /// - one minute left: three buzzes
-/// - end of the period: strong, light, light, strong
+/// - end of the period, and the 8 seconds of a shoot-out: strong, light, light, strong
 /// - end of a break: four quick taps
 enum Haptics {
     static func alert(_ alerts: [Alert]) {
@@ -15,7 +15,7 @@ enum Haptics {
             switch a {
             case .twoMinutesLeft: buzzes(2)
             case .oneMinuteLeft: buzzes(3)
-            case .timeUp: play([.notification, .directionUp, .directionUp, .notification], gap: 0.45)
+            case .timeUp: timeUp()
             case .suspensionOver: buzzes(1)
             case .breakOver: play([.click, .click, .click, .click], gap: 0.25)
             }
@@ -24,6 +24,13 @@ enum Haptics {
 
     /// The clock started or stopped, whichever way it was done.
     static func buzz() { buzzes(1) }
+
+    /// A shoot-out's 8 seconds are up.
+    static func shootoutTimeUp() { timeUp() }
+
+    private static func timeUp() {
+        play([.notification, .directionUp, .directionUp, .notification], gap: 0.45)
+    }
 
     private static func buzzes(_ n: Int) {
         play(Array(repeating: .notification, count: n), gap: 0.6)
