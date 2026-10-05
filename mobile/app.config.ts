@@ -80,6 +80,7 @@ const config: ExpoConfig = {
     "@bacons/apple-targets",
     "./plugins/with-cmake-version",
     "./plugins/with-release-signing",
+    "./plugins/with-github-channel",
   ],
   experiments: { typedRoutes: true },
   extra: {
