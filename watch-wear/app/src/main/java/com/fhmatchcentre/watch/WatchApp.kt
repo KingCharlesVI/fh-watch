@@ -7,6 +7,7 @@ import com.fhmatchcentre.watch.data.WatchDatabase
 import com.fhmatchcentre.watch.fitness.FitnessTracker
 import com.fhmatchcentre.watch.match.MatchController
 import com.fhmatchcentre.watch.sync.WatchSync
+import com.fhmatchcentre.watch.update.WatchUpdater
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -21,6 +22,9 @@ class Services(app: Application) {
     val fitness = FitnessTracker(app, db.fitness(), prefs, scope)
     val sync = WatchSync(app, db.matches(), fitness)
     val controller = MatchController(app, db.matches(), sync, fitness, scope)
+
+    /** Updates sent from the phone, in the GitHub build. */
+    val updater = WatchUpdater(app)
 
     /**
      * A setup that just arrived from the phone (Setup on phone), until the watch's

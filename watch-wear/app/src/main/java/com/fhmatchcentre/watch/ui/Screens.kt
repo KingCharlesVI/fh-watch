@@ -58,6 +58,8 @@ import java.util.Date
 @Composable
 fun HomeScreen(services: Services, onNewMatch: () -> Unit, onPhoneSetup: () -> Unit, onResume: () -> Unit, onMatches: () -> Unit, onSettings: () -> Unit) {
     val active by services.controller.active.collectAsState()
+    val update by services.updater.ready.collectAsState()
+    val updateProblem by services.updater.problem.collectAsState()
     ListScreen("FH Match Centre") {
         if (active != null) item { ChoiceButton("Back to match", color = Color(0xFF106C3E)) { onResume() } }
         else {
@@ -66,6 +68,10 @@ fun HomeScreen(services: Services, onNewMatch: () -> Unit, onPhoneSetup: () -> U
         }
         item { ChoiceButton("Past matches") { onMatches() } }
         item { ChoiceButton("Settings") { onSettings() } }
+        // Sent from the phone (GitHub build). Never while a match is on.
+        if (active == null && update != null) {
+            item { ChoiceButton("Install update", updateProblem ?: "Version $update") { services.updater.install() } }
+        }
     }
 }
 
