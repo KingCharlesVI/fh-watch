@@ -49,4 +49,8 @@ export const upcoming = {
   async remove(id: string) {
     await write(removeUpcoming(await load(), id));
   },
+  async removeAll(ids: readonly string[]) {
+    if (ids.length === 0) return;
+    await write((await load()).filter((u) => !ids.includes(u.id)));
+  },
 };

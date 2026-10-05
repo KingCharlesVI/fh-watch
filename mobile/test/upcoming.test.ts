@@ -5,6 +5,7 @@ import {
   dayLabel,
   isPast,
   parseTime,
+  playedUpcoming,
   readUpcoming,
   removeUpcoming,
   saveUpcoming,
@@ -90,5 +91,18 @@ describe("upcoming matches", () => {
     expect(parseTime("24:00")).toBeNull();
     expect(parseTime("14:60")).toBeNull();
     expect(parseTime("2pm")).toBeNull();
+  });
+
+  it("finds the sent matches that have been played since", () => {
+    const sent = "2026-10-11T13:30:00Z";
+    const list = [
+      match("played", { sentAt: sent, setup: { ...DEFAULT_SETUP, homeName: "Hawks M2", awayName: "Reading M3" } }),
+      match("not sent", { setup: { ...DEFAULT_SETUP, homeName: "Hawks M2", awayName: "Reading M3" } }),
+      match("other teams", { sentAt: sent, setup: { ...DEFAULT_SETUP, homeName: "Hawks M1", awayName: "Reading M3" } }),
+      match("played before it was sent", { sentAt: "2026-10-18T13:30:00Z", setup: { ...DEFAULT_SETUP, homeName: "Hawks M2", awayName: "Reading M3" } }),
+    ];
+    const teams = (home: string, away: string) => ({ home: { name: home, teamId: null, color: "#1D4ED8" }, away: { name: away, teamId: null, color: "#DC2626" } });
+    const played = [{ teams: teams(" hawks m2", "Reading M3 "), startedAt: "2026-10-11T14:01:00Z" }];
+    expect(playedUpcoming(list, played)).toEqual(["played"]);
   });
 });

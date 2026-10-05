@@ -1,17 +1,27 @@
 import { router } from "expo-router";
+import { useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { presetOf } from "@/core/setup";
-import { type UpcomingMatch, isPast, sortUpcoming, whenLabel } from "@/core/upcoming";
-import { useUpcoming } from "@/state/upcoming";
+import { type UpcomingMatch, isPast, playedUpcoming, sortUpcoming, whenLabel } from "@/core/upcoming";
+import { useMatches } from "@/state/sync";
+import { upcoming, useUpcoming } from "@/state/upcoming";
 import { Badge, Button, Empty, Screen, Swatch, Text } from "@/ui/kit";
 import { radius, space, useColors } from "@/ui/theme";
 
 /** Matches set up ahead of time, soonest first, to send to the watch at the ground. */
 export default function UpcomingScreen() {
   const list = useUpcoming();
+  const { rows } = useMatches();
   const c = useColors();
   const today = new Date();
   const shown = list ? sortUpcoming(list) : [];
+
+  // Once a match that was sent comes back from the watch played, it's no longer upcoming.
+  useEffect(() => {
+    if (!list) return;
+    const played = rows.flatMap((r) => (r.match.document ? [r.match.document] : []));
+    upcoming.removeAll(playedUpcoming(list, played));
+  }, [list, rows]);
 
   return (
     <Screen>

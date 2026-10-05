@@ -1,3 +1,4 @@
+import type { MatchDocument } from "@fh/shared";
 import { DEFAULT_SETUP, type WatchSetup } from "./setup";
 
 /**
@@ -88,6 +89,21 @@ export function whenLabel(u: Pick<UpcomingMatch, "date" | "time">, today: Date):
 /** Whether the day has gone. */
 export function isPast(u: Pick<UpcomingMatch, "date">, today: Date): boolean {
   return u.date !== null && u.date < isoDay(today);
+}
+
+/**
+ * Upcoming matches that have been played: sent to the watch, and a match between the
+ * same two teams came back from it, started after it was sent. They've done their job.
+ */
+export function playedUpcoming(list: readonly UpcomingMatch[], played: readonly Pick<MatchDocument, "teams" | "startedAt">[]): string[] {
+  const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+  return list
+    .filter(
+      (u) =>
+        u.sentAt !== null &&
+        played.some((m) => same(m.teams.home.name, u.setup.homeName) && same(m.teams.away.name, u.setup.awayName) && Date.parse(m.startedAt) >= Date.parse(u.sentAt!)),
+    )
+    .map((u) => u.id);
 }
 
 /** A kick-off as typed, "14:00" or "9:30", made "09:30"; null if it isn't a time. */
