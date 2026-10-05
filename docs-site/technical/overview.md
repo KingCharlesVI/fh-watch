@@ -37,6 +37,7 @@ flowchart LR
 ## Where to read more
 
 - [Development setup](technical/development.md): running everything locally.
+- [API reference](technical/api.md): authentication, roles and every endpoint.
 - [Design](technical/design.md): the full design, from the data model to the watch sync protocol and the milestones.
 - [Releasing](technical/releasing.md), [Google Play](technical/play-store.md) and [Deployment](technical/deployment.md).
 - The READMEs in the repository, especially [watch-wear](https://github.com/KingCharlesVI/fh-watch/blob/main/watch-wear/README.md) and [landing](https://github.com/KingCharlesVI/fh-watch/blob/main/landing/README.md).
