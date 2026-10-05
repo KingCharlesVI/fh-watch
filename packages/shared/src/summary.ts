@@ -32,8 +32,8 @@ export function activeEvents(match: MatchDocument): MatchEvent[] {
 }
 
 /**
- * Sort events into match order: by period and clock, then shootout attempts by
- * round, then untimed notes. Ties keep log order.
+ * Sort events into match order: by period and clock, then the shootout (attempts
+ * and cards) in the order it was recorded, then untimed notes. Ties keep log order.
  */
 export function sortChronologically<T extends MatchEvent>(events: readonly T[]): T[] {
   return [...events].sort((a, b) => {
@@ -44,10 +44,21 @@ export function sortChronologically<T extends MatchEvent>(events: readonly T[]):
 }
 
 function sortKey(e: MatchEvent): [number, number] {
-  if (e.type === "shootout_attempt") return [Number.MAX_SAFE_INTEGER - 1, e.round];
+  if (e.type === "shootout_attempt" || (e.type === "card" && e.shootout)) return [Number.MAX_SAFE_INTEGER - 1, 0];
   if ("period" in e && e.period !== undefined && "clockMs" in e && e.clockMs !== undefined) return [e.period, e.clockMs];
   if ("period" in e && e.period !== undefined) return [e.period, Number.MAX_SAFE_INTEGER];
   return [Number.MAX_SAFE_INTEGER, 0];
+}
+
+/**
+ * Which team takes shoot-out number `taken + 1`, given who took the first. The teams
+ * alternate, and the team that took first in a series of five defends first in the
+ * next (FIH shoot-out competition, articles 21c and 22b).
+ */
+export function shootoutTaker(first: TeamSide, taken: number): TeamSide {
+  const other: TeamSide = first === "home" ? "away" : "home";
+  const starter = Math.floor(taken / 10) % 2 === 0 ? first : other;
+  return taken % 2 === 0 ? starter : starter === "home" ? "away" : "home";
 }
 
 export function summarizeMatch(match: MatchDocument): MatchSummary {

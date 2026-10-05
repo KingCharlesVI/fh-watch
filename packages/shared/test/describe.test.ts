@@ -56,6 +56,14 @@ describe("describeEvent and eventTime", () => {
     const e = m.events.find((x) => x.seq === 9)!;
     expect([eventTime(e, m.settings), describeEvent(e, m.settings)]).toEqual(["SO", "Shootout round 2: missed"]);
   });
+
+  it("marks cards and forfeits in the shootout", () => {
+    const m = shootoutMatch();
+    const card = { seq: 15, type: "card", team: "home", color: "red", period: 2, clockMs: 2100000, shootout: true } as const;
+    expect([eventTime(card, m.settings), describeEvent(card, m.settings)]).toEqual(["SO", "Red card (shootout)"]);
+    const forfeit = { seq: 16, type: "shootout_attempt", team: "home", round: 5, scored: false, forfeit: true } as const;
+    expect(describeEvent(forfeit, m.settings)).toBe("Shootout round 5: forfeited");
+  });
 });
 
 describe("card reasons", () => {

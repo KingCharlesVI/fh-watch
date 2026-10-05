@@ -1,6 +1,6 @@
 import { eventTime, formatDuration } from "./describe.js";
 import { MatchDocument, type MatchEvent } from "./schema.js";
-import { formatClock } from "./summary.js";
+import { formatClock, shootoutTaker } from "./summary.js";
 
 export type IssueSeverity = "error" | "warning";
 
@@ -83,7 +83,15 @@ export function checkSemantics(match: MatchDocument): ValidationIssue[] {
       warn("clock_overrun", [...path, "clockMs"], `${eventTime(event, settings)} is after the end of the period (${formatClock(settings.periodLengthSec * 1000)}).`);
     }
 
-    if (event.type === "card") {
+    if (event.type === "card" && event.shootout) {
+      // FIH: only yellow or red in the shootout, and the player is out for the rest of it.
+      if (event.color === "green") {
+        error("shootout_card", [...path, "color"], "A green card can't be given in the shootout: only yellow or red.");
+      }
+      if (event.durationSec !== undefined) {
+        error("card_duration", [...path, "durationSec"], "A card in the shootout has no suspension duration: the player takes no further part.");
+      }
+    } else if (event.type === "card") {
       if (event.color === "red" && event.durationSec !== undefined) {
         error("card_duration", [...path, "durationSec"], "A red card has no suspension duration.");
       }
@@ -153,6 +161,22 @@ export function checkSemantics(match: MatchDocument): ValidationIssue[] {
       warn("unexpected_shootout", ["events", shootoutIndex], `There's a shootout, but the match wasn't drawn (${goals.home}–${goals.away}).`);
     }
   }
+
+  const attempts = active.filter((e) => e.type === "shootout_attempt");
+  let outOfOrder = false;
+  attempts.forEach((attempt, i) => {
+    const path = ["events", events.indexOf(attempt)];
+    if (attempt.forfeit && attempt.scored) {
+      error("forfeit_scored", [...path, "scored"], "A forfeited shoot-out can't be scored.");
+    }
+    if (attempt.forfeit && !active.some((e) => e.type === "card" && e.shootout && e.team === attempt.team && e.seq < attempt.seq)) {
+      warn("forfeit_without_card", path, `${match.teams[attempt.team].name} forfeit a shoot-out, but none of their players was suspended in the shootout.`);
+    }
+    if (!outOfOrder && attempt.team !== shootoutTaker(attempts[0]!.team, i)) {
+      outOfOrder = true;
+      warn("shootout_order", path, `Shoot-out ${i + 1} was taken by ${match.teams[attempt.team].name}, out of turn.`);
+    }
+  });
 
   return issues;
 }

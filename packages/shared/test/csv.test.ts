@@ -47,6 +47,18 @@ describe("matchEventsToCsv", () => {
     expect(rows).toContain('7,SO,,Bath Buccaneers L1,shootout_attempt,10,"Round 1, scored"');
     expect(rows).toContain('9,SO,,Bath Buccaneers L1,shootout_attempt,6,"Round 2, missed"');
   });
+
+  it("marks cards and forfeits in the shootout with period SO and no clock", () => {
+    const m = shootoutMatch();
+    m.events = m.events.filter((e) => e.seq <= 12);
+    m.events.push(
+      { seq: 13, type: "card", team: "home", player: 10, color: "yellow", period: 2, clockMs: 2100000, shootout: true },
+      { seq: 14, type: "shootout_attempt", team: "home", round: 4, scored: false, forfeit: true },
+    );
+    const rows = lines(matchEventsToCsv(m));
+    expect(rows).toContain('13,SO,,Bath Buccaneers L1,card,10,"Yellow, in the shootout"');
+    expect(rows).toContain('14,SO,,Bath Buccaneers L1,shootout_attempt,,"Round 4, forfeited"');
+  });
 });
 
 describe("matchListToCsv", () => {

@@ -82,7 +82,11 @@ export const CardEvent = z.strictObject({
     .int()
     .min(1)
     .optional()
-    .meta({ description: "Suspension length. Required for green and yellow, absent for red." }),
+    .meta({ description: "Suspension length. Required for green and yellow, absent for red and for cards in the shootout." }),
+  shootout: z.literal(true).optional().meta({
+    description:
+      "Given during the shootout: yellow or red only, and the player takes no further part in it. period and clockMs are where the match ended.",
+  }),
 });
 
 export const CardEndEvent = z.strictObject({
@@ -113,6 +117,9 @@ export const ShootoutAttemptEvent = z.strictObject({
   round: z.int().min(1),
   player: ShirtNumber.optional(),
   scored: z.boolean(),
+  forfeit: z.literal(true).optional().meta({
+    description: "Not taken: the player due to take it was suspended during the shootout. Never scored.",
+  }),
 });
 
 export const VoidEvent = z.strictObject({

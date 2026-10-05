@@ -100,11 +100,11 @@ The settings above are one example. Period count, period length and break length
 | `period_start` / `period_end` | period | A break is the gap between one period's end and the next one's start. |
 | `clock_stop` / `clock_resume` | reason? (`injury`, `video`, `other`) | Stoppages for injury, video referral and so on. |
 | `goal` | team, player?, method? (`field`, `pc`, `ps`) | method = field goal, penalty corner or penalty stroke. |
-| `card` | team, player?, color, durationSec | green, yellow or red. Green is 2 min. Yellow is 5 or 10 min, picked when the card is given (durationSec 300 or 600). Red has no duration. |
+| `card` | team, player?, color, durationSec | green, yellow or red. Green is 2 min. Yellow is 5 or 10 min, picked when the card is given (durationSec 300 or 600). Red has no duration. A card in the shootout (`shootout: true`) is yellow or red, with no duration. |
 | `card_end` | refSeq | Written automatically when a suspension timer runs out. |
 | `penalty_corner` | team | Counted per team. |
 | `penalty_stroke` | team, scored | Optional. |
-| `shootout_attempt` | team, round, player?, scored | Only after a drawn match when `shootoutIfDrawn` is set. |
+| `shootout_attempt` | team, round, player?, scored, forfeit? | Only after a drawn match when `shootoutIfDrawn` is set. `forfeit` when the player due was suspended in the shootout. |
 | `void` | refSeq | Undo. Cancels an earlier event without deleting it. |
 | `note` | text | Free-text note added on the phone. |
 

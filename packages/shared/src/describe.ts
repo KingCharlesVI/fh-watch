@@ -38,7 +38,8 @@ export function describeEvent(event: MatchEvent, settings: Pick<MatchSettings, "
     case "goal":
       return event.method === "pc" ? "Goal (penalty corner)" : event.method === "ps" ? "Goal (penalty stroke)" : "Goal";
     case "card": {
-      const card = event.durationSec === undefined ? `${capitalize(event.color)} card` : `${capitalize(event.color)} card (${formatDuration(event.durationSec)})`;
+      const color = capitalize(event.color);
+      const card = event.shootout ? `${color} card (shootout)` : event.durationSec === undefined ? `${color} card` : `${color} card (${formatDuration(event.durationSec)})`;
       return event.reason ? `${card}: ${CARD_REASONS[event.reason].toLowerCase()}` : card;
     }
     case "card_end":
@@ -48,7 +49,7 @@ export function describeEvent(event: MatchEvent, settings: Pick<MatchSettings, "
     case "penalty_stroke":
       return event.scored ? "Penalty stroke scored" : "Penalty stroke missed";
     case "shootout_attempt":
-      return `Shootout round ${event.round}: ${event.scored ? "scored" : "missed"}`;
+      return `Shootout round ${event.round}: ${event.forfeit ? "forfeited" : event.scored ? "scored" : "missed"}`;
     case "void":
       return `Cancelled event ${event.refSeq}`;
     case "note":
@@ -56,9 +57,9 @@ export function describeEvent(event: MatchEvent, settings: Pick<MatchSettings, "
   }
 }
 
-/** "Q2 6:52", "SO" for shootout attempts, "" for untimed events. */
+/** "Q2 6:52", "SO" for shootout attempts and cards, "" for untimed events. */
 export function eventTime(event: MatchEvent, settings: Pick<MatchSettings, "periods">): string {
-  if (event.type === "shootout_attempt") return "SO";
+  if (event.type === "shootout_attempt" || (event.type === "card" && event.shootout)) return "SO";
   if (!("period" in event) || event.period === undefined) return "";
   const period = periodLabel(settings.periods, event.period);
   return "clockMs" in event && event.clockMs !== undefined ? `${period} ${formatClock(event.clockMs)}` : period;
