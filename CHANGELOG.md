@@ -1,3 +1,26 @@
+## [1.1.0-beta.15] - 2026-10-05
+
+### 🚀 Features
+
+- *(mobile)* Install the new phone app from the update notice
+- *(wear)* Install a new watch app sent from the phone
+- *(mobile)* Send the new watch app to the watch
+
+### 🐛 Bug Fixes
+
+- *(mobile)* Google Play's build doesn't offer GitHub updates
+
+### 📚 Documentation
+
+- Updating both Android apps from the phone
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* V1.1.0 build 15
+
+### 💼 Other
+
+- GitHub builds of both apps, apart from Google Play's
 ## [1.1.0-beta.14] - 2026-10-05
 
 ### 🚀 Features
