@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { api } from "@/lib/api";
 import { type FormState, formError, optionalText, text } from "@/lib/forms";
-import type { Club, Team } from "@/lib/types";
+import type { Club, ClubRequest, Team } from "@/lib/types";
 
 const done = (ok: string, ...paths: string[]): FormState => {
   for (const p of paths) revalidatePath(p);
@@ -39,9 +39,66 @@ export async function deleteUser(_: FormState, fd: FormData): Promise<FormState>
   redirect("/admin/users?deleted=1");
 }
 
+// ---- Club logos ----
+
+// As the API accepts them.
+const LOGO_TYPES = ["image/png", "image/jpeg", "image/webp"];
+const MAX_LOGO_BYTES = 512 * 1024;
+
+/** The logo chosen in the form's `logo` field: null if none was, or the reason it won't do. */
+function logoFile(fd: FormData): File | null | { error: string } {
+  const file = fd.get("logo");
+  if (!(file instanceof File) || file.size === 0) return null;
+  if (!LOGO_TYPES.includes(file.type)) return { error: "The logo must be a PNG, JPEG or WebP image." };
+  if (file.size > MAX_LOGO_BYTES) return { error: "The logo must be 512 KB or smaller." };
+  return file;
+}
+
+const uploadLogo = (clubId: string, file: File) => api<Club>(`/v1/clubs/${clubId}/logo`, { method: "PUT", body: file });
+
+/** For when the club was saved but its logo then wasn't. */
+function logoFailed(saved: string, err: unknown): FormState {
+  const state = formError(err);
+  return { ...state, error: `${saved}, but the logo wasn't: ${state?.error} Add it on the club's page.` };
+}
+
+/** Logos show on the public club pages as well as in admin. */
+function revalidateClubPages(id: string) {
+  revalidatePath(`/admin/clubs/${id}`);
+  revalidatePath("/admin/clubs");
+  revalidatePath("/clubs", "layout");
+}
+
+export async function setClubLogo(_: FormState, fd: FormData): Promise<FormState> {
+  const id = text(fd, "id");
+  const logo = logoFile(fd);
+  if (!logo) return { error: "Choose an image for the logo." };
+  if (!(logo instanceof File)) return logo;
+  try {
+    await uploadLogo(id, logo);
+  } catch (err) {
+    return formError(err);
+  }
+  revalidateClubPages(id);
+  return { ok: "Logo saved." };
+}
+
+export async function removeClubLogo(_: FormState, fd: FormData): Promise<FormState> {
+  const id = text(fd, "id");
+  try {
+    await api(`/v1/clubs/${id}/logo`, { method: "DELETE" });
+  } catch (err) {
+    return formError(err);
+  }
+  revalidateClubPages(id);
+  return { ok: "Logo removed." };
+}
+
 // ---- Clubs and teams ----
 
 export async function createClub(_: FormState, fd: FormData): Promise<FormState> {
+  const logo = logoFile(fd);
+  if (logo && !(logo instanceof File)) return logo;
   let club: Club;
   try {
     club = await api<Club>("/v1/clubs", { method: "POST", body: { name: text(fd, "name") } });
@@ -49,6 +106,13 @@ export async function createClub(_: FormState, fd: FormData): Promise<FormState>
     return formError(err);
   }
   revalidatePath("/admin/clubs");
+  if (logo) {
+    try {
+      await uploadLogo(club.id, logo);
+    } catch (err) {
+      return logoFailed(`${club.name} was added`, err);
+    }
+  }
   redirect(`/admin/clubs/${club.id}`);
 }
 
@@ -120,10 +184,22 @@ export async function reviewAccessRequest(_: FormState, fd: FormData): Promise<F
 
 export async function reviewRequest(_: FormState, fd: FormData): Promise<FormState> {
   const decision = text(fd, "decision") === "approve" ? "approve" : "reject";
+  // Approving a request for a new club can give that club its logo.
+  const logo = decision === "approve" ? logoFile(fd) : null;
+  if (logo && !(logo instanceof File)) return logo;
+  let request: ClubRequest;
   try {
-    await api(`/v1/club-requests/${text(fd, "id")}/${decision}`, { method: "POST" });
+    request = await api<ClubRequest>(`/v1/club-requests/${text(fd, "id")}/${decision}`, { method: "POST" });
   } catch (err) {
     return formError(err);
+  }
+  if (logo && request.clubId) {
+    try {
+      await uploadLogo(request.clubId, logo);
+    } catch (err) {
+      // Not revalidated, so the request stays on the page to show this.
+      return logoFailed("Approved", err);
+    }
   }
   return done(decision === "approve" ? "Approved." : "Rejected.", "/admin/requests", "/admin");
 }

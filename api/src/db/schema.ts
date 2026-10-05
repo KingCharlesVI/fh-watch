@@ -4,6 +4,7 @@ import {
   bigint,
   boolean,
   check,
+  customType,
   index,
   integer,
   jsonb,
@@ -20,12 +21,26 @@ import {
 
 const tstz = () => timestamp({ withTimezone: true, mode: "date" });
 const createdAt = () => tstz().notNull().defaultNow();
+const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" });
+
+export const LOGO_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 
 export const clubs = pgTable("clubs", {
   id: uuid().primaryKey().defaultRandom(),
   name: text().notNull().unique(),
   slug: text().notNull().unique(),
+  /** When its logo was last set, or null for none; versions the logo's URL so it can be cached. */
+  logoUpdatedAt: tstz(),
   createdAt: createdAt(),
+});
+
+/** A club's logo, kept apart from `clubs` so listing clubs doesn't read the images. */
+export const clubLogos = pgTable("club_logos", {
+  clubId: uuid()
+    .primaryKey()
+    .references(() => clubs.id, { onDelete: "cascade" }),
+  contentType: text({ enum: LOGO_TYPES }).notNull(),
+  data: bytea().notNull(),
 });
 
 export const teams = pgTable(

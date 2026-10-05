@@ -2,6 +2,8 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { createClub } from "@/app/actions/admin";
 import { ActionForm } from "@/components/ActionForm";
+import { ClubBadge } from "@/components/ClubBadge";
+import { LogoField } from "@/components/LogoField";
 import { PageHeader } from "@/components/PageHeader";
 import { TextField } from "@/components/TextField";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,9 +30,10 @@ export default async function AdminClubsPage({ searchParams }: { searchParams: P
                 <li key={c.id}>
                   <Link
                     href={`/admin/clubs/${c.id}`}
-                    className="flex items-center justify-between px-4 py-3 text-foreground no-underline hover:bg-muted/60 hover:no-underline"
+                    className="flex items-center gap-3 px-4 py-3 text-foreground no-underline hover:bg-muted/60 hover:no-underline"
                   >
-                    {c.name}
+                    <ClubBadge name={c.name} logoUrl={c.logoUrl} size="sm" />
+                    <span className="min-w-0 flex-1 truncate">{c.name}</span>
                     <ChevronRight className="size-4 text-muted-foreground" />
                   </Link>
                 </li>
@@ -45,6 +48,7 @@ export default async function AdminClubsPage({ searchParams }: { searchParams: P
           <CardContent>
             <ActionForm action={createClub} submitLabel="Add club" className="max-w-none">
               <TextField label="Name" name="name" required minLength={2} maxLength={100} />
+              <LogoField />
             </ActionForm>
           </CardContent>
         </Card>

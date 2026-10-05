@@ -18,6 +18,7 @@ export class ApiError extends Error {
 
 export interface ApiOptions {
   method?: string;
+  /** Sent as JSON, or a Blob as-is with its own type (e.g. a club logo). */
   body?: unknown;
   headers?: Record<string, string>;
   query?: Record<string, string | number | boolean | undefined | null>;
@@ -41,16 +42,17 @@ export function apiUrl(path: string, query?: ApiOptions["query"]): string {
 /** Raw fetch to the API with auth and forwarding headers; the caller handles the response. */
 export async function apiFetch(path: string, options: ApiOptions = {}): Promise<Response> {
   const token = options.auth === false ? undefined : (await cookies()).get(ACCESS_COOKIE)?.value;
+  const { body } = options;
   return fetch(apiUrl(path, options.query), {
     method: options.method ?? "GET",
     cache: "no-store",
     headers: {
       ...(await forwardedFor()),
       ...(token ? { authorization: `Bearer ${token}` } : {}),
-      ...(options.body !== undefined ? { "content-type": "application/json" } : {}),
+      ...(body instanceof Blob ? { "content-type": body.type } : body !== undefined ? { "content-type": "application/json" } : {}),
       ...options.headers,
     },
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    body: body instanceof Blob ? body : body !== undefined ? JSON.stringify(body) : undefined,
   });
 }
 

@@ -37,7 +37,7 @@ export default async function ClubPage({ params, searchParams }: { params: Param
           <ChevronLeft className="size-4" /> Clubs
         </Link>
         <Card className="flex-row flex-wrap items-center gap-4 px-5 py-5">
-          <ClubBadge name={club.name} size="lg" />
+          <ClubBadge name={club.name} logoUrl={club.logoUrl} size="lg" />
           <div className="min-w-0 flex-1">
             <h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">{club.name}</h1>
             <p className="text-muted-foreground">

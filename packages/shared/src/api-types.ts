@@ -64,6 +64,8 @@ export interface Club {
   id: string;
   name: string;
   slug: string;
+  /** Path to the club's logo on the API's host (`/v1/clubs/{id}/logo?v=…`), or null for none. */
+  logoUrl: string | null;
 }
 
 export interface ClubTeam {
