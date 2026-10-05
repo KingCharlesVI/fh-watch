@@ -82,4 +82,11 @@ Matches live on the phone, so back them up now and then:
 
 ## Updates (Android)
 
-When there's a newer phone app, or a newer watch app than the one on your watch, a notice appears on the match list and in Settings. The phone app downloads straight from the notice; the watch app is installed from a computer, as when you first installed it.
+If you installed the apps from the GitHub releases page, the phone app tells you when there's a newer phone app, or a newer watch app than the one on your watch, with a notice on the match list and in Settings. Both install from the notice, with no computer:
+
+- **Install phone app** downloads it and asks Android to install it. Confirm, and the app closes and opens again on the new version, with your matches as they were. The first time, Android asks you to allow FH Match Centre to install apps: turn it on, come back and tap **Install phone app** again.
+- **Send to watch** downloads the watch app and sends it to your watch (keep it near the phone with Bluetooth on). The watch says **Update ready**; open FH Match Centre there and tap **Install update** on its home screen, then confirm. It's never offered during a match. The first time, the watch asks to allow the app to install apps too.
+
+With both to update, send the watch's first: installing the phone app closes it.
+
+If you installed from Google Play, Google Play keeps both apps up to date instead, and the phone app doesn't show these notices.
