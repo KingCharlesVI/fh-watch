@@ -25,6 +25,10 @@ export default function TabsLayout() {
         options={{ title: "Upcoming", tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" color={color} size={size} /> }}
       />
       <Tabs.Screen
+        name="summary"
+        options={{ title: "Summary", tabBarIcon: ({ color, size }) => <Ionicons name="stats-chart-outline" color={color} size={size} /> }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{ title: "Settings", tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" color={color} size={size} /> }}
       />
