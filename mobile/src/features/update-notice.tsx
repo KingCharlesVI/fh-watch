@@ -1,23 +1,17 @@
-import * as Linking from "expo-linking";
 import { View } from "react-native";
 import type { Update } from "@/core/updates";
-import { type Installing, dismissUpdate, installPhoneUpdate, useUpdates } from "@/state/updates";
+import { type Installing, dismissUpdate, installPhoneUpdate, sendWatchUpdate, useUpdates } from "@/state/updates";
 import { Banner, Button, Row, T } from "@/ui/kit";
 
 /**
- * A newer phone or watch app on GitHub. The phone's downloads and installs from here;
- * the watch's goes on from a computer, so that links to the release page.
+ * A newer phone or watch app on GitHub. The phone's downloads and installs from here; the
+ * watch's downloads here and goes to the watch, to install there.
  */
 export function UpdateNotice({ update, later }: { update: Update; later?: boolean }) {
   const { installing } = useUpdates();
   const { release, phone, watch } = update;
   const busy = installing?.step === "downloading" || installing?.step === "confirming";
-  const body =
-    phone && watch
-      ? "New phone and watch apps. Install the watch app from a computer, as before."
-      : phone
-        ? "A new phone app."
-        : "A new watch app. Install it from a computer, as before.";
+  const body = phone && watch ? "New phone and watch apps. Send the watch's first: the phone app closes while it updates." : phone ? "A new phone app." : "A new watch app.";
   return (
     <Banner
       tone="primary"
@@ -32,7 +26,15 @@ export function UpdateNotice({ update, later }: { update: Update; later?: boolea
           )}
           {watch && (
             <View style={{ flex: 1 }}>
-              <Button small title="Watch app" variant="outline" icon="open-outline" onPress={() => void Linking.openURL(release.pageUrl)} />
+              <Button
+                small
+                title="Send to watch"
+                variant={phone ? "outline" : "primary"}
+                icon="watch-outline"
+                loading={installing?.app === "watch" && busy}
+                disabled={busy}
+                onPress={() => void sendWatchUpdate()}
+              />
             </View>
           )}
           {later && <Button small title="Later" variant="ghost" onPress={() => void dismissUpdate()} />}
@@ -56,6 +58,8 @@ function installingText(i: Installing): string {
       return "Allow FH Match Centre to install apps, then come back and tap Install again.";
     case "confirming":
       return "Confirm the update when Android asks. The app closes and opens on the new version.";
+    case "sent":
+      return `Sent to your watch${i.watches > 1 ? "es" : ""}. On the watch, open FH Match Centre and tap Install update.`;
     case "failed":
       return i.message;
   }

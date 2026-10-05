@@ -25,6 +25,8 @@ export type Installing =
   | { app: "phone"; step: "allow" }
   /** Android's own dialog is asking the umpire to confirm. */
   | { app: "phone"; step: "confirming" }
+  /** The watch app went to this many watches, to install there. */
+  | { app: "watch"; step: "sent"; watches: number }
   | { app: "phone" | "watch"; step: "failed"; message: string };
 
 export interface UpdateState {
@@ -82,6 +84,9 @@ export async function checkForUpdates(): Promise<void> {
   }
 }
 
+/** The watch app's package: the same as the phone's, so the Data Layer connects them. */
+const WATCH_PACKAGE = "com.fhmatchcentre.app";
+
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 // How Android's installer got on. Installed means the app is being replaced, and closes.
@@ -127,6 +132,35 @@ export async function installPhoneUpdate() {
     await AppUpdater.installUpdate(path);
   } catch (err) {
     set({ installing: { app: "phone", step: "failed", message: message(err) } });
+  }
+}
+
+/**
+ * Downloads the new watch app and sends it to the watches in reach (their GitHub build),
+ * which keep it for the umpire to install there: Install update on the watch's home screen.
+ */
+export async function sendWatchUpdate() {
+  const update = state.update;
+  if (!update?.watch) return;
+  if (!AppUpdater) return void Linking.openURL(update.release.pageUrl);
+  const path = await download("watch", update.watch.url);
+  if (!path) return;
+  const info = await AppUpdater.apkInfo(path).catch(() => null);
+  // The watch's version codes are 1,000,000 above the phone's (see watch-wear/app/build.gradle.kts).
+  if (info?.packageName !== WATCH_PACKAGE || info.versionCode < 1_000_000) {
+    set({ installing: { app: "watch", step: "failed", message: "That download isn't the watch app." } });
+    return;
+  }
+  try {
+    const watches = await WatchSync.sendWatchUpdate(path);
+    set({
+      installing:
+        watches > 0
+          ? { app: "watch", step: "sent", watches }
+          : { app: "watch", step: "failed", message: "No watch got it. Keep your watch near the phone with Bluetooth on, then send again." },
+    });
+  } catch (err) {
+    set({ installing: { app: "watch", step: "failed", message: `Couldn't send it to the watch: ${message(err)}` } });
   }
 }
 
