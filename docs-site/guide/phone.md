@@ -50,6 +50,14 @@ Typing team names is easier on the phone. **Settings → Set up a match**: choos
 
 On a Wear OS watch you can start from the watch instead: **Setup on phone** on the watch opens this screen on the phone.
 
+### Upcoming matches
+
+To have nothing to type at the ground, set matches up beforehand under **Upcoming**. **New match** has the same fields as **Set up a match**, plus a day (up to two weeks ahead) and a kick-off time to put the list in order. Fill in what you know and **Save**; it doesn't need to be complete until you send it.
+
+At the ground, open the match and tap **Send to watch**, as above. It's marked **Sent to watch**, and it leaves the list by itself once the played match comes back from the watch. A match whose day has gone without being played shows its date in amber; edit it or delete it.
+
+Upcoming matches are kept on the phone only, and aren't in backups.
+
 ## Backups and moving phones
 
 Matches live on the phone, so back them up now and then:
