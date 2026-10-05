@@ -99,7 +99,7 @@ final class EngineTests: XCTestCase {
         t.advance(2 * MIN)
         XCTAssertEqual(m.periodElapsedMs(t.now), 0)
         XCTAssertEqual(m.matchTimeMs(t.now), 15 * MIN)
-        XCTAssertTrue(m.tick(t.now).alerts.isEmpty())
+        XCTAssertTrue(m.tick(t.now).alerts.isEmpty)
 
         m = try m.startPeriod(t.now)
         XCTAssertEqual(m.clock.period, 2)
