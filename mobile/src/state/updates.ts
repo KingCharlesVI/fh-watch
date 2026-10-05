@@ -1,10 +1,12 @@
 import Constants from "expo-constants";
+import * as Linking from "expo-linking";
 import Storage from "expo-sqlite/kv-store";
 import { useEffect, useSyncExternalStore } from "react";
 import { AppState, Platform } from "react-native";
+import { AppUpdater } from "../../modules/app-updater";
 import { WatchSync } from "../../modules/watch-sync";
 import { CHANNEL } from "@/config";
-import { RELEASES_URL, type Update, findUpdate, readReleases } from "@/core/updates";
+import { RELEASES_URL, type Update, apkFileName, downloadPercent, findUpdate, readReleases } from "@/core/updates";
 
 /**
  * Update notices, from the project's GitHub releases. The phone checks for both apps: the
@@ -16,6 +18,15 @@ const DISMISSED_KEY = "updates.dismissed";
 /** How often the app checks by itself while it's in use. */
 const CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
 
+/** An update being downloaded or installed, from the notice's buttons. */
+export type Installing =
+  | { app: "phone" | "watch"; step: "downloading"; percent: number | null }
+  /** The phone needs "Install unknown apps" turning on for this app first. */
+  | { app: "phone"; step: "allow" }
+  /** Android's own dialog is asking the umpire to confirm. */
+  | { app: "phone"; step: "confirming" }
+  | { app: "phone" | "watch"; step: "failed"; message: string };
+
 export interface UpdateState {
   update: Update | null;
   checking: boolean;
@@ -26,9 +37,10 @@ export interface UpdateState {
   includePreReleases: boolean;
   /** The release whose notice was put off with Later: it stays in Settings, off the match list. */
   dismissed: string | null;
+  installing: Installing | null;
 }
 
-let state: UpdateState = { update: null, checking: false, checkedAt: null, error: null, includePreReleases: true, dismissed: null };
+let state: UpdateState = { update: null, checking: false, checkedAt: null, error: null, includePreReleases: true, dismissed: null, installing: null };
 const listeners = new Set<() => void>();
 const set = (change: Partial<UpdateState>) => {
   state = { ...state, ...change };
@@ -67,6 +79,54 @@ export async function checkForUpdates(): Promise<void> {
     set({ error: err instanceof Error ? err.message : String(err), checkedAt: Date.now() });
   } finally {
     set({ checking: false });
+  }
+}
+
+const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
+// How Android's installer got on. Installed means the app is being replaced, and closes.
+AppUpdater?.addListener("onInstallStatus", ({ status, message: why }) => {
+  if (status === "cancelled") set({ installing: null });
+  if (status === "failed") set({ installing: { app: "phone", step: "failed", message: why ?? "Android didn't install it." } });
+});
+
+/** Downloads an APK from the release, showing how far it's got. Null if it didn't download. */
+async function download(app: "phone" | "watch", url: string): Promise<string | null> {
+  set({ installing: { app, step: "downloading", percent: 0 } });
+  const progress = AppUpdater!.addListener("onDownloadProgress", (e) => {
+    if (e.url === url) set({ installing: { app, step: "downloading", percent: downloadPercent(e.received, e.total) } });
+  });
+  try {
+    return await AppUpdater!.download(url, apkFileName(url));
+  } catch (err) {
+    set({ installing: { app, step: "failed", message: `Couldn't download it: ${message(err)}` } });
+    return null;
+  } finally {
+    progress.remove();
+  }
+}
+
+/**
+ * Downloads the new phone app and installs it: Android asks the umpire to confirm, then
+ * replaces the app. The first time, the phone has to allow this app to install apps.
+ */
+export async function installPhoneUpdate() {
+  const phone = state.update?.phone;
+  if (!phone) return;
+  // Without the installer (an older build of the module, say), the browser downloads it as before.
+  if (!AppUpdater) return void Linking.openURL(phone.url);
+  if (!AppUpdater.canInstallApps()) {
+    set({ installing: { app: "phone", step: "allow" } });
+    AppUpdater.openInstallSettings();
+    return;
+  }
+  const path = await download("phone", phone.url);
+  if (!path) return;
+  set({ installing: { app: "phone", step: "confirming" } });
+  try {
+    await AppUpdater.installUpdate(path);
+  } catch (err) {
+    set({ installing: { app: "phone", step: "failed", message: message(err) } });
   }
 }
 

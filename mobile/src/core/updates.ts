@@ -72,10 +72,22 @@ export interface Installed {
 
 export interface Update {
   release: Release;
-  /** A newer phone app to download. */
+  /** A newer phone app to download and install. */
   phone: AppDownload | null;
-  /** A newer watch app: installed from a computer, so this links to the release page. */
+  /** A newer watch app, which the phone downloads and sends to the watch. */
   watch: AppDownload | null;
+}
+
+/** What a downloaded APK is saved as: the name in its link, which says which app and build it is. */
+export function apkFileName(url: string): string {
+  const name = decodeURIComponent(new URL(url).pathname.split("/").at(-1) ?? "");
+  if (!/^[\w.-]+\.apk$/.test(name)) throw new Error(`Not an APK: ${url}`);
+  return name;
+}
+
+/** How far a download has got, 0 to 100; null when the size isn't known. */
+export function downloadPercent(received: number, total: number): number | null {
+  return total > 0 ? Math.min(100, Math.floor((received * 100) / total)) : null;
 }
 
 /**

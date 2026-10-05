@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application>
+    <!-- Where Android reports how an update install went (and asks for the umpire's OK). -->
+    <receiver
+      android:name="expo.modules.appupdater.InstallResultReceiver"
+      android:exported="false" />
+  </application>
+</manifest>
