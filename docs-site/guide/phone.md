@@ -33,6 +33,10 @@ Each can be saved to a folder you pick (**Save to phone**) or shared:
 | **Events (CSV)** | Every event, for a spreadsheet. |
 | **Match data (JSON)** | Everything, for importing on another phone or the website. |
 
+## Your summary
+
+**Summary** adds up your umpiring from the matches on the phone, for this season, last season (seasons run September to August) or all time: matches, goals and cards (and how many a match), the cards by colour and reason, results and shootouts, the teams you've umpired most, and how far you ran when the watch recorded a workout.
+
 ## Editing a match
 
 **Edit match** fixes anything the watch got wrong, or adds what it didn't record:
