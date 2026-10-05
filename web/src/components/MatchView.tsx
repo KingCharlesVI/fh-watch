@@ -139,8 +139,9 @@ function Scoreboard({ data, downloadBase }: { data: FullMatch; downloadBase: str
 function Timeline({ data }: { data: FullMatch }) {
   const { document: doc, summary: s } = data;
   const events = s.timeline.filter((e) => TIMELINE_TYPES.has(e.type));
+  const inShootout = (e: MatchEvent) => e.type === "shootout_attempt" || (e.type === "card" && e.shootout === true);
   const sectionOf = (e: MatchEvent) =>
-    e.type === "shootout_attempt" ? "Shootout" : "period" in e && e.period !== undefined ? periodLabel(doc.settings.periods, e.period) : "";
+    inShootout(e) ? "Shootout" : "period" in e && e.period !== undefined ? periodLabel(doc.settings.periods, e.period) : "";
 
   return (
     <Card>
@@ -162,7 +163,8 @@ function Timeline({ data }: { data: FullMatch }) {
                 const section = sectionOf(e);
                 const newSection = section && section !== (i > 0 ? sectionOf(events[i - 1]!) : "");
                 const side = "team" in e ? (e.team as Side) : null;
-                const time = e.type === "shootout_attempt" ? `R${e.round}` : eventTime(e, doc.settings).split(" ").at(-1);
+                // A shootout card has no time of its own: it's under the Shootout divider.
+                const time = e.type === "shootout_attempt" ? `R${e.round}` : inShootout(e) ? "" : eventTime(e, doc.settings).split(" ").at(-1);
                 return (
                   <Fragment key={e.seq}>
                     {newSection && (
@@ -199,7 +201,7 @@ function Timeline({ data }: { data: FullMatch }) {
 function EventLabel({ event: e, align }: { event: MatchEvent; align: "left" | "right" }) {
   const player = "player" in e && e.player !== undefined ? `#${e.player}` : null;
   // The round is in the middle column already.
-  const text = e.type === "shootout_attempt" ? (e.scored ? "Scored" : "Missed") : describeEvent(e, { periods: 0 });
+  const text = e.type === "shootout_attempt" ? (e.forfeit ? "Forfeited" : e.scored ? "Scored" : "Missed") : describeEvent(e, { periods: 0 });
   return (
     <span className={cn("inline-flex items-start gap-1.5 text-sm", align === "right" && "flex-row-reverse text-right")}>
       {e.type === "card" && <span aria-hidden className={cn("mt-[3px] inline-block h-3.5 w-2.5 shrink-0 rounded-xs", CARD_COLOURS[e.color])} />}
