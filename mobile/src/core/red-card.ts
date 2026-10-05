@@ -77,9 +77,9 @@ export function draftReport(m: LocalMatch, card: CardEvent, me: ReporterDetails,
 
 const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/London" });
 
-/** When and why the card was given, from the match: "Q3 4:12, physical misconduct". */
+/** When and why the card was given, from the match: "Q3 4:12, physical misconduct", or "Shootout, dissent". */
 export function offenceSummary(doc: MatchDocument, card: CardEvent): string {
-  const time = eventTime(card, doc.settings);
+  const time = card.shootout ? "Shootout" : eventTime(card, doc.settings);
   return card.reason ? `${time}, ${CARD_REASONS[card.reason].toLowerCase()}` : time;
 }
 
@@ -91,7 +91,10 @@ export interface Answer {
 
 /** Every answer, in the order of England Hockey's checklist. */
 export function reportAnswers(doc: MatchDocument, card: CardEvent, r: RedCardReport, me: ReporterDetails): Answer[] {
-  const facts = [`Red card at ${offenceSummary(doc, card)}.`, doc.venue ? `Venue: ${doc.venue}.` : ""].filter(Boolean).join(" ");
+  const when = card.shootout
+    ? `Red card in the shootout${card.reason ? `, ${CARD_REASONS[card.reason].toLowerCase()}` : ""}.`
+    : `Red card at ${offenceSummary(doc, card)}.`;
+  const facts = [when, doc.venue ? `Venue: ${doc.venue}.` : ""].filter(Boolean).join(" ");
   return [
     { section: "You", label: "Name", value: me.name },
     { section: "You", label: "Umpiring qualification", value: me.qualification },

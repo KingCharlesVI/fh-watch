@@ -5,6 +5,7 @@ import {
   type ReporterDetails,
   draftReport,
   missingAnswers,
+  offenceSummary,
   redCards,
   renderRedCardReport,
   reportAnswers,
@@ -79,6 +80,17 @@ describe("red card reports", () => {
     expect(answers.at(-1)!.value).toBe("Red card at H2 20:00, physical misconduct. Venue: Iffley Road.\n\nStruck an opponent with the stick.");
     expect(missingAnswers(answers).map((a) => a.label)).toEqual(["Name", "Name of offender", "Over or under 18", "Club", "Area"]);
     expect(reportText(answers)).toContain("OFFENDER AND CLUB\nName of offender: (not given)\nShirt number: 14");
+  });
+
+  it("says a red card in the shootout was in the shootout, not at a time", async () => {
+    const t = await setup({ signIn: false });
+    const doc = { ...matchDoc(), venue: "Iffley Road" };
+    doc.events.push({ seq: 8, type: "card", team: "away", player: 14, color: "red", reason: "dissent", period: 2, clockMs: 2_100_000, shootout: true });
+    await t.engine.importMatch(doc, "watch");
+    const card = redCards(doc)[0]!;
+    expect(offenceSummary(doc, card)).toBe("Shootout, dissent");
+    const report = { ...draftReport((await t.engine.get(doc.id))!, card, me, new Date()), details: "Swore at the umpire." };
+    expect(reportAnswers(doc, card, report, me).at(-1)!.value).toBe("Red card in the shootout, dissent. Venue: Iffley Road.\n\nSwore at the umpire.");
   });
 
   it("escapes what the umpire typed in the PDF", async () => {
