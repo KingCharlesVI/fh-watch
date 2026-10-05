@@ -123,8 +123,10 @@ struct Card: Codable, Equatable {
     var player: Int?
     var color: CardColor
     var reason: CardReason?
-    /// Suspension length; absent for red.
+    /// Suspension length; absent for red and in the shootout.
     var durationSec: Int?
+    /// Given during the shootout: the player takes no further part. Left out (nil) otherwise.
+    var shootout: Bool? = nil
 }
 
 struct CardEnd: Codable, Equatable { var seq: Int; var wallTime: String?; var period: Int; var clockMs: Int64; var refSeq: Int }
@@ -138,6 +140,8 @@ struct ShootoutAttempt: Codable, Equatable {
     var round: Int
     var player: Int?
     var scored: Bool
+    /// Not taken: the player due was suspended in the shootout. Left out (nil) otherwise.
+    var forfeit: Bool? = nil
 }
 
 struct VoidEvent: Codable, Equatable { var seq: Int; var wallTime: String?; var refSeq: Int; var period: Int?; var clockMs: Int64? }

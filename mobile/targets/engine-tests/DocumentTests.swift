@@ -41,8 +41,11 @@ final class DocumentTests: XCTestCase {
             m = try m.shootoutAttempt(team: .home, player: 20 + i, scored: i != 2, now: t.now)
                 .shootoutAttempt(team: .away, player: nil, scored: i < 4, now: t.now)
         }
-        m = try m.shootoutAttempt(team: .home, player: 7, scored: true, now: t.now).shootoutAttempt(team: .away, player: 5, scored: false, now: t.now)
-        m = try m.undo(seq: m.document.events.last!.seq, now: t.now).shootoutAttempt(team: .away, player: 5, scored: false, now: t.now)
+        // Sudden death: away go first in the second series. Their #5 is sent off, so they forfeit.
+        m = try m.shootoutCard(team: .away, player: 5, color: .red, now: t.now)
+            .shootoutAttempt(team: .away, player: 5, scored: false, now: t.now, forfeit: true)
+            .shootoutAttempt(team: .home, player: 7, scored: true, now: t.now)
+        m = try m.undo(seq: m.document.events.last!.seq, now: t.now).shootoutAttempt(team: .home, player: 7, scored: true, now: t.now)
         return try m.endMatch(t.now)
     }
 
