@@ -16,6 +16,7 @@ import com.fhmatchcentre.watch.engine.MatchRuleException
 import com.fhmatchcentre.watch.engine.MatchSettings
 import com.fhmatchcentre.watch.engine.Moment
 import com.fhmatchcentre.watch.engine.Phase
+import com.fhmatchcentre.watch.engine.ShootoutAttempt
 import com.fhmatchcentre.watch.engine.Teams
 import com.fhmatchcentre.watch.engine.isUndoable
 import com.fhmatchcentre.watch.engine.tick
@@ -23,6 +24,8 @@ import com.fhmatchcentre.watch.engine.undo
 import com.fhmatchcentre.watch.fitness.FitnessTracker
 import com.fhmatchcentre.watch.sync.WatchSync
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -76,6 +79,34 @@ class MatchController(
 
     fun now(): Moment = moment(context)
 
+    private val _shootoutTimer = MutableStateFlow<Long?>(null)
+    private var shootoutTimerJob: Job? = null
+
+    /** When the running shoot-out timer started (elapsed ms), or null. Not saved: it lasts 8 seconds. */
+    val shootoutTimer: StateFlow<Long?> = _shootoutTimer
+
+    /**
+     * The side button in a shootout: starts the 8 seconds a shoot-out lasts, with the
+     * period-end buzz when they're up, or stops them early. Recording the attempt stops them too.
+     */
+    fun toggleShootoutTimer() {
+        val running = _shootoutTimer.value != null
+        stopShootoutTimer()
+        if (running) return
+        _shootoutTimer.value = now().elapsedMs
+        shootoutTimerJob = scope.launch {
+            delay(SHOOTOUT_MS)
+            _shootoutTimer.value = null
+            haptics.shootoutTimeUp()
+        }
+    }
+
+    private fun stopShootoutTimer() {
+        shootoutTimerJob?.cancel()
+        shootoutTimerJob = null
+        _shootoutTimer.value = null
+    }
+
     /** Picks up a match that was in progress when the app last stopped. */
     suspend fun restore() = mutex.withLock {
         val row = dao.active() ?: return@withLock
@@ -124,6 +155,7 @@ class MatchController(
             if (next == current) return@withLock
             save(next)
             _active.value = next
+            if (next.document.events.drop(current.document.events.size).any { it is ShootoutAttempt }) stopShootoutTimer()
             // One buzz whenever the clock starts or stops: the physical button or the on-screen one.
             if (next.clock.running != current.clock.running) haptics.buzz()
             // The workout starts with the first period.
@@ -176,5 +208,8 @@ class MatchController(
 
     companion object {
         const val UNDO_WINDOW_MS = 10_000L
+
+        /** How long a shoot-out lasts (FIH). */
+        const val SHOOTOUT_MS = 8_000L
     }
 }

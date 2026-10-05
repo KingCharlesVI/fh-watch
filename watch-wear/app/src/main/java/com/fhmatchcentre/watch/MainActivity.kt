@@ -95,9 +95,9 @@ class MainActivity : ComponentActivity() {
 
     /**
      * The physical button starts and stops the clock while a match is under way, on
-     * every screen. Galaxy Watch 4 to 7 have no stem buttons: their lower button sends
-     * Back, which apps may use (the upper one, Home, belongs to the system). Watches
-     * with stem buttons use those.
+     * every screen, and times each shoot-out in a shootout. Galaxy Watch 4 to 7 have no
+     * stem buttons: their lower button sends Back, which apps may use (the upper one,
+     * Home, belongs to the system). Watches with stem buttons use those.
      *
      * Swiping right must still go back, and on Wear OS 6 the swipe arrives as a Back key
      * too. Neither can be told apart by where it comes from: on a Galaxy Watch7 both are
@@ -119,9 +119,10 @@ class MainActivity : ComponentActivity() {
                     "touching=$touching sinceTouch=${event.eventTime - lastTouchAt}ms clock=${event.isButtonPress()}",
             )
         }
-        if (event.keyCode in CLOCK_BUTTONS && event.isButtonPress() && matchUnderWay()) {
+        if (event.keyCode in CLOCK_BUTTONS && event.isButtonPress() && (matchUnderWay() || inShootout())) {
             if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                services.controller.perform { toggleClock(it) }
+                // In a shootout there's no clock: the button times each shoot-out's 8 seconds instead.
+                if (inShootout()) services.controller.toggleShootoutTimer() else services.controller.perform { toggleClock(it) }
             }
             // The release too, so the system doesn't also treat it as Back.
             return true
@@ -149,6 +150,8 @@ class MainActivity : ComponentActivity() {
         val phase = services.controller.active.value?.clock?.phase
         return phase == Phase.READY || phase == Phase.PLAYING || phase == Phase.BREAK || phase == Phase.NEXT_PERIOD
     }
+
+    private fun inShootout(): Boolean = services.controller.active.value?.clock?.phase == Phase.SHOOTOUT
 
     private companion object {
         val CLOCK_BUTTONS = setOf(KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_STEM_1, KeyEvent.KEYCODE_STEM_2, KeyEvent.KEYCODE_STEM_3)
@@ -204,7 +207,7 @@ private fun WatchNav(services: Services, ambient: Boolean) {
             }
             composable("card") { CardFlow(controller) { nav.popBackStack() } }
             composable("events") { EventsScreen(controller) }
-            composable("shootout") { ShootoutScreen(controller) }
+            composable("shootout") { ShootoutScreen(controller, onCard = { nav.navigate("card") }) }
             composable("matches") { MatchesScreen(services) { id -> nav.navigate("summary/$id") } }
             composable("summary/{id}") { entry ->
                 SummaryScreen(
