@@ -3,6 +3,7 @@ import Storage from "expo-sqlite/kv-store";
 import { useEffect, useSyncExternalStore } from "react";
 import { AppState, Platform } from "react-native";
 import { WatchSync } from "../../modules/watch-sync";
+import { CHANNEL } from "@/config";
 import { RELEASES_URL, type Update, findUpdate, readReleases } from "@/core/updates";
 
 /**
@@ -43,9 +44,11 @@ const loadPrefs = () =>
 
 /**
  * The phone app's build, or null where GitHub releases don't apply: development builds,
- * and iPhones, which update through TestFlight and the App Store.
+ * iPhones, which update through TestFlight and the App Store, and Google Play's build,
+ * which Play updates (a GitHub APK can't install over it: Play signs its apps itself).
  */
-const phoneBuild = (): number | null => (__DEV__ || Platform.OS !== "android" ? null : (Constants.expoConfig?.android?.versionCode ?? null));
+const phoneBuild = (): number | null =>
+  __DEV__ || Platform.OS !== "android" || CHANNEL !== "github" ? null : (Constants.expoConfig?.android?.versionCode ?? null);
 
 export async function checkForUpdates(): Promise<void> {
   if (state.checking) return;
