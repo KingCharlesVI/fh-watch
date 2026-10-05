@@ -1,11 +1,9 @@
 import Storage from "expo-sqlite/kv-store";
 import { useEffect, useState } from "react";
-import { type WatchSetup, readSavedSetup, setupErrors, setupMessage } from "@/core/setup";
+import { LAST_SETUP_KEY, type WatchSetup, readSavedSetup, setupErrors, setupMessage } from "@/core/setup";
 import { SetupForm } from "@/features/setup-form";
 import { WatchSync, useConnectedWatches, watchSyncAvailable } from "@/services/watch";
 import { Banner, Button, Screen } from "@/ui/kit";
-
-const SAVED_KEY = "lastWatchSetup";
 
 /**
  * Setup on phone: type the teams and format here instead of on the watch, then send
@@ -20,7 +18,7 @@ export default function SetupScreen() {
 
   // Starts from the last setup sent: often the same teams and format.
   useEffect(() => {
-    Storage.getItem(SAVED_KEY)
+    Storage.getItem(LAST_SETUP_KEY)
       .catch(() => null)
       .then((saved) => setSetup(readSavedSetup(saved)));
   }, []);
@@ -37,7 +35,7 @@ export default function SetupScreen() {
     setSending(true);
     try {
       const got = await WatchSync.sendSetup(setupMessage(setup));
-      if (got > 0) await Storage.setItem(SAVED_KEY, JSON.stringify(setup)).catch(() => {});
+      if (got > 0) await Storage.setItem(LAST_SETUP_KEY, JSON.stringify(setup)).catch(() => {});
       setResult(got > 0 ? "sent" : "noWatch");
     } catch {
       setResult("failed");

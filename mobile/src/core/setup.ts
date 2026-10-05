@@ -113,6 +113,9 @@ export function setupMessage(s: WatchSetup): string {
   });
 }
 
+/** Where the last setup sent to the watch is kept, to start the next one from. */
+export const LAST_SETUP_KEY = "lastWatchSetup";
+
 /** A setup saved earlier (the last one sent), or the defaults if there isn't a readable one. */
 export function readSavedSetup(saved: string | null | undefined): WatchSetup {
   if (!saved) return DEFAULT_SETUP;
