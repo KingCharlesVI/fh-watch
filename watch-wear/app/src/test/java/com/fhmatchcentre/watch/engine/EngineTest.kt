@@ -333,6 +333,48 @@ class EngineTest {
     }
 
     @Test
+    fun `shoot-outs alternate, and the team that went first in a series goes second in the next`() {
+        var m = fullTime(newMatch()).startShootout()
+        assertNull(m.shootout().next) // the coin toss: either team may go first
+        // Away won the toss and goes first; five each, all scored.
+        repeat(5) { m = m.shootoutAttempt(Side.AWAY, null, true, t.now).shootoutAttempt(Side.HOME, null, true, t.now) }
+        assertEquals(Side.HOME, m.shootout().next)
+        assertThrows(MatchRuleException::class.java) { m.shootoutAttempt(Side.AWAY, null, true, t.now) }
+        m = m.shootoutAttempt(Side.HOME, null, false, t.now)
+        assertEquals(Side.AWAY, m.shootout().next)
+        m = m.shootoutAttempt(Side.AWAY, null, true, t.now)
+        assertEquals(Side.AWAY, m.shootout().winner)
+        assertNull(m.shootout().next)
+        assertEquals("AHAHAHAHAH" + "HA", (0 until 12).joinToString("") { if (shootoutTaker(Side.AWAY, it) == Side.HOME) "H" else "A" })
+        assertEquals("AH", (20 until 22).joinToString("") { if (shootoutTaker(Side.AWAY, it) == Side.HOME) "H" else "A" })
+    }
+
+    @Test
+    fun `a card in the shootout is yellow or red, with no timer, and its team may forfeit`() {
+        var m = fullTime(newMatch()).startShootout()
+        assertThrows(MatchRuleException::class.java) { m.shootoutCard(Side.HOME, 4, CardColor.GREEN, t.now) }
+        // No one is suspended yet, so no forfeits.
+        assertThrows(MatchRuleException::class.java) { m.shootoutAttempt(Side.HOME, null, false, t.now, forfeit = true) }
+
+        m = m.shootoutCard(Side.HOME, 4, CardColor.YELLOW, t.now, CardReason.DISSENT)
+        val card = m.document.events.last() as Card
+        assertEquals(true, card.shootout)
+        assertNull(card.durationSec)
+        assertEquals(4, card.period)
+        assertEquals(15 * MIN, card.clockMs) // where the match clock ended
+        assertTrue(m.suspensions(t.now).isEmpty())
+        assertEquals(setOf(Side.HOME), m.shootout().suspended)
+
+        assertThrows(MatchRuleException::class.java) { m.shootoutAttempt(Side.HOME, 4, true, t.now, forfeit = true) }
+        m = m.shootoutAttempt(Side.HOME, 4, false, t.now, forfeit = true)
+        assertEquals(true, (m.document.events.last() as ShootoutAttempt).forfeit)
+        assertEquals(listOf(false), m.shootout().home)
+        // An ordinary attempt leaves the field out.
+        m = m.shootoutAttempt(Side.AWAY, null, true, t.now)
+        assertNull((m.document.events.last() as ShootoutAttempt).forfeit)
+    }
+
+    @Test
     fun `no shootout unless the score is level at full time`() {
         var m = newMatch().startPeriod(t.now).goal(Side.HOME, null, null, t.now)
         m = fullTime(m)

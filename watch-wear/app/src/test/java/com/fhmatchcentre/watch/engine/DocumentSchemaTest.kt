@@ -56,8 +56,11 @@ class DocumentSchemaTest {
         }
         m = m.startShootout()
         repeat(5) { m = m.shootoutAttempt(Side.HOME, 20 + it, it != 2, t.now).shootoutAttempt(Side.AWAY, null, it < 4, t.now) } // 4–4 after five each
-        m = m.shootoutAttempt(Side.HOME, 7, true, t.now).shootoutAttempt(Side.AWAY, 5, false, t.now)
-        m = m.undo(m.document.events.last().seq, t.now).shootoutAttempt(Side.AWAY, 5, false, t.now)
+        // Sudden death: away go first in the second series. Their #5 is sent off, so they forfeit.
+        m = m.shootoutCard(Side.AWAY, 5, CardColor.RED, t.now)
+            .shootoutAttempt(Side.AWAY, 5, false, t.now, forfeit = true)
+            .shootoutAttempt(Side.HOME, 7, true, t.now)
+        m = m.undo(m.document.events.last().seq, t.now).shootoutAttempt(Side.HOME, 7, true, t.now)
         return m.endMatch(t.now)
     }
 
