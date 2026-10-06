@@ -1,3 +1,11 @@
+## [1.1.0] - 2026-10-06
+
+### 💼 Other
+
+- Update content.ts
+- Merge pull request #39 from KingCharlesVI/main
+
+minor changes
 ## [1.1.0-beta.15] - 2026-10-05
 
 ### 🚀 Features
