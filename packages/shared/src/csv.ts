@@ -28,10 +28,11 @@ export function matchEventsToCsv(match: MatchDocument): string {
   const { timeline } = summarizeMatch(match);
   const rows: CsvCell[][] = [[...EVENT_CSV_HEADER]];
   for (const e of timeline) {
+    const inShootout = e.type === "shootout_attempt" || (e.type === "card" && e.shootout);
     rows.push([
       e.seq,
-      e.type === "shootout_attempt" ? "SO" : "period" in e ? e.period : null,
-      "clockMs" in e && e.clockMs !== undefined ? formatClock(e.clockMs) : null,
+      inShootout ? "SO" : "period" in e ? e.period : null,
+      !inShootout && "clockMs" in e && e.clockMs !== undefined ? formatClock(e.clockMs) : null,
       "team" in e ? match.teams[e.team].name : null,
       e.type,
       "player" in e ? e.player : null,
@@ -49,7 +50,7 @@ function eventDetail(e: MatchEvent): string | null {
       return e.method ? GOAL_METHODS[e.method] : null;
     case "card": {
       const color = e.color[0]!.toUpperCase() + e.color.slice(1);
-      const card = e.durationSec === undefined ? color : `${color}, ${formatDuration(e.durationSec)}`;
+      const card = e.shootout ? `${color}, in the shootout` : e.durationSec === undefined ? color : `${color}, ${formatDuration(e.durationSec)}`;
       return e.reason ? `${card}, ${CARD_REASONS[e.reason].toLowerCase()}` : card;
     }
     case "card_end":
@@ -59,7 +60,7 @@ function eventDetail(e: MatchEvent): string | null {
     case "penalty_stroke":
       return e.scored ? "Scored" : "Missed";
     case "shootout_attempt":
-      return `Round ${e.round}, ${e.scored ? "scored" : "missed"}`;
+      return `Round ${e.round}, ${e.forfeit ? "forfeited" : e.scored ? "scored" : "missed"}`;
     case "note":
       return e.text;
     default:

@@ -42,5 +42,6 @@ The [Wear OS](guide/wear-os.md) and [Apple Watch](guide/apple-watch.md) pages go
 
 ## Updates
 
-- **Android:** the phone app tells you when there's a newer phone or watch app (from GitHub releases), and downloads the phone app for you. Google Play testers get updates from Google Play.
+- **Android, from GitHub releases:** the phone app tells you when there's a newer phone or watch app, installs its own, and sends the watch's to the watch to install there. See [Updates](guide/phone.md#updates-android).
+- **Android, from Google Play:** Google Play updates both apps.
 - **iPhone:** TestFlight tells you about new builds; the watch app updates with the iPhone app.

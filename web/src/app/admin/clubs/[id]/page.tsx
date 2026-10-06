@@ -2,8 +2,10 @@ import { canEditTeams, hasRole } from "@fh/shared";
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createTeam, deleteClub, deleteTeam, renameClub, renameTeam } from "@/app/actions/admin";
+import { createTeam, deleteClub, deleteTeam, removeClubLogo, renameClub, renameTeam, setClubLogo } from "@/app/actions/admin";
 import { ActionForm } from "@/components/ActionForm";
+import { ClubBadge } from "@/components/ClubBadge";
+import { LogoField } from "@/components/LogoField";
 import { PageHeader } from "@/components/PageHeader";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/ui/button";
@@ -94,6 +96,32 @@ export default async function ManageClubPage({ params }: { params: Promise<{ id:
                   maxLength={60}
                 />
               </ActionForm>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Logo</CardTitle>
+              <CardDescription>Shows on the club's pages in place of its initials.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap items-start gap-6">
+              <ClubBadge name={club.name} logoUrl={club.logoUrl} size="lg" />
+              <div className="grid flex-1 gap-4">
+                <ActionForm action={setClubLogo} submitLabel={club.logoUrl ? "Replace logo" : "Add logo"}>
+                  <input type="hidden" name="id" value={club.id} />
+                  <LogoField label={club.logoUrl ? "New logo" : "Logo"} hint="PNG, JPEG or WebP, up to 512 KB." />
+                </ActionForm>
+                {club.logoUrl && (
+                  <ActionForm
+                    action={removeClubLogo}
+                    submitLabel="Remove logo"
+                    variant="outline"
+                    inline
+                    confirm={{ title: "Remove the logo?", description: "The club's initials show instead." }}
+                  >
+                    <input type="hidden" name="id" value={club.id} />
+                  </ActionForm>
+                )}
+              </div>
             </CardContent>
           </Card>
           <Card className="border-destructive/30">

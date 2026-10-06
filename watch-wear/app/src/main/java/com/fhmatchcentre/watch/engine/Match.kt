@@ -298,11 +298,30 @@ fun MatchRecord.startShootout(): MatchRecord {
     return copy(clock = clock.copy(phase = Phase.SHOOTOUT))
 }
 
-fun MatchRecord.shootoutAttempt(team: Side, player: Int?, scored: Boolean, now: Moment): MatchRecord {
+/**
+ * A shoot-out, scored or missed. Whoever takes the first one (the coin toss) sets the
+ * order from then on: see [ShootoutState.next]. A forfeit is one the team loses because
+ * the player due to take it was suspended in the shootout.
+ */
+fun MatchRecord.shootoutAttempt(team: Side, player: Int?, scored: Boolean, now: Moment, forfeit: Boolean = false): MatchRecord {
     rule(clock.phase == Phase.SHOOTOUT) { "The shootout hasn't started." }
-    rule(shootout().winner == null) { "The shootout is already decided." }
+    val so = shootout()
+    rule(so.winner == null) { "The shootout is already decided." }
+    rule(so.next == null || so.next == team) { "It's ${document.teams[so.next!!].name}'s turn." }
+    rule(!forfeit || !scored) { "A forfeit can't be scored." }
+    rule(!forfeit || team in so.suspended) { "No one in ${document.teams[team].name} has been suspended in the shootout." }
     val round = activeEvents().count { it is ShootoutAttempt && it.team == team } + 1
-    return append({ ShootoutAttempt(it, now.iso, team, round, player, scored) })
+    return append({ ShootoutAttempt(it, now.iso, team, round, player, scored, forfeit = if (forfeit) true else null) })
+}
+
+/**
+ * A card in the shootout: yellow or red only, and either way the player takes no further
+ * part, so there's no suspension to time. It's logged where the match clock ended.
+ */
+fun MatchRecord.shootoutCard(team: Side, player: Int?, color: CardColor, now: Moment, reason: CardReason? = null): MatchRecord {
+    rule(clock.phase == Phase.SHOOTOUT) { "The shootout hasn't started." }
+    rule(color != CardColor.GREEN) { "Only yellow or red cards in the shootout." }
+    return append({ Card(it, now.iso, clock.period, clock.bankedMs, team, player, color, reason, durationSec = null, shootout = true) })
 }
 
 /** The final whistle. Ending mid-period (an abandoned match) closes the period first. */
@@ -424,6 +443,10 @@ data class ShootoutState(
     val home: List<Boolean>,
     val away: List<Boolean>,
     val winner: Side?,
+    /** Who takes the next shoot-out; null before the first (either may) and once it's decided. */
+    val next: Side?,
+    /** Teams with a player suspended in the shootout, who may have to forfeit. */
+    val suspended: Set<Side>,
 ) {
     val homeScore get() = home.count { it }
     val awayScore get() = away.count { it }
@@ -435,10 +458,23 @@ data class ShootoutState(
 }
 
 fun MatchRecord.shootout(): ShootoutState {
-    val attempts = activeEvents().filterIsInstance<ShootoutAttempt>()
+    val active = activeEvents()
+    val attempts = active.filterIsInstance<ShootoutAttempt>()
     val home = attempts.filter { it.team == Side.HOME }.map { it.scored }
     val away = attempts.filter { it.team == Side.AWAY }.map { it.scored }
-    return ShootoutState(home, away, shootoutWinner(home, away))
+    val winner = shootoutWinner(home, away)
+    val next = attempts.firstOrNull()?.let { first -> shootoutTaker(first.team, attempts.size) }?.takeIf { winner == null }
+    val suspended = active.filterIsInstance<Card>().filter { it.shootout == true }.map { it.team }.toSet()
+    return ShootoutState(home, away, winner, next, suspended)
+}
+
+/**
+ * Who takes shoot-out number `taken + 1`. The teams alternate, and the team that went
+ * first in a series of five goes second in the next (FIH articles 21c and 22b).
+ */
+internal fun shootoutTaker(first: Side, taken: Int): Side {
+    val starter = if ((taken / (2 * ShootoutState.ROUNDS)) % 2 == 0) first else first.other
+    return if (taken % 2 == 0) starter else starter.other
 }
 
 /** Five attempts each, stopping early once one side can't catch up; then sudden death in pairs. */

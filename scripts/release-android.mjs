@@ -8,7 +8,8 @@
 // Options, for any of them:
 //   --beta        the phone app with the API and website (see mobile/src/config.ts)
 //   --bump        add 1 to the build number in version.json first
-//   --apk         also build APKs, which install straight onto a device (adb install)
+//   --apk         also build the GitHub APKs, which install straight onto a device and update
+//                 themselves from GitHub releases (the bundles are for Google Play, which updates them)
 //   --debug-key   sign with the debug key when there's no upload key (Google Play refuses these)
 //
 // Both are signed with the upload key named in ~/.gradle/gradle.properties (see docs/play-store.md).
@@ -85,11 +86,12 @@ const env = {
   NODE_ENV: "production",
 };
 
-function run(cwd, cmd, cmdArgs) {
+function run(cwd, cmd, cmdArgs, extraEnv = {}) {
+  const runEnv = { ...env, ...extraEnv };
   // gradlew.bat and npx are .cmd/.bat files on Windows, which only start through a shell.
   const r = WIN
-    ? spawnSync([cmd, ...cmdArgs].map((a) => (/\s/.test(a) ? `"${a}"` : a)).join(" "), { cwd, env, stdio: "inherit", shell: true })
-    : spawnSync(cmd, cmdArgs, { cwd, env, stdio: "inherit" });
+    ? spawnSync([cmd, ...cmdArgs].map((a) => (/\s/.test(a) ? `"${a}"` : a)).join(" "), { cwd, env: runEnv, stdio: "inherit", shell: true })
+    : spawnSync(cmd, cmdArgs, { cwd, env: runEnv, stdio: "inherit" });
   if (r.status !== 0) fail(`${cmd} ${cmdArgs.join(" ")} failed.`);
 }
 
@@ -100,34 +102,42 @@ const out = join(ROOT, "dist", "play");
 mkdirSync(out, { recursive: true });
 const tag = `${release.version}-${release.build}`;
 
-const tasks = [":app:bundleRelease", ...(apk ? [":app:assembleRelease"] : [])];
 const built = [];
+const outputs = (projectDir) => join(projectDir, "app", "build", "outputs");
 
-/** Builds one app's bundle (and APK) with Gradle and copies them to dist/play/ as `name`. */
-function buildApp(projectDir, name, versionCode) {
-  run(projectDir, gradlew(projectDir), ["--quiet", ...tasks]);
-  const outputs = join(projectDir, "app", "build", "outputs");
-  const aab = join(out, `${name}.aab`);
-  copyFileSync(join(outputs, "bundle", "release", "app-release.aab"), aab);
-  built.push(`${aab}   (version code ${versionCode})`);
-  if (apk) {
-    const file = join(out, `${name}.apk`);
-    copyFileSync(join(outputs, "apk", "release", "app-release.apk"), file);
-    built.push(file);
-  }
+/** Copies a build output to dist/play/ and lists it. */
+function keep(from, file, note = "") {
+  copyFileSync(from, join(out, file));
+  built.push(join(out, file) + note);
 }
 
 if (buildPhone) {
-  say(`Phone app ${tag} (${stage})`);
   const mobile = join(ROOT, "mobile");
-  // Regenerates android/ from app.config.ts, so the version, plugins and signing are current.
-  run(mobile, WIN ? "npx.cmd" : "npx", ["expo", "prebuild", "--platform", "android", "--no-install"]);
-  buildApp(join(mobile, "android"), `fh-match-centre-phone-${tag}-${stage}`, release.build);
+  const android = join(mobile, "android");
+  const name = `fh-match-centre-phone-${tag}-${stage}`;
+  // Each prebuild regenerates android/ from app.config.ts, so the version, plugins, signing and
+  // channel are current. The bundle is Google Play's; the APK is the GitHub build, which can install
+  // its own updates (plugins/with-github-channel.js), so the two are built apart.
+  say(`Phone app ${tag} (${stage}) for Google Play`);
+  run(mobile, WIN ? "npx.cmd" : "npx", ["expo", "prebuild", "--platform", "android", "--no-install"], { EXPO_PUBLIC_CHANNEL: "play" });
+  run(android, gradlew(android), ["--quiet", ":app:bundleRelease"], { EXPO_PUBLIC_CHANNEL: "play" });
+  keep(join(outputs(android), "bundle", "release", "app-release.aab"), `${name}.aab`, `   (version code ${release.build})`);
+  if (apk) {
+    say(`Phone app ${tag} (${stage}) for GitHub`);
+    run(mobile, WIN ? "npx.cmd" : "npx", ["expo", "prebuild", "--platform", "android", "--no-install"], { EXPO_PUBLIC_CHANNEL: "github" });
+    run(android, gradlew(android), ["--quiet", ":app:assembleRelease"], { EXPO_PUBLIC_CHANNEL: "github" });
+    keep(join(outputs(android), "apk", "release", "app-release.apk"), `${name}.apk`);
+  }
 }
 
 if (buildWatch) {
   say(`Wear OS app ${tag}`);
-  buildApp(join(ROOT, "watch-wear"), `fh-match-centre-watch-${tag}`, 1_000_000 + release.build);
+  const watch = join(ROOT, "watch-wear");
+  const name = `fh-match-centre-watch-${tag}`;
+  // The play and github flavours: see watch-wear/app/build.gradle.kts.
+  run(watch, gradlew(watch), ["--quiet", ":app:bundlePlayRelease", ...(apk ? [":app:assembleGithubRelease"] : [])]);
+  keep(join(outputs(watch), "bundle", "playRelease", "app-play-release.aab"), `${name}.aab`, `   (version code ${1_000_000 + release.build})`);
+  if (apk) keep(join(outputs(watch), "apk", "github", "release", "app-github-release.apk"), `${name}.apk`);
 }
 
 say("Ready");

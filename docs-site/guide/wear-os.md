@@ -48,6 +48,7 @@ On a **Galaxy Watch**, press the **lower side button**. It works on every page:
 | Time is up | Ends the period |
 | In a break | Moves on to the next period, without starting it |
 | Next period up, not started | Starts it |
+| In a shootout | Starts or stops a shoot-out's 8 seconds |
 
 Watches without a usable button (a Pixel Watch, say): turn on **Start/stop on screen** in Settings for a button on the Timing page.
 
@@ -95,14 +96,22 @@ You can tell them apart without looking:
 | One buzz | The clock started or stopped; a suspension is over |
 | Two buzzes | Two minutes left in the period |
 | Three buzzes | One minute left |
-| Long, short, short, long | Time up: the end of the period |
+| Long, short, short, long | Time up: the end of the period, or of a shoot-out's 8 seconds |
 | Four quick buzzes | The end of a break |
 
 They're alarms, so Do Not Disturb doesn't silence them.
 
 ## Full time and shootouts
 
-After the last period, **Full time** offers **End match**, and **Shootout** if the score is level and it was set up. A shootout records each attempt (scored or missed) for each team, five each, stopping early once one side can't catch up, then sudden death in pairs.
+After the last period, **Full time** offers **End match**, and **Shootout** if the score is level and it was set up.
+
+The shootout follows the FIH shoot-out competition:
+
+- **The first shoot-out** is whichever team you tap, so tap the team that won the toss and chose to go first. From then on the watch only offers the team that's up: the teams alternate, five each, stopping early once one side can't catch up.
+- **Level after five each**, it goes to sudden death in series of five with the same players. The team that went first in one series goes second in the next, and the first team ahead after the same number of shoot-outs wins.
+- **The side button** times each shoot-out: press it with the starting whistle and the watch counts down the 8 seconds, then buzzes long, short, short, long. Recording the attempt stops it; pressing again stops it early.
+- **Card** gives a yellow or red card (no green in a shootout). Either way the player takes no further part, so there's no timer. When it's that team's turn, **Forfeit** records a shoot-out the suspended player can't take.
+- **Undo** takes back the last attempt or card.
 
 When you end the match, the summary shows the result and whether your phone has it yet.
 

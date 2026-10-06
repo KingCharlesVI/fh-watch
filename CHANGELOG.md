@@ -1,3 +1,75 @@
+## [1.1.0-beta.15] - 2026-10-05
+
+### 🚀 Features
+
+- *(mobile)* Install the new phone app from the update notice
+- *(wear)* Install a new watch app sent from the phone
+- *(mobile)* Send the new watch app to the watch
+
+### 🐛 Bug Fixes
+
+- *(mobile)* Google Play's build doesn't offer GitHub updates
+
+### 📚 Documentation
+
+- Updating both Android apps from the phone
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* V1.1.0 build 15
+
+### 💼 Other
+
+- GitHub builds of both apps, apart from Google Play's
+## [1.1.0-beta.14] - 2026-10-05
+
+### 🚀 Features
+
+- *(scripts)* Take store screenshots from both devices at once
+- *(landing)* The real app in the hero, and the right project board
+- How to delete your account, and how to delete your data
+- *(scripts)* Render Google Play's 512 store icon too
+- *(scripts)* Render the Play feature graphic
+- *(shared)* Shootout cards, forfeits and the FIH taking order
+- *(wear)* The shootout follows the FIH order, with cards and forfeits
+- *(wear)* FIH shootout screen, with an 8-second timer on the side button
+- *(watchos)* The shootout follows the FIH order, with cards and forfeits
+- *(watchos)* FIH shootout screen, with an 8-second timer
+- *(web)* Shootout cards and forfeits on the match page
+- *(mobile)* A red card report for a red card in the shootout
+- *(mobile)* Upcoming matches, set up ahead and sent at the ground
+- *(mobile)* An upcoming match leaves the list once it's played
+- *(mobile)* A summary of your umpiring, by season
+
+### 🐛 Bug Fixes
+
+- *(release)* The iOS build uses the beta profile
+- *(watchos)* The engine tests compile again
+
+### 📚 Documentation
+
+- *(play)* App content answers for 1.0, not the alpha
+- The FIH shootout on both watches
+- Upcoming matches in the phone app
+- The umpire summary in the phone app
+
+### 🚜 Refactor
+
+- *(mobile)* The setup form is its own component
+
+### 🧪 Testing
+
+- *(mobile)* Refresh the Wear OS app's full match
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump to v1.1.0 build 14
+
+### 💼 Other
+
+- Merge pull request #34 from KingCharlesVI/main
+
+v1.0.0 rebalancing
 ## [1.0.0-beta.13] - 2026-10-03
 
 ### 🚀 Features

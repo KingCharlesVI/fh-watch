@@ -42,7 +42,7 @@ pnpm release:android          # the first time
 pnpm release:android --bump   # every time after: Google Play needs a new build number for each upload
 ```
 
-This builds both bundles into `dist/play/`. To build one app on its own, use `pnpm release:phone` or `pnpm release:watch` (with the same options). Add `--apk` for installable APKs as well, e.g. to put a build straight on a watch with `adb install`. Release both apps from the same build number, so testers' phones and watches match. The version name and build number live in `version.json`. The phone's version code is the build number; the watch's is 1,000,000 higher, because version codes must be unique across the listing.
+This builds both bundles into `dist/play/`. To build one app on its own, use `pnpm release:phone` or `pnpm release:watch` (with the same options). Add `--apk` for installable APKs as well, e.g. to put a build straight on a watch with `adb install`. The APKs are the GitHub builds, which may install apps (their own updates); the bundles never ask for that, as Google Play doesn't allow it. Release both apps from the same build number, so testers' phones and watches match. The version name and build number live in `version.json`. The phone's version code is the build number; the watch's is 1,000,000 higher, because version codes must be unique across the listing.
 
 ## 3. Set up the app in Play Console (once)
 

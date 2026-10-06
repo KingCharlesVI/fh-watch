@@ -33,6 +33,10 @@ Each can be saved to a folder you pick (**Save to phone**) or shared:
 | **Events (CSV)** | Every event, for a spreadsheet. |
 | **Match data (JSON)** | Everything, for importing on another phone or the website. |
 
+## Your summary
+
+**Summary** adds up your umpiring from the matches on the phone, for this season, last season (seasons run September to August) or all time: matches, goals and cards (and how many a match), the cards by colour and reason, results and shootouts, the teams you've umpired most, and how far you ran when the watch recorded a workout.
+
 ## Editing a match
 
 **Edit match** fixes anything the watch got wrong, or adds what it didn't record:
@@ -49,6 +53,14 @@ Each can be saved to a folder you pick (**Save to phone**) or shared:
 Typing team names is easier on the phone. **Settings → Set up a match**: choose the format, the teams' names, colours and captains, and the venue, then **Send to watch**. The watch opens its setup screen with it; check it and tap **Ready**.
 
 On a Wear OS watch you can start from the watch instead: **Setup on phone** on the watch opens this screen on the phone.
+
+### Upcoming matches
+
+To have nothing to type at the ground, set matches up beforehand under **Upcoming**. **New match** has the same fields as **Set up a match**, plus a day (up to two weeks ahead) and a kick-off time to put the list in order. Fill in what you know and **Save**; it doesn't need to be complete until you send it.
+
+At the ground, open the match and tap **Send to watch**, as above. It's marked **Sent to watch**, and it leaves the list by itself once the played match comes back from the watch. A match whose day has gone without being played shows its date in amber; edit it or delete it.
+
+Upcoming matches are kept on the phone only, and aren't in backups.
 
 ## Backups and moving phones
 
@@ -70,4 +82,11 @@ Matches live on the phone, so back them up now and then:
 
 ## Updates (Android)
 
-When there's a newer phone app, or a newer watch app than the one on your watch, a notice appears on the match list and in Settings. The phone app downloads straight from the notice; the watch app is installed from a computer, as when you first installed it.
+If you installed the apps from the GitHub releases page, the phone app tells you when there's a newer phone app, or a newer watch app than the one on your watch, with a notice on the match list and in Settings. Both install from the notice, with no computer:
+
+- **Install phone app** downloads it and asks Android to install it. Confirm, and the app closes and opens again on the new version, with your matches as they were. The first time, Android asks you to allow FH Match Centre to install apps: turn it on, come back and tap **Install phone app** again.
+- **Send to watch** downloads the watch app and sends it to your watch (keep it near the phone with Bluetooth on). The watch says **Update ready**; open FH Match Centre there and tap **Install update** on its home screen, then confirm. It's never offered during a match. The first time, the watch asks to allow the app to install apps too.
+
+With both to update, send the watch's first: installing the phone app closes it.
+
+If you installed from Google Play, Google Play keeps both apps up to date instead, and the phone app doesn't show these notices.

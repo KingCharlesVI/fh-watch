@@ -29,12 +29,11 @@ import {
 } from "@/content";
 
 const FEATURES = [
-  { icon: Timer, title: "A match clock you can trust", text: "Quarters or halves, any length, with breaks. Counts up or down, and keeps perfect time through stoppages, a flat screen or a restart." },
-  { icon: Hand, title: "Start and stop with a button", text: "Press the watch's side button to stop and restart the clock, without looking. Works on Galaxy Watch 4 and later." },
-  { icon: Flag, title: "Cards and suspensions", text: "Green, yellow and red cards with the player's number. Suspension timers pause when the clock does, and buzz when time's served." },
-  { icon: Vibrate, title: "Feel what's happening", text: "Distinct vibrations for one minute left, time up, a suspension ending and the end of a break." },
-  { icon: WifiOff, title: "No signal needed", text: "Everything works offline at the ground. The match moves to your phone by itself when the watch is next in reach." },
-  { icon: FileText, title: "The paperwork, done", text: "Goals, corners, strokes and shootouts become a one-page match report, a spreadsheet or a backup, straight from your phone." },
+  { icon: Timer, title: "Timing", text: "Quarters or halves, any length, with breaks." },
+  { icon: Hand, title: "Side button", text: "Press the watch's side button to stop and restart the clock, without looking. (Works on Galaxy Watch 4 and later)" },
+  { icon: Flag, title: "Cards", text: "Green, yellow and red cards with the player's number. Haptic feedback on card end." },
+  { icon: Vibrate, title: "Haptics", text: "Distinct vibrations for two minutes and one minute left in each period, time up, a suspension ending and the end of a break." },
+  { icon: FileText, title: "Sharing", text: "Send a match summary through airdrop, normal sharing or export to pdf/csv/json." },
 ];
 
 /** The questions and answers again, so search engines can show them. */
@@ -89,15 +88,14 @@ export default function Home() {
             <span className="inline-flex items-center gap-2 rounded-full border bg-primary-soft px-3 py-1 text-xs font-medium text-primary">
               <span className="size-1.5 rounded-full bg-primary" /> {current.title} testing now
             </span>
-            <h1 className="mt-5 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">Umpire from your wrist. The match writes itself.</h1>
+            <h1 className="mt-5 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">Seamless, Intuitive</h1>
             <p className="mt-5 max-w-xl text-lg text-muted-foreground">
-              {SITE.name} runs the clock, cards and suspensions on your watch, then turns every match into a ready-made record on your phone — and a
-              published result for the clubs who played.
+              Track a match on the watch app, check on the phone app, share on the website.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button href="#download">Get the {current.title.toLowerCase()}</Button>
-              <Button href="#progress" variant="outline">
-                See where it&apos;s up to
+              <Button href="https://app.fhmatchcentre.com" variant="outline">
+                Login/Register
               </Button>
             </div>
             <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
@@ -120,21 +118,19 @@ export default function Home() {
           id="progress"
           eyebrow="Progress"
           title="Where it's up to"
-          intro="Three stages, each opening to more people. Tested with umpires on real matches at every one."
         >
           <Stepper steps={DOWNLOADS.map((d) => ({ title: d.title, detail: d.step, status: stageStatus(d.stage) }))} />
           <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border bg-card p-5 text-sm">
-            <p className="text-muted-foreground">Follow the work as it happens: every task, in progress and next.</p>
             <a href={PROJECT_BOARD_URL} className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline">
               <GitHubIcon size={15} /> Project board <ArrowUpRight className="size-3.5" />
             </a>
             <a href="/changelog" className="font-medium text-primary hover:underline">
-              What's shipped so far
+              Changelog
             </a>
           </div>
         </Section>
 
-        <Section id="features" eyebrow="On the pitch" title="Built for the umpire, not the scorer" intro="Everything you need during a match, on the watch you already wear. Nothing you don't.">
+        <Section id="features" eyebrow="Take the stress out of game management" title="Built for the umpire" intro="Everything you need during a match, on the watch you already wear. Nothing you don't.">
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map(({ icon: Icon, title, text }) => (
               <div key={title} className="rounded-xl border bg-card p-5">
@@ -149,9 +145,9 @@ export default function Home() {
         <Section eyebrow="How it works" title="Watch, phone, website">
           <ol className="grid gap-6 md:grid-cols-3">
             {[
-              { icon: Watch, title: "Umpire on the watch", text: "Start the match, record goals, cards and corners in a couple of taps. The clock never stops being accurate." },
-              { icon: Smartphone, title: "Check it on your phone", text: "The finished match arrives on your phone. Fix any mistakes, add the umpires, and export the report." },
-              { icon: Globe, title: "Publish it", text: "Upload the match, publish the result for players and clubs, and share it by link or QR code." },
+              { icon: Watch, title: "Robust Management", text: "Track timing, goals and cards. Even includes shootout!" },
+              { icon: Smartphone, title: "Mobile App", text: "Completed matches sync to your phone. Fix any mistakes, add additional data, and share/export." },
+              { icon: Globe, title: "Publish it", text: "Upload the match, publish, and share it by link or QR code." },
             ].map(({ icon: Icon, title, text }, i) => (
               <li key={title} className="relative rounded-xl border bg-card p-5">
                 <span className="absolute top-5 right-5 text-sm text-muted-foreground tabular-nums">0{i + 1}</span>

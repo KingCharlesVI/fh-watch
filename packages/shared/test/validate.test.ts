@@ -143,4 +143,43 @@ describe("parseMatch", () => {
     notDrawn.events.push({ seq: 15, type: "void", refSeq: 5 });
     expect(codes(notDrawn).warnings).toEqual(["unexpected_shootout"]);
   });
+
+  it("allows yellow and red cards in the shootout, without a duration", () => {
+    const doc = shootoutMatch();
+    doc.events.push({ seq: 15, type: "card", team: "home", player: 6, color: "yellow", period: 2, clockMs: 2100000, shootout: true });
+    expect(codes(doc)).toEqual({ ok: true, errors: [], warnings: [] });
+
+    const green = shootoutMatch();
+    green.events.push({ seq: 15, type: "card", team: "home", color: "green", period: 2, clockMs: 2100000, shootout: true });
+    expect(codes(green).errors).toEqual(["shootout_card"]);
+
+    const timed = shootoutMatch();
+    timed.events.push({ seq: 15, type: "card", team: "home", color: "yellow", durationSec: 300, period: 2, clockMs: 2100000, shootout: true });
+    expect(codes(timed).errors).toEqual(["card_duration"]);
+  });
+
+  it("checks forfeited shoot-outs", () => {
+    const doc = shootoutMatch();
+    doc.events = doc.events.filter((e) => e.seq < 13);
+    doc.events.push(
+      { seq: 13, type: "card", team: "home", player: 10, color: "red", period: 2, clockMs: 2100000, shootout: true },
+      { seq: 14, type: "shootout_attempt", team: "home", round: 4, scored: false, forfeit: true },
+    );
+    expect(codes(doc)).toEqual({ ok: true, errors: [], warnings: [] });
+
+    const noCard = shootoutMatch();
+    event(noCard, 13).forfeit = true;
+    expect(codes(noCard).warnings).toEqual(["forfeit_without_card"]);
+
+    const scored = shootoutMatch();
+    Object.assign(event(scored, 13), { forfeit: true, scored: true });
+    expect(codes(scored).errors).toEqual(["forfeit_scored"]);
+  });
+
+  it("warns once when shoot-outs are taken out of turn", () => {
+    const doc = shootoutMatch();
+    event(doc, 8).team = "home";
+    event(doc, 9).team = "away";
+    expect(codes(doc).warnings).toEqual(["shootout_order"]);
+  });
 });

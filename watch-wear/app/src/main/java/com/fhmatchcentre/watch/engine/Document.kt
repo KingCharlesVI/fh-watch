@@ -182,8 +182,10 @@ data class Card(
     val player: Int? = null,
     val color: CardColor,
     val reason: CardReason? = null,
-    /** Suspension length; absent for red. */
+    /** Suspension length; absent for red and in the shootout. */
     val durationSec: Int? = null,
+    /** Given during the shootout: the player takes no further part. Left out (null) otherwise. */
+    val shootout: Boolean? = null,
 ) : MatchEvent(), Timed, ForTeam
 
 @Serializable
@@ -226,6 +228,8 @@ data class ShootoutAttempt(
     val round: Int,
     val player: Int? = null,
     val scored: Boolean,
+    /** Not taken: the player due was suspended in the shootout. Left out (null) otherwise. */
+    val forfeit: Boolean? = null,
 ) : MatchEvent(), ForTeam
 
 @Serializable

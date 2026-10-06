@@ -134,7 +134,7 @@ class MatchService : LifecycleService() {
  * - clock started or stopped, a suspension over: one buzz
  * - two minutes left in the period: two buzzes
  * - one minute left: three buzzes
- * - end of the period: long, short, short, long
+ * - end of the period, and the 8 seconds of a shoot-out: long, short, short, long
  * - end of a break: four quick buzzes
  */
 class Haptics(context: Context) {
@@ -156,6 +156,9 @@ class Haptics(context: Context) {
 
     /** The clock started or stopped, whichever way it was done. */
     fun buzz() = vibrate(buzzes(1))
+
+    /** A shoot-out's 8 seconds are up. */
+    fun shootoutTimeUp() = vibrate(PERIOD_END)
 
     private fun buzzes(n: Int): LongArray = longArrayOf(0) + List(n) { listOf(BUZZ_MS, GAP_MS) }.flatten().dropLast(1).toLongArray()
 

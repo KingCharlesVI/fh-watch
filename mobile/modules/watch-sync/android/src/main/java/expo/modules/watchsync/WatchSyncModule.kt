@@ -8,6 +8,7 @@ import com.google.android.gms.wearable.Wearable
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import java.io.File
 
 /** The JS side of watch sync. Async functions run off the main thread, so blocking calls are fine. */
 class WatchSyncModule : Module() {
@@ -68,6 +69,23 @@ class WatchSyncModule : Module() {
       val watches = runCatching { Tasks.await(Wearable.getNodeClient(context).connectedNodes) }.getOrDefault(emptyList())
       watches.count { node ->
         runCatching { Tasks.await(messages.sendMessage(node.id, "/setup", bytes)) }.isSuccess
+      }
+    }
+
+    // A new watch app (an APK downloaded from GitHub) to every watch in reach, streamed over a
+    // channel at /update-apk. The watch's GitHub build keeps it for the umpire to install there.
+    // Returns how many watches got all of it.
+    AsyncFunction("sendWatchUpdate") { path: String ->
+      val file = File(path)
+      require(file.isFile) { "No file at $path" }
+      val channels = Wearable.getChannelClient(context)
+      val watches = runCatching { Tasks.await(Wearable.getNodeClient(context).connectedNodes) }.getOrDefault(emptyList())
+      watches.count { node ->
+        runCatching {
+          val channel = Tasks.await(channels.openChannel(node.id, "/update-apk"))
+          // Closing the stream is the watch's sign that it's all there.
+          Tasks.await(channels.getOutputStream(channel)).use { output -> file.inputStream().use { it.copyTo(output) } }
+        }.isSuccess
       }
     }
   }

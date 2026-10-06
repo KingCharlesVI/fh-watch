@@ -69,6 +69,13 @@ struct CardFlow: View {
             let s = m.settings
             if team == nil {
                 PickTeam(m: m, title: "Card") { team = $0 }
+            } else if kind == nil && m.clock.phase == .shootout {
+                // In the shootout: yellow or red only, and either is for the rest of it.
+                List {
+                    ChoiceButton(label: "Yellow", secondary: "Rest of shootout", color: .cardYellow) { kind = .yellowShort }
+                    ChoiceButton(label: "Red", secondary: "Rest of shootout", color: .cardRed) { kind = .red }
+                }
+                .navigationTitle("Card")
             } else if kind == nil {
                 List {
                     ChoiceButton(label: "Green", secondary: mins(s, .green), color: .cardGreen) { kind = .green }
@@ -89,7 +96,7 @@ struct CardFlow: View {
                 let earlier = cards(m, number)
                 List {
                     Text("#\(number) already has " + earlier.map { c in
-                        "a \(c.color.rawValue) card (\(periodName(c.period, s.periods)) \(formatClock(c.clockMs)))"
+                        "a \(c.color.rawValue) card (\(c.shootout == true ? "shootout" : "\(periodName(c.period, s.periods)) \(formatClock(c.clockMs))"))"
                     }.joined(separator: " and ") + ".")
                     .font(.footnote)
                     ChoiceButton(label: "Continue", color: .brand) { player = number; repeatFor = nil }
@@ -114,8 +121,12 @@ struct CardFlow: View {
     }
 
     private func save(_ reason: CardReason?) {
-        guard let side = team, let k = kind, let number = player else { return }
-        controller.perform("card") { try $0.card(team: side, player: number, kind: k, now: $1, reason: reason) }
+        guard let side = team, let k = kind, let number = player, let m = controller.active else { return }
+        if m.clock.phase == .shootout {
+            controller.perform("card") { try $0.shootoutCard(team: side, player: number, color: k.color, now: $1, reason: reason) }
+        } else {
+            controller.perform("card") { try $0.card(team: side, player: number, kind: k, now: $1, reason: reason) }
+        }
         path.removeLast()
     }
 }
@@ -167,7 +178,7 @@ func describe(_ m: MatchRecord, _ e: MatchEvent) -> String {
     case .cardEnd: return "Suspension over"
     case let .penaltyCorner(p): return "PC " + t[p.team].name
     case let .penaltyStroke(p): return "Stroke " + t[p.team].name + (p.scored ? " scored" : " missed")
-    case let .shootoutAttempt(a): return "Shootout " + who(a.team, a.player) + (a.scored ? " scored" : " missed")
+    case let .shootoutAttempt(a): return "Shootout " + who(a.team, a.player) + (a.forfeit == true ? " forfeited" : a.scored ? " scored" : " missed")
     case let .periodStart(p): return "Start of \(periodName(p.period, periods))"
     case let .periodEnd(p): return "End of \(periodName(p.period, periods))"
     case let .clockStop(c): return "Clock stopped" + (c.reason.map { " (\($0.rawValue))" } ?? "")
@@ -185,7 +196,7 @@ private func whenText(_ m: MatchRecord, _ e: MatchEvent) -> String {
     case let .clockStop(x): return "\(periodName(x.period, periods)) \(formatClock(x.clockMs))"
     case let .clockResume(x): return "\(periodName(x.period, periods)) \(formatClock(x.clockMs))"
     case let .goal(x): return "\(periodName(x.period, periods)) \(formatClock(x.clockMs))"
-    case let .card(x): return "\(periodName(x.period, periods)) \(formatClock(x.clockMs))"
+    case let .card(x): return x.shootout == true ? "Shootout" : "\(periodName(x.period, periods)) \(formatClock(x.clockMs))"
     case let .cardEnd(x): return "\(periodName(x.period, periods)) \(formatClock(x.clockMs))"
     case let .penaltyCorner(x): return "\(periodName(x.period, periods)) \(formatClock(x.clockMs))"
     case let .penaltyStroke(x): return "\(periodName(x.period, periods)) \(formatClock(x.clockMs))"
@@ -194,18 +205,26 @@ private func whenText(_ m: MatchRecord, _ e: MatchEvent) -> String {
     }
 }
 
-/// Attempts alternate between the teams; each can be scored or missed.
+/// The shootout. Whoever takes the first shoot-out sets the order (the coin toss), so from
+/// then on only the team that's up can be scored. There's no side button to use on an Apple
+/// Watch, so the 8 s button (double-tap presses it too) times each shoot-out.
 struct ShootoutView: View {
     @Environment(MatchController.self) private var controller
     let m: MatchRecord
+    let now: Moment
+    @Binding var path: [Route]
 
     var body: some View {
         let so = m.shootout
         let teams = m.document.teams
         let voided = m.voidedSeqs
-        let last = m.document.events.last { if case .shootoutAttempt = $0 { return !voided.contains($0.seq) } else { return false } }
-        // Suggest the team that has taken fewer attempts (home first).
-        let next: Side = so.home.count <= so.away.count ? .home : .away
+        let last = m.document.events.last { e in
+            switch e {
+            case .shootoutAttempt: return !voided.contains(e.seq)
+            case let .card(c): return c.shootout == true && !voided.contains(e.seq)
+            default: return false
+            }
+        }
         List {
             Text("\(teams.home.name)  \(so.homeScore) – \(so.awayScore)  \(teams.away.name)").font(.footnote)
             Text(dots(so.home) + "\n" + dots(so.away)).font(.footnote)
@@ -213,7 +232,9 @@ struct ShootoutView: View {
                 Text("\(teams[winner].name) win the shootout").font(.footnote)
                 ChoiceButton(label: "End match", color: .endRed) { controller.perform { try $0.endMatch($1) } }
             } else {
-                ForEach([next, next.other], id: \.self) { side in
+                timer
+                // Before the first shoot-out either team may go; after it, only the team that's up.
+                ForEach(so.next.map { [$0] } ?? [.home, .away], id: \.self) { side in
                     HStack(spacing: 4) {
                         Button("\(side.label) ✓") { controller.perform("attempt") { try $0.shootoutAttempt(team: side, player: nil, scored: true, now: $1) } }
                             .tint(Color(hex: teams[side].color)).foregroundStyle(Color.on(teams[side].color)).buttonStyle(.borderedProminent)
@@ -221,13 +242,33 @@ struct ShootoutView: View {
                             .buttonStyle(.bordered)
                     }
                     .listRowBackground(Color.clear)
+                    // The player due may have been suspended in the shootout.
+                    if so.suspended.contains(side) {
+                        ChoiceButton(label: "\(side.label) forfeit") {
+                            controller.perform("attempt") { try $0.shootoutAttempt(team: side, player: nil, scored: false, now: $1, forfeit: true) }
+                        }
+                    }
                 }
             }
+            ChoiceButton(label: "Card") { path.append(.card) }
             if let last {
-                ChoiceButton(label: "Undo last attempt") { controller.perform { try $0.undo(seq: last.seq, now: $1) } }
+                ChoiceButton(label: "Undo", secondary: describe(m, last)) { controller.perform { try $0.undo(seq: last.seq, now: $1) } }
             }
         }
         .navigationTitle(so.suddenDeath ? "Sudden death" : "Shootout")
+    }
+
+    /// Starts or stops the 8 seconds, counting them down while they run.
+    private var timer: some View {
+        let left = controller.shootoutTimerStart.map { MatchController.shootoutMs - (now.elapsedMs - $0) }
+        return Button { controller.toggleShootoutTimer() } label: {
+            Text(left.map { "\((max(0, $0) + 999) / 1000)" } ?? "8 s")
+                .font(left == nil ? .headline : .system(size: 40, weight: .bold).monospacedDigit())
+                .frame(maxWidth: .infinity)
+        }
+        .tint(.brand)
+        .buttonStyle(.borderedProminent)
+        .primaryHandGesture()
     }
 
     private func dots(_ results: [Bool]) -> String {

@@ -10,6 +10,8 @@ Apple doesn't let apps use the side button or the Digital Crown press, so the **
 
 On a **Series 9, Ultra 2 or later** with watchOS 11, **double-tap** (tap your index finger and thumb together twice) presses it, without touching the screen.
 
+In a shootout there's no clock, so an **8 s** button takes its place: tap it (or double-tap) with the starting whistle to count down a shoot-out's 8 seconds. The rest of the shootout works as on [Wear OS](guide/wear-os.md#full-time-and-shootouts).
+
 ## Keeping the match running
 
 The first time you start a match, the watch asks for **Health** access. The app runs a workout while the match is on, which is what keeps the clock, suspension timers and vibrations going with your wrist down. Allow it; without it the match only runs while the app is on screen.

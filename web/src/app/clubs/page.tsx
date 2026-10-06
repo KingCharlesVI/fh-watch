@@ -35,7 +35,7 @@ export default async function ClubsPage({ searchParams }: { searchParams: Promis
             <li key={c.id}>
               <Link href={`/clubs/${c.slug}`} className="group block no-underline hover:no-underline">
                 <Card className="flex-row items-center gap-3 px-4 py-4 transition-colors group-hover:bg-muted/60">
-                  <ClubBadge name={c.name} />
+                  <ClubBadge name={c.name} logoUrl={c.logoUrl} />
                   <span className="min-w-0 flex-1 truncate font-medium text-foreground">{c.name}</span>
                   <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                 </Card>

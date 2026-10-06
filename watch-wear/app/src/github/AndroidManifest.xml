@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The GitHub build only: it installs the updates the phone sends it (see build.gradle.kts
+     and update/WatchUpdater.kt). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <application>
+        <!-- A new watch app streamed from the phone, even when the app isn't open. -->
+        <service
+            android:name="com.fhmatchcentre.watch.update.UpdateListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.CHANNEL_EVENT" />
+                <data
+                    android:host="*"
+                    android:path="/update-apk"
+                    android:scheme="wear" />
+            </intent-filter>
+        </service>
+
+        <!-- Where Android reports how an update install went (and asks for the umpire's OK). -->
+        <receiver
+            android:name="com.fhmatchcentre.watch.update.UpdateResultReceiver"
+            android:exported="false" />
+    </application>
+
+</manifest>

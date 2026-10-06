@@ -529,10 +529,15 @@
                 "description": "Why the card was given: danger, breakdown of play, physical misconduct, dissent, or other."
               },
               "durationSec": {
-                "description": "Suspension length. Required for green and yellow, absent for red.",
+                "description": "Suspension length. Required for green and yellow, absent for red and for cards in the shootout.",
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 9007199254740991
+              },
+              "shootout": {
+                "description": "Given during the shootout: yellow or red only, and the player takes no further part in it. period and clockMs are where the match ended.",
+                "type": "boolean",
+                "const": true
               }
             },
             "required": [
@@ -735,6 +740,11 @@
               },
               "scored": {
                 "type": "boolean"
+              },
+              "forfeit": {
+                "description": "Not taken: the player due to take it was suspended during the shootout. Never scored.",
+                "type": "boolean",
+                "const": true
               }
             },
             "required": [

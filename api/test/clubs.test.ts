@@ -140,3 +140,69 @@ describe("club requests", () => {
     expect(res.json().items).toEqual([]);
   });
 });
+
+describe("club logos", () => {
+  // The PNG signature and a few bytes: enough to be recognised as a PNG.
+  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from("rest of the image")]);
+  const put = (clubId: string, headers: Record<string, string>, body: Buffer, type = "image/png") =>
+    t.app.inject({ method: "PUT", url: `/v1/clubs/${clubId}/logo`, headers: { ...headers, "content-type": type }, payload: body });
+
+  it("lets admins set a logo, which is then served publicly at a versioned URL", async () => {
+    const admin = await t.createUser({ roles: ["admin"] });
+    const { club } = await t.createClub("Oxford Hawks");
+
+    const none = await t.app.inject({ method: "GET", url: `/v1/clubs/${club.id}` });
+    expect(none.json().logoUrl).toBeNull();
+
+    const res = await put(club.id, admin.headers, png);
+    expect(res.statusCode).toBe(200);
+    const { logoUrl } = res.json();
+    expect(logoUrl).toBe(`/v1/clubs/${club.id}/logo?v=${t.clock.now.getTime()}`);
+
+    const list = await t.app.inject({ method: "GET", url: "/v1/clubs" });
+    expect(list.json().items[0].logoUrl).toBe(logoUrl);
+
+    const image = await t.app.inject({ method: "GET", url: logoUrl });
+    expect(image.statusCode).toBe(200);
+    expect(image.headers["content-type"]).toBe("image/png");
+    expect(image.headers["cache-control"]).toContain("immutable");
+    expect(image.rawPayload.equals(png)).toBe(true);
+
+    t.advance(1000);
+    const replaced = await put(club.id, admin.headers, png);
+    expect(replaced.json().logoUrl).not.toBe(logoUrl);
+  });
+
+  it("serves the type the bytes really are, and refuses anything that isn't an image", async () => {
+    const admin = await t.createUser({ roles: ["admin"] });
+    const { club } = await t.createClub("Oxford Hawks");
+
+    // Labelled JPEG, but it's a PNG.
+    const res = await put(club.id, admin.headers, png, "image/jpeg");
+    const image = await t.app.inject({ method: "GET", url: res.json().logoUrl });
+    expect(image.headers["content-type"]).toBe("image/png");
+
+    const bogus = await put(club.id, admin.headers, Buffer.from("<svg onload=alert(1)>"));
+    expect(bogus.statusCode).toBe(400);
+    const svg = await put(club.id, admin.headers, Buffer.from("<svg/>"), "image/svg+xml");
+    expect(svg.statusCode).toBe(415);
+    const big = await put(club.id, admin.headers, Buffer.concat([png, Buffer.alloc(512 * 1024)]));
+    expect(big.statusCode).toBe(413);
+  });
+
+  it("lets only admins set or remove a logo", async () => {
+    const admin = await t.createUser({ roles: ["admin"] });
+    const { club } = await t.createClub("Oxford Hawks");
+    const clubAdmin = await t.createUser({ roles: ["club_admin"], clubId: club.id });
+    expect((await put(club.id, clubAdmin.headers, png)).statusCode).toBe(403);
+
+    await put(club.id, admin.headers, png);
+    const denied = await t.app.inject({ method: "DELETE", url: `/v1/clubs/${club.id}/logo`, headers: clubAdmin.headers });
+    expect(denied.statusCode).toBe(403);
+
+    const removed = await t.app.inject({ method: "DELETE", url: `/v1/clubs/${club.id}/logo`, headers: admin.headers });
+    expect(removed.json().logoUrl).toBeNull();
+    const gone = await t.app.inject({ method: "GET", url: `/v1/clubs/${club.id}/logo` });
+    expect(gone.statusCode).toBe(404);
+  });
+});

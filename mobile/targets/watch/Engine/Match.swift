@@ -379,12 +379,31 @@ extension MatchRecord {
         return next
     }
 
-    func shootoutAttempt(team: Side, player: Int?, scored: Bool, now: Moment) throws -> MatchRecord {
+    /// A shoot-out, scored or missed. Whoever takes the first one (the coin toss) sets the
+    /// order from then on: see `ShootoutState.next`. A forfeit is one the team loses because
+    /// the player due to take it was suspended in the shootout.
+    func shootoutAttempt(team: Side, player: Int?, scored: Bool, now: Moment, forfeit: Bool = false) throws -> MatchRecord {
         try rule(clock.phase == .shootout, "The shootout hasn't started.")
-        try rule(shootout.winner == nil, "The shootout is already decided.")
+        let so = shootout
+        try rule(so.winner == nil, "The shootout is already decided.")
+        try rule(so.next == nil || so.next == team, "It's \(document.teams[so.next ?? team].name)'s turn.")
+        try rule(!forfeit || !scored, "A forfeit can't be scored.")
+        try rule(!forfeit || so.suspended.contains(team), "No one in \(document.teams[team].name) has been suspended in the shootout.")
         let round = activeEvents.filter { if case let .shootoutAttempt(a) = $0 { return a.team == team } else { return false } }.count + 1
         return appending {
-            .shootoutAttempt(ShootoutAttempt(seq: $0, wallTime: now.iso, team: team, round: round, player: player, scored: scored))
+            .shootoutAttempt(ShootoutAttempt(seq: $0, wallTime: now.iso, team: team, round: round, player: player, scored: scored, forfeit: forfeit ? true : nil))
+        }
+    }
+
+    /// A card in the shootout: yellow or red only, and either way the player takes no further
+    /// part, so there's no suspension to time. It's logged where the match clock ended.
+    func shootoutCard(team: Side, player: Int?, color: CardColor, now: Moment, reason: CardReason? = nil) throws -> MatchRecord {
+        try rule(clock.phase == .shootout, "The shootout hasn't started.")
+        try rule(color != .green, "Only yellow or red cards in the shootout.")
+        let p = clock.period
+        let at = clock.bankedMs
+        return appending {
+            .card(Card(seq: $0, wallTime: now.iso, period: p, clockMs: at, team: team, player: player, color: color, reason: reason, durationSec: nil, shootout: true))
         }
     }
 
@@ -492,6 +511,10 @@ struct ShootoutState: Equatable {
     var home: [Bool]
     var away: [Bool]
     var winner: Side?
+    /// Who takes the next shoot-out; nil before the first (either may) and once it's decided.
+    var next: Side?
+    /// Teams with a player suspended in the shootout, who may have to forfeit.
+    var suspended: Set<Side>
 
     var homeScore: Int { home.filter { $0 }.count }
     var awayScore: Int { away.filter { $0 }.count }
@@ -533,11 +556,30 @@ extension MatchRecord {
     var shootout: ShootoutState {
         var home: [Bool] = []
         var away: [Bool] = []
-        for case let .shootoutAttempt(a) in activeEvents {
-            if a.team == .home { home.append(a.scored) } else { away.append(a.scored) }
+        var first: Side?
+        var suspended: Set<Side> = []
+        for event in activeEvents {
+            switch event {
+            case let .shootoutAttempt(a):
+                first = first ?? a.team
+                if a.team == .home { home.append(a.scored) } else { away.append(a.scored) }
+            case let .card(c) where c.shootout == true:
+                suspended.insert(c.team)
+            default:
+                break
+            }
         }
-        return ShootoutState(home: home, away: away, winner: shootoutWinner(home, away))
+        let winner = shootoutWinner(home, away)
+        let next = winner == nil ? first.map { shootoutTaker(first: $0, taken: home.count + away.count) } : nil
+        return ShootoutState(home: home, away: away, winner: winner, next: next, suspended: suspended)
     }
+}
+
+/// Who takes shoot-out number `taken + 1`. The teams alternate, and the team that went
+/// first in a series of five goes second in the next (FIH articles 21c and 22b).
+func shootoutTaker(first: Side, taken: Int) -> Side {
+    let starter = (taken / (2 * ShootoutState.rounds)) % 2 == 0 ? first : first.other
+    return taken % 2 == 0 ? starter : starter.other
 }
 
 /// Five attempts each, stopping early once one side can't catch up; then sudden death in pairs.

@@ -1,6 +1,7 @@
 import { TriangleAlert } from "lucide-react";
 import { reviewRequest } from "@/app/actions/admin";
 import { ActionForm } from "@/components/ActionForm";
+import { LogoField } from "@/components/LogoField";
 import { PageHeader } from "@/components/PageHeader";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +48,11 @@ export default async function RequestsPage() {
               <ActionForm action={reviewRequest} submitLabel="Approve" inline>
                 <input type="hidden" name="id" value={r.id} />
                 <input type="hidden" name="decision" value="approve" />
+                {r.clubName && (
+                  <div className="w-72">
+                    <LogoField label="Logo (optional)" hint="PNG, JPEG or WebP, up to 512 KB." />
+                  </div>
+                )}
               </ActionForm>
               <ActionForm action={reviewRequest} submitLabel="Reject" variant="outline" inline>
                 <input type="hidden" name="id" value={r.id} />

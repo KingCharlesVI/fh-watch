@@ -50,6 +50,21 @@ android {
         }
     }
 
+    // Where the app comes from. Google Play updates its own copy; a GitHub build (an APK from
+    // the releases page) installs the updates the phone sends it, so only it may install apps
+    // (src/github/AndroidManifest.xml). Play doesn't allow that in its apps.
+    flavorDimensions += "channel"
+    productFlavors {
+        create("play") {
+            dimension = "channel"
+            buildConfigField("boolean", "SELF_UPDATE", "false")
+        }
+        create("github") {
+            dimension = "channel"
+            buildConfigField("boolean", "SELF_UPDATE", "true")
+        }
+    }
+
     buildTypes {
         release {
             // Without the upload key, the debug key: fine for trying a release build, refused by Google Play.
@@ -61,6 +76,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     testOptions {

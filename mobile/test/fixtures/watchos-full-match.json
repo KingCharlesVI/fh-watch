@@ -290,15 +290,18 @@
       "wallTime" : "2026-09-21T15:20:20.000Z"
     },
     {
-      "player" : 7,
-      "round" : 6,
-      "scored" : true,
+      "clockMs" : 900000,
+      "color" : "red",
+      "period" : 4,
+      "player" : 5,
       "seq" : 35,
-      "team" : "home",
-      "type" : "shootout_attempt",
+      "shootout" : true,
+      "team" : "away",
+      "type" : "card",
       "wallTime" : "2026-09-21T15:20:20.000Z"
     },
     {
+      "forfeit" : true,
       "player" : 5,
       "round" : 6,
       "scored" : false,
@@ -308,22 +311,31 @@
       "wallTime" : "2026-09-21T15:20:20.000Z"
     },
     {
-      "refSeq" : 36,
+      "player" : 7,
+      "round" : 6,
+      "scored" : true,
       "seq" : 37,
+      "team" : "home",
+      "type" : "shootout_attempt",
+      "wallTime" : "2026-09-21T15:20:20.000Z"
+    },
+    {
+      "refSeq" : 37,
+      "seq" : 38,
       "type" : "void",
       "wallTime" : "2026-09-21T15:20:20.000Z"
     },
     {
-      "player" : 5,
+      "player" : 7,
       "round" : 6,
-      "scored" : false,
-      "seq" : 38,
-      "team" : "away",
+      "scored" : true,
+      "seq" : 39,
+      "team" : "home",
       "type" : "shootout_attempt",
       "wallTime" : "2026-09-21T15:20:20.000Z"
     }
   ],
-  "id" : "01a0c450-6c00-7f83-a1cd-637538e31085",
+  "id" : "01a0c450-6c00-7719-b473-da3c26765009",
   "schemaVersion" : 1,
   "settings" : {
     "breakLengthsSec" : [

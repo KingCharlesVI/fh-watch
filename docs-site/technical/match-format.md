@@ -48,11 +48,11 @@ Every event has a `seq` (its position in the log, unique and ascending) and usua
 | `period_start`, `period_end` | | A period starting and ending. |
 | `clock_stop`, `clock_resume` | `reason`? | A stoppage. |
 | `goal` | `team`, `player`?, `method`? (`field`, `pc`, `ps`) | Only goals count towards the score. |
-| `card` | `team`, `player`?, `color`, `reason`?, `durationSec`? | Green and yellow have a `durationSec`; red doesn't. |
+| `card` | `team`, `player`?, `color`, `reason`?, `durationSec`?, `shootout`? | Green and yellow have a `durationSec`; red doesn't. A card in the shootout has `shootout: true`, is yellow or red with no `durationSec`, and keeps the `period` and `clockMs` where the match ended. |
 | `card_end` | `refSeq` | A suspension ending: logged at the match-clock time it ran out. |
 | `penalty_corner` | `team` | (Older matches; the watches don't record these any more.) |
 | `penalty_stroke` | `team`, `scored` | A scored stroke comes with a `goal` with method `ps`. |
-| `shootout_attempt` | `team`, `round`, `player`?, `scored` | No clock time. |
+| `shootout_attempt` | `team`, `round`, `player`?, `scored`, `forfeit`? | No clock time. `forfeit: true` (never scored) when the player due to take it was suspended in the shootout. |
 | `void` | `refSeq` | Cancels an event. A void can't target another void. |
 | `note` | `text` | Free text, added on the phone. |
 
@@ -60,7 +60,7 @@ Card reasons are `danger`, `breakdown`, `physical`, `dissent` and `other`.
 
 ## Rules the validator checks
 
-Beyond the shape, [`validate.ts`](https://github.com/KingCharlesVI/fh-watch/blob/main/packages/shared/src/validate.ts) checks the match makes sense: `seq` ascending, periods within the settings, clock times within a period, voids pointing at real events, a stroke goal with its stroke, and so on. Errors stop an import or a save; warnings are shown to the umpire.
+Beyond the shape, [`validate.ts`](https://github.com/KingCharlesVI/fh-watch/blob/main/packages/shared/src/validate.ts) checks the match makes sense: `seq` ascending, periods within the settings, clock times within a period, voids pointing at real events, a stroke goal with its stroke, shoot-outs taken in the FIH order (alternating, with the team that went first in a series of five going second in the next), and so on. Errors stop an import or a save; warnings are shown to the umpire.
 
 ## Beside the document
 

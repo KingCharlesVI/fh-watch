@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeEvents, finalWhistle, formatClock, summarizeMatch } from "../src/summary.js";
+import { activeEvents, finalWhistle, formatClock, shootoutTaker, summarizeMatch } from "../src/summary.js";
 import { leagueMatch, shootoutMatch } from "./fixtures.js";
 
 describe("summarizeMatch", () => {
@@ -55,7 +55,7 @@ describe("summarizeMatch", () => {
     expect(order.indexOf(25)).toBe(order.indexOf(1) + 1);
   });
 
-  it("orders the timeline: periods by clock, then shootout by round, then untimed notes", () => {
+  it("orders the timeline: periods by clock, then the shootout as recorded, then untimed notes", () => {
     const m = shootoutMatch();
     m.events.push({ seq: 15, type: "note", text: "Shootout taken at the clubhouse end." });
     const types = summarizeMatch(m).timeline.map((e) => e.type);
@@ -93,5 +93,24 @@ describe("formatClock", () => {
     [2100000, "35:00"],
   ])("%i ms → %s", (ms, text) => {
     expect(formatClock(ms)).toBe(text);
+  });
+
+  it("puts the shootout's cards among its attempts, in the order recorded", () => {
+    const m = shootoutMatch();
+    m.events = m.events.filter((e) => e.seq <= 9);
+    m.events.push(
+      { seq: 10, type: "card", team: "away", player: 3, color: "yellow", period: 2, clockMs: 2100000, shootout: true },
+      { seq: 11, type: "shootout_attempt", team: "away", round: 2, scored: false, forfeit: true },
+    );
+    expect(summarizeMatch(m).timeline.slice(-5).map((e) => e.seq)).toEqual([7, 8, 9, 10, 11]);
+  });
+});
+
+describe("shootoutTaker", () => {
+  it("alternates, and the team that went first in a series goes second in the next", () => {
+    const order = Array.from({ length: 24 }, (_, i) => (shootoutTaker("home", i) === "home" ? "H" : "A")).join("");
+    expect(order).toBe("HAHAHAHAHA" + "AHAHAHAHAH" + "HAHA");
+    expect(shootoutTaker("away", 0)).toBe("away");
+    expect(shootoutTaker("away", 10)).toBe("home");
   });
 });

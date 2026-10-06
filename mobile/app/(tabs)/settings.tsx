@@ -3,7 +3,7 @@ import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Alert, Platform, Share, Switch, View } from "react-native";
-import { API_URL, ONLINE, WEB_URL } from "@/config";
+import { API_URL, CHANNEL, ONLINE, WEB_URL } from "@/config";
 import { errorMessage } from "@/core/api";
 import { sync } from "@/services";
 import { saveBackup, shareBackup } from "@/services/export";
@@ -153,6 +153,7 @@ function Updates() {
   if (__DEV__) return <T variant="small">Development build: no update checks.</T>;
   // The iPhone app updates through TestFlight and the App Store.
   if (Platform.OS === "ios") return null;
+  if (CHANNEL !== "github") return <T variant="small">Google Play keeps the phone and watch apps up to date.</T>;
   return (
     <>
       {update ? (

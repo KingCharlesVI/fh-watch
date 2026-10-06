@@ -15,8 +15,14 @@ pnpm dev:watch          # starts the Wear OS emulator if needed, builds, install
 Or with Gradle directly, from this folder (needs a JDK 17+; Android Studio's is in `C:\Program Files\Android\Android Studio\jbr`):
 
 ```sh
-./gradlew :app:installDebug        # to every connected device, or set ANDROID_SERIAL to pick one
-./gradlew :app:testDebugUnitTest   # the match engine and the document contract
+./gradlew :app:installGithubDebug        # to every connected device, or set ANDROID_SERIAL to pick one
+./gradlew :app:testGithubDebugUnitTest   # the match engine and the document contract
+```
+
+There are two builds (flavours): `play`, for Google Play, which updates it; and `github`, the APK on the GitHub releases page, which can also install updates sent from the phone. `pnpm release:android` builds the Play bundle and, with `--apk`, the GitHub APK.
+
+```sh
+./gradlew :app:assembleGithubRelease     # the GitHub APK, signed like a release (app/build/outputs/apk/github/release/)
 ```
 
 The physical button: on Galaxy watches it's the lower (Back) button; during a match it starts and stops the clock, and swiping right still goes back. On Wear OS 6 a swipe back also arrives as a Back key; it's told apart from the button by its "virtual key" flag and the touch just before it (see `dispatchKeyEvent` in `MainActivity.kt`, which has the values measured on a Galaxy Watch7). `adb logcat -s FHKey` shows each Back key and what was decided. On the emulator, `adb shell input keyevent 4` acts as the button. `adb shell input rotaryencoder scroll --axis SCROLL,-1` turns the crown.

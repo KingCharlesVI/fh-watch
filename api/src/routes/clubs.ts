@@ -4,7 +4,7 @@ import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { requireActor, requireRole } from "../auth.js";
 import type { DbOrTx } from "../db/client.js";
-import { clubRequests, clubs, teams, users } from "../db/schema.js";
+import { LOGO_TYPES, clubLogos, clubRequests, clubs, teams, users } from "../db/schema.js";
 import type { AppDeps } from "../deps.js";
 import { badRequest, conflict, forbidden, isUniqueViolation, notFound } from "../lib/errors.js";
 import { slugify } from "../lib/slug.js";
@@ -38,7 +38,12 @@ async function unique<T>(slug: string, message: string, write: () => Promise<T>)
 
 type ClubRow = typeof clubs.$inferSelect;
 type TeamRow = typeof teams.$inferSelect;
-const clubDto = (c: ClubRow) => ({ id: c.id, name: c.name, slug: c.slug });
+const clubDto = (c: ClubRow) => ({
+  id: c.id,
+  name: c.name,
+  slug: c.slug,
+  logoUrl: c.logoUpdatedAt ? `/v1/clubs/${c.id}/logo?v=${c.logoUpdatedAt.getTime()}` : null,
+});
 const teamDto = (t: TeamRow) => ({ id: t.id, clubId: t.clubId, name: t.name, slug: t.slug });
 
 type RequestRow = typeof clubRequests.$inferSelect;
@@ -54,6 +59,17 @@ const requestDto = (r: RequestRow, user?: { displayName: string; email: string }
   reviewedAt: r.reviewedAt?.toISOString() ?? null,
 });
 
+/** Logos fit in a server action's 1 MB body on the website, with room to spare. */
+export const MAX_LOGO_BYTES = 512 * 1024;
+
+/** The image type from its first bytes, so a logo is only ever served as what it really is. */
+function sniffLogo(data: Buffer): (typeof LOGO_TYPES)[number] | null {
+  if (data.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "image/png";
+  if (data.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))) return "image/jpeg";
+  if (data.toString("latin1", 0, 4) === "RIFF" && data.toString("latin1", 8, 12) === "WEBP") return "image/webp";
+  return null;
+}
+
 async function requireClub(db: DbOrTx, id: string) {
   const [club] = await db.select().from(clubs).where(eq(clubs.id, id));
   if (!club) throw notFound("Club not found.");
@@ -64,6 +80,11 @@ export const clubRoutes =
   (deps: AppDeps): FastifyPluginAsyncZod =>
   async (app) => {
     const { db } = deps;
+
+    // Logos are uploaded as the raw image, not JSON.
+    app.addContentTypeParser([...LOGO_TYPES], { parseAs: "buffer", bodyLimit: MAX_LOGO_BYTES }, (_request, body, done) =>
+      done(null, body),
+    );
 
     // ---- Clubs ----
 
@@ -160,6 +181,65 @@ export const clubRoutes =
           await audit(tx, actor.id, "delete", "club", club.id, clubDto(club));
         });
         return reply.code(204).send();
+      },
+    );
+
+    app.get(
+      "/clubs/:id/logo",
+      { schema: { tags: ["clubs"], summary: "The club's logo image. Its URL changes when the logo does.", params: ClubParams } },
+      async (request, reply) => {
+        const [logo] = await db.select().from(clubLogos).where(eq(clubLogos.clubId, request.params.id));
+        if (!logo) throw notFound("This club has no logo.");
+        return reply
+          .type(logo.contentType)
+          .header("cache-control", "public, max-age=31536000, immutable")
+          .header("content-security-policy", "default-src 'none'")
+          .send(logo.data);
+      },
+    );
+
+    app.put(
+      "/clubs/:id/logo",
+      {
+        schema: {
+          tags: ["clubs"],
+          summary: `Set the club's logo: the PNG, JPEG or WebP image as the body, up to ${MAX_LOGO_BYTES / 1024} KB.`,
+          params: ClubParams,
+        },
+      },
+      async (request) => {
+        const actor = requireRole(request, "admin");
+        const club = await requireClub(db, request.params.id);
+        const data = request.body;
+        if (!Buffer.isBuffer(data) || data.length === 0) throw badRequest("invalid_logo", "Send the logo as a PNG, JPEG or WebP image.");
+        const contentType = sniffLogo(data);
+        if (!contentType) throw badRequest("invalid_logo", "The logo must be a PNG, JPEG or WebP image.");
+        const updated = await db.transaction(async (tx) => {
+          await tx
+            .insert(clubLogos)
+            .values({ clubId: club.id, contentType, data })
+            .onConflictDoUpdate({ target: clubLogos.clubId, set: { contentType, data } });
+          const [row] = await tx.update(clubs).set({ logoUpdatedAt: deps.now() }).where(eq(clubs.id, club.id)).returning();
+          await audit(tx, actor.id, "set_logo", "club", club.id, { contentType, bytes: data.length });
+          return row!;
+        });
+        return clubDto(updated);
+      },
+    );
+
+    app.delete(
+      "/clubs/:id/logo",
+      { schema: { tags: ["clubs"], summary: "Remove the club's logo; its initials show instead.", params: ClubParams } },
+      async (request) => {
+        const actor = requireRole(request, "admin");
+        const club = await requireClub(db, request.params.id);
+        const updated = await db.transaction(async (tx) => {
+          await tx.delete(clubLogos).where(eq(clubLogos.clubId, club.id));
+          const [row] = await tx.update(clubs).set({ logoUpdatedAt: null }).where(eq(clubs.id, club.id)).returning();
+          await audit(tx, actor.id, "remove_logo", "club", club.id);
+          return row!;
+        });
+        return clubDto(updated);
       },
     );
 

@@ -104,7 +104,7 @@ Each takes the same options, in any order:
 | --- | --- |
 | `--bump` | Adds 1 to the build number in `version.json` before building. Google Play refuses a build number it has already seen, so use this for every upload after the first. |
 | `--beta` | Builds the phone app for the beta (with sign-in, the API and the website) instead of the alpha (watch and phone only). It makes no difference to the watch app. See `mobile/src/config.ts`. |
-| `--apk` | Also makes an APK of each app, for installing directly on a phone or watch without Google Play. |
+| `--apk` | Also makes an APK of each app, for installing directly on a phone or watch without Google Play. These are the **GitHub builds**: they can install their own updates from GitHub releases (the phone downloads both apps' and sends the watch its), which Google Play's builds can't. |
 | `--debug-key` | Signs with the development key when no upload key is set up. For trying a build only. |
 
 With pnpm, options go straight after the command: `pnpm release:watch --bump --apk`.

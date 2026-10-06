@@ -99,7 +99,7 @@ final class EngineTests: XCTestCase {
         t.advance(2 * MIN)
         XCTAssertEqual(m.periodElapsedMs(t.now), 0)
         XCTAssertEqual(m.matchTimeMs(t.now), 15 * MIN)
-        XCTAssertTrue(m.tick(t.now).alerts.isEmpty())
+        XCTAssertTrue(m.tick(t.now).alerts.isEmpty)
 
         m = try m.startPeriod(t.now)
         XCTAssertEqual(m.clock.period, 2)
@@ -318,6 +318,51 @@ final class EngineTests: XCTestCase {
         XCTAssertThrowsError(try m.shootoutAttempt(team: .home, player: nil, scored: true, now: t.now))
         let awayRounds = m.document.events.compactMap { if case let .shootoutAttempt(a) = $0, a.team == .away { return a.round } else { return nil } }
         XCTAssertEqual(awayRounds, [1, 2, 3])
+    }
+
+    func testShootOutsAlternateAndTheTeamThatWentFirstInASeriesGoesSecondInTheNext() throws {
+        var m = try fullTime(newMatch()).startShootout()
+        XCTAssertNil(m.shootout.next) // the coin toss: either team may go first
+        // Away won the toss and goes first; five each, all scored.
+        for _ in 0..<5 {
+            m = try m.shootoutAttempt(team: .away, player: nil, scored: true, now: t.now).shootoutAttempt(team: .home, player: nil, scored: true, now: t.now)
+        }
+        XCTAssertEqual(m.shootout.next, .home)
+        XCTAssertThrowsError(try m.shootoutAttempt(team: .away, player: nil, scored: true, now: t.now))
+        m = try m.shootoutAttempt(team: .home, player: nil, scored: false, now: t.now)
+        XCTAssertEqual(m.shootout.next, .away)
+        m = try m.shootoutAttempt(team: .away, player: nil, scored: true, now: t.now)
+        XCTAssertEqual(m.shootout.winner, .away)
+        XCTAssertNil(m.shootout.next)
+        let order = (0..<12).map { shootoutTaker(first: .away, taken: $0) == .home ? "H" : "A" }.joined()
+        XCTAssertEqual(order, "AHAHAHAHAH" + "HA")
+        XCTAssertEqual((20..<22).map { shootoutTaker(first: .away, taken: $0) == .home ? "H" : "A" }.joined(), "AH")
+    }
+
+    func testACardInTheShootoutIsYellowOrRedWithNoTimerAndItsTeamMayForfeit() throws {
+        var m = try fullTime(newMatch()).startShootout()
+        XCTAssertThrowsError(try m.shootoutCard(team: .home, player: 4, color: .green, now: t.now))
+        // No one is suspended yet, so no forfeits.
+        XCTAssertThrowsError(try m.shootoutAttempt(team: .home, player: nil, scored: false, now: t.now, forfeit: true))
+
+        m = try m.shootoutCard(team: .home, player: 4, color: .yellow, now: t.now, reason: .dissent)
+        guard case let .card(card) = m.document.events.last! else { return XCTFail("no card") }
+        XCTAssertEqual(card.shootout, true)
+        XCTAssertNil(card.durationSec)
+        XCTAssertEqual(card.period, 4)
+        XCTAssertEqual(card.clockMs, 15 * MIN) // where the match clock ended
+        XCTAssertTrue(m.suspensions(t.now).isEmpty)
+        XCTAssertEqual(m.shootout.suspended, [.home])
+
+        XCTAssertThrowsError(try m.shootoutAttempt(team: .home, player: 4, scored: true, now: t.now, forfeit: true))
+        m = try m.shootoutAttempt(team: .home, player: 4, scored: false, now: t.now, forfeit: true)
+        guard case let .shootoutAttempt(forfeit) = m.document.events.last! else { return XCTFail("no attempt") }
+        XCTAssertEqual(forfeit.forfeit, true)
+        XCTAssertEqual(m.shootout.home, [false])
+        // An ordinary attempt leaves the field out.
+        m = try m.shootoutAttempt(team: .away, player: nil, scored: true, now: t.now)
+        guard case let .shootoutAttempt(taken) = m.document.events.last! else { return XCTFail("no attempt") }
+        XCTAssertNil(taken.forfeit)
     }
 
     func testALevelShootoutGoesToSuddenDeathInPairs() {

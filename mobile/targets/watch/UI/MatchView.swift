@@ -16,7 +16,7 @@ struct MatchView: View {
             TimelineView(.periodic(from: .now, by: dimmed ? 1 : 0.2)) { _ in
                 let now = currentMoment()
                 if m.clock.phase == .shootout {
-                    ShootoutView(m: m)
+                    ShootoutView(m: m, now: now, path: $path)
                 } else {
                     TabView(selection: $page) {
                         TimingPage(m: m, now: now, countDown: countDown).tag(0)

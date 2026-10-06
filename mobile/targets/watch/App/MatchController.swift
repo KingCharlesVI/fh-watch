@@ -16,6 +16,8 @@ struct UndoOffer: Equatable {
 @Observable
 final class MatchController {
     static let undoWindowMs: Int64 = 10_000
+    /// How long a shoot-out lasts (FIH).
+    static let shootoutMs: Int64 = 8_000
 
     /// The match being played, or nil.
     private(set) var active: MatchRecord?
@@ -28,6 +30,8 @@ final class MatchController {
     var phoneSetup: Setup?
     /// Bumped when the stored matches change, so lists reload.
     private(set) var storeVersion = 0
+    /// When the running shoot-out timer started (elapsed ms), or nil. Not saved: it lasts 8 seconds.
+    private(set) var shootoutTimerStart: Int64?
 
     let store: MatchStore
     let prefs: Prefs
@@ -35,6 +39,7 @@ final class MatchController {
     let workout = WorkoutRecorder()
     @ObservationIgnored private var createdAt: Int64 = 0
     @ObservationIgnored private var timer: Timer?
+    @ObservationIgnored private var shootoutTimer: Task<Void, Never>?
 
     init(store: MatchStore, prefs: Prefs, sync: PhoneSync) {
         self.store = store
@@ -92,6 +97,9 @@ final class MatchController {
         guard next != current else { return }
         save(next)
         active = next
+        if next.document.events.dropFirst(current.document.events.count).contains(where: { if case .shootoutAttempt = $0 { return true } else { return false } }) {
+            stopShootoutTimer()
+        }
         // One buzz whenever the clock starts or stops, however it was done.
         if next.clock.running != current.clock.running { Haptics.buzz() }
         // The workout starts with the first period.
@@ -106,6 +114,27 @@ final class MatchController {
     func undo(_ offer: UndoOffer) {
         undoOffer = nil
         perform { try $0.undo(seq: offer.seq, now: $1) }
+    }
+
+    /// The 8 s button in a shootout: starts the 8 seconds a shoot-out lasts, with the
+    /// period-end haptic when they're up, or stops them early. Recording the attempt stops them too.
+    func toggleShootoutTimer() {
+        let running = shootoutTimerStart != nil
+        stopShootoutTimer()
+        if running { return }
+        shootoutTimerStart = currentMoment().elapsedMs
+        shootoutTimer = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(Self.shootoutMs))
+            guard !Task.isCancelled, let self else { return }
+            self.shootoutTimerStart = nil
+            Haptics.shootoutTimeUp()
+        }
+    }
+
+    private func stopShootoutTimer() {
+        shootoutTimer?.cancel()
+        shootoutTimer = nil
+        shootoutTimerStart = nil
     }
 
     /// Moves time on: logs suspensions that ran out and gives alerts.

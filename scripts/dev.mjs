@@ -233,8 +233,8 @@ async function prepareWatch() {
   const serial = await device(sdk, true);
   log("watch", "building and installing the watch app");
   const gradle = join(ROOT, "watch-wear", WIN ? "gradlew.bat" : "gradlew");
-  // installDebug installs on every device unless ANDROID_SERIAL names one.
-  const r = spawnSync(WIN ? `"${gradle}" --quiet :app:installDebug` : gradle, WIN ? [] : ["--quiet", ":app:installDebug"], {
+  // The GitHub build, as sideloaded watches have. installGithubDebug installs on every device unless ANDROID_SERIAL names one.
+  const r = spawnSync(WIN ? `"${gradle}" --quiet :app:installGithubDebug` : gradle, WIN ? [] : ["--quiet", ":app:installGithubDebug"], {
     cwd: join(ROOT, "watch-wear"),
     stdio: "inherit",
     shell: WIN,

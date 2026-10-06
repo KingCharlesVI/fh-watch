@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type GitHubRelease, findUpdate, readReleases } from "../src/core/updates";
+import { type GitHubRelease, apkFileName, downloadPercent, findUpdate, readReleases } from "../src/core/updates";
 
 const release = (tag: string, build: number, prerelease: boolean, apps: ("phone" | "watch")[] = ["phone", "watch"]): GitHubRelease => {
   const version = tag.replace(/^v/, "").replace(/-.*/, "");
@@ -54,5 +54,20 @@ describe("update notices", () => {
 
   it("never tells a development build about updates", () => {
     expect(findUpdate(RELEASES, { phone: null, watches: [] }, true)).toBeNull();
+  });
+
+  it("names a download after its APK", () => {
+    expect(apkFileName("https://github.com/KingCharlesVI/fh-watch/releases/download/v1.1.0/fh-match-centre-phone-1.1.0-14-beta.apk")).toBe(
+      "fh-match-centre-phone-1.1.0-14-beta.apk",
+    );
+    expect(() => apkFileName("https://github.com/KingCharlesVI/fh-watch/releases/download/v1.1.0/notes.md")).toThrow();
+    expect(() => apkFileName("https://github.com/x/..%2F..%2Fevil.apk")).toThrow();
+  });
+
+  it("says how far a download has got", () => {
+    expect(downloadPercent(0, 2_000_000)).toBe(0);
+    expect(downloadPercent(999_999, 2_000_000)).toBe(49);
+    expect(downloadPercent(2_000_000, 2_000_000)).toBe(100);
+    expect(downloadPercent(500, -1)).toBeNull();
   });
 });
