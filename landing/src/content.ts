@@ -8,7 +8,7 @@
 export const SITE = {
   name: "FH Match Centre",
   url: "https://fhmatchcentre.com",
-  description: "A field hockey umpiring app for Wear OS and Apple Watch, with a phone app for match reports and, soon, published results for clubs.",
+  description: "Integrated field hockey umpiring and management system.",
   /** Where people write: joining a test, deleting an account, anything else. */
   contactEmail: "kcvi@tuta.com" as string | null,
   /** The public GitHub repository whose releases hold the APKs (see `pnpm release:github`). */
