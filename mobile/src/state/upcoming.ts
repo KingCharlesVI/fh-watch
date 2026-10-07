@@ -13,15 +13,18 @@ const set = (next: UpcomingMatch[]) => {
   for (const l of listeners) l();
 };
 
-let loading: Promise<UpcomingMatch[]> | null = null;
-const load = () =>
-  (loading ??= Storage.getItem(KEY)
+let loading: Promise<void> | null = null;
+/** The current list, read from storage the first time. */
+async function load(): Promise<UpcomingMatch[]> {
+  await (loading ??= Storage.getItem(KEY)
     .catch(() => null)
     .then((saved) => {
       // Something saved meanwhile wins over what was read.
       if (list === null) set(readUpcoming(saved));
-      return list!;
     }));
+  // Not what the first read found: each save and delete builds on the one before.
+  return list!;
+}
 
 async function write(next: UpcomingMatch[]) {
   set(next);
