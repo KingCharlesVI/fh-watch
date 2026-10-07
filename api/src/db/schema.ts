@@ -57,6 +57,20 @@ export const teams = pgTable(
   (t) => [unique().on(t.clubId, t.slug)],
 );
 
+/** Where a club plays, e.g. "Pitch 1, Banbury Road": offered to umpires setting up a match. */
+export const venues = pgTable(
+  "venues",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    clubId: uuid()
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    name: text().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [unique().on(t.clubId, t.name)],
+);
+
 export const users = pgTable(
   "users",
   {

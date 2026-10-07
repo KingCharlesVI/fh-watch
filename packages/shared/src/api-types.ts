@@ -75,11 +75,23 @@ export interface ClubTeam {
   slug: string;
 }
 
+/** Where a club plays, offered when an umpire sets up a match. */
+export interface Venue {
+  id: string;
+  clubId: string;
+  name: string;
+}
+
 export interface ClubWithTeams extends Club {
   teams: ClubTeam[];
+  venues: Venue[];
 }
 
 export interface TeamWithClub extends ClubTeam {
+  club: Club;
+}
+
+export interface VenueWithClub extends Venue {
   club: Club;
 }
 

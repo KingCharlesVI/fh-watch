@@ -4,7 +4,7 @@ import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { requireActor, requireRole } from "../auth.js";
 import type { DbOrTx } from "../db/client.js";
-import { LOGO_TYPES, clubLogos, clubRequests, clubs, teams, users } from "../db/schema.js";
+import { LOGO_TYPES, clubLogos, clubRequests, clubs, teams, users, venues } from "../db/schema.js";
 import type { AppDeps } from "../deps.js";
 import { badRequest, conflict, forbidden, isUniqueViolation, notFound } from "../lib/errors.js";
 import { slugify } from "../lib/slug.js";
@@ -17,8 +17,11 @@ const Slug = z
   .string()
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lower-case letters, digits and single hyphens.")
   .max(60);
+/** As long as a match document's venue can be. */
+const VenueName = z.string().trim().min(2).max(120);
 const ClubParams = z.object({ id: z.uuid() });
 const TeamParams = z.object({ id: z.uuid(), teamId: z.uuid() });
+const VenueParams = z.object({ id: z.uuid(), venueId: z.uuid() });
 
 function slugFor(name: string, slug?: string) {
   const s = slug ?? slugify(name);
@@ -38,6 +41,7 @@ async function unique<T>(slug: string, message: string, write: () => Promise<T>)
 
 type ClubRow = typeof clubs.$inferSelect;
 type TeamRow = typeof teams.$inferSelect;
+type VenueRow = typeof venues.$inferSelect;
 const clubDto = (c: ClubRow) => ({
   id: c.id,
   name: c.name,
@@ -45,6 +49,7 @@ const clubDto = (c: ClubRow) => ({
   logoUrl: c.logoUpdatedAt ? `/v1/clubs/${c.id}/logo?v=${c.logoUpdatedAt.getTime()}` : null,
 });
 const teamDto = (t: TeamRow) => ({ id: t.id, clubId: t.clubId, name: t.name, slug: t.slug });
+const venueDto = (v: VenueRow) => ({ id: v.id, clubId: v.clubId, name: v.name });
 
 type RequestRow = typeof clubRequests.$inferSelect;
 const requestDto = (r: RequestRow, user?: { displayName: string; email: string }) => ({
@@ -114,8 +119,11 @@ export const clubRoutes =
           .from(clubs)
           .where(isId ? eq(clubs.id, key) : eq(clubs.slug, key));
         if (!club) throw notFound("Club not found.");
-        const clubTeams = await db.select().from(teams).where(eq(teams.clubId, club.id)).orderBy(asc(teams.name));
-        return { ...clubDto(club), teams: clubTeams.map(teamDto) };
+        const [clubTeams, clubVenues] = await Promise.all([
+          db.select().from(teams).where(eq(teams.clubId, club.id)).orderBy(asc(teams.name)),
+          db.select().from(venues).where(eq(venues.clubId, club.id)).orderBy(asc(venues.name)),
+        ]);
+        return { ...clubDto(club), teams: clubTeams.map(teamDto), venues: clubVenues.map(venueDto) };
       },
     );
 
@@ -343,6 +351,105 @@ export const clubRoutes =
           .orderBy(asc(clubs.name), asc(teams.name))
           .limit(50);
         return { items: rows.map((r) => ({ ...teamDto(r.team), club: clubDto(r.club) })) };
+      },
+    );
+
+    // ---- Venues ----
+    // Managed like teams: by admins, and by club admins for their own club.
+
+    async function requireVenue(db: DbOrTx, clubId: string, venueId: string) {
+      const [venue] = await db
+        .select()
+        .from(venues)
+        .where(and(eq(venues.id, venueId), eq(venues.clubId, clubId)));
+      if (!venue) throw notFound("Venue not found.");
+      return venue;
+    }
+
+    app.get("/clubs/:id/venues", { schema: { tags: ["clubs"], params: ClubParams } }, async (request) => {
+      const club = await requireClub(db, request.params.id);
+      const rows = await db.select().from(venues).where(eq(venues.clubId, club.id)).orderBy(asc(venues.name));
+      return { items: rows.map(venueDto) };
+    });
+
+    app.post(
+      "/clubs/:id/venues",
+      { schema: { tags: ["clubs"], params: ClubParams, body: z.strictObject({ name: VenueName }) } },
+      async (request, reply) => {
+        const actor = requireActor(request);
+        const club = await requireClub(db, request.params.id);
+        if (!canEditTeams(actor, club.id)) throw forbidden();
+        const { name } = request.body;
+        const venue = await unique("venue_exists", "This club already has a venue with that name.", () =>
+          db.transaction(async (tx) => {
+            const [row] = await tx.insert(venues).values({ clubId: club.id, name }).returning();
+            await audit(tx, actor.id, "create", "venue", row!.id, { clubId: club.id, name });
+            return row!;
+          }),
+        );
+        return reply.code(201).send(venueDto(venue));
+      },
+    );
+
+    app.patch(
+      "/clubs/:id/venues/:venueId",
+      { schema: { tags: ["clubs"], params: VenueParams, body: z.strictObject({ name: VenueName }) } },
+      async (request) => {
+        const actor = requireActor(request);
+        if (!canEditTeams(actor, request.params.id)) throw forbidden();
+        const venue = await requireVenue(db, request.params.id, request.params.venueId);
+        const updated = await unique("venue_exists", "This club already has a venue with that name.", () =>
+          db.transaction(async (tx) => {
+            const [row] = await tx.update(venues).set(request.body).where(eq(venues.id, venue.id)).returning();
+            await audit(tx, actor.id, "update", "venue", venue.id, { before: venueDto(venue), after: request.body });
+            return row!;
+          }),
+        );
+        return venueDto(updated);
+      },
+    );
+
+    app.delete(
+      "/clubs/:id/venues/:venueId",
+      {
+        schema: {
+          tags: ["clubs"],
+          summary: "Delete a venue. Matches played there keep its name.",
+          params: VenueParams,
+        },
+      },
+      async (request, reply) => {
+        const actor = requireActor(request);
+        if (!canEditTeams(actor, request.params.id)) throw forbidden();
+        const venue = await requireVenue(db, request.params.id, request.params.venueId);
+        await db.transaction(async (tx) => {
+          await tx.delete(venues).where(eq(venues.id, venue.id));
+          await audit(tx, actor.id, "delete", "venue", venue.id, venueDto(venue));
+        });
+        return reply.code(204).send();
+      },
+    );
+
+    app.get(
+      "/venues",
+      {
+        schema: {
+          tags: ["clubs"],
+          summary: "Search venues by club and venue name, e.g. 'hawks pitch', for setting up a match.",
+          querystring: z.object({ q: z.string().trim().min(1).max(100) }),
+        },
+      },
+      async (request) => {
+        const words = request.query.q.split(/\s+/).slice(0, 5);
+        const label = sql`${clubs.name} || ' ' || ${venues.name}`;
+        const rows = await db
+          .select({ venue: venues, club: clubs })
+          .from(venues)
+          .innerJoin(clubs, eq(clubs.id, venues.clubId))
+          .where(and(...words.map((w) => ilike(label, containsPattern(w)))))
+          .orderBy(asc(clubs.name), asc(venues.name))
+          .limit(50);
+        return { items: rows.map((r) => ({ ...venueDto(r.venue), club: clubDto(r.club) })) };
       },
     );
 

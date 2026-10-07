@@ -81,6 +81,53 @@ describe("clubs and teams", () => {
   });
 });
 
+describe("venues", () => {
+  const add = (clubId: string, headers: Record<string, string>, name: string) =>
+    t.app.inject({ method: "POST", url: `/v1/clubs/${clubId}/venues`, headers, payload: { name } });
+
+  it("lets a club admin manage their own club's venues, but not another's", async () => {
+    const { club } = await t.createClub("Oxford Hawks");
+    const { club: other } = await t.createClub("Reading");
+    const clubAdmin = await t.createUser({ roles: ["club_admin"], clubId: club.id });
+
+    const res = await add(club.id, clubAdmin.headers, "Banbury Road, Pitch 1");
+    expect(res.statusCode).toBe(201);
+    expect((await add(club.id, clubAdmin.headers, "Banbury Road, Pitch 1")).statusCode).toBe(409);
+    expect((await add(other.id, clubAdmin.headers, "Pitch 1")).statusCode).toBe(403);
+    expect((await add(club.id, (await t.createUser()).headers, "Pitch 2")).statusCode).toBe(403);
+
+    const rename = await t.app.inject({
+      method: "PATCH",
+      url: `/v1/clubs/${club.id}/venues/${res.json().id}`,
+      headers: clubAdmin.headers,
+      payload: { name: "Banbury Road, Pitch 2" },
+    });
+    expect(rename.json().name).toBe("Banbury Road, Pitch 2");
+
+    const detail = await t.app.inject({ method: "GET", url: "/v1/clubs/oxford-hawks" });
+    expect(detail.json().venues).toEqual([{ id: res.json().id, clubId: club.id, name: "Banbury Road, Pitch 2" }]);
+
+    const del = await t.app.inject({ method: "DELETE", url: `/v1/clubs/${club.id}/venues/${res.json().id}`, headers: clubAdmin.headers });
+    expect(del.statusCode).toBe(204);
+    const list = await t.app.inject({ method: "GET", url: `/v1/clubs/${club.id}/venues` });
+    expect(list.json().items).toEqual([]);
+  });
+
+  it("searches venues by club and venue name together", async () => {
+    const admin = await t.createUser({ roles: ["admin"] });
+    const { club: hawks } = await t.createClub("Oxford Hawks");
+    const { club: reading } = await t.createClub("Reading");
+    await add(hawks.id, admin.headers, "Pitch 1");
+    await add(hawks.id, admin.headers, "Pitch 2");
+    await add(reading.id, admin.headers, "Pitch 1");
+    const res = await t.app.inject({ method: "GET", url: "/v1/venues?q=hawks%20pitch" });
+    expect(res.json().items.map((x: { club: { name: string }; name: string }) => `${x.club.name}: ${x.name}`)).toEqual([
+      "Oxford Hawks: Pitch 1",
+      "Oxford Hawks: Pitch 2",
+    ]);
+  });
+});
+
 describe("club requests", () => {
   it("creates the requested club and makes the requester its admin on approval", async () => {
     const admin = await t.createUser({ roles: ["admin"] });
