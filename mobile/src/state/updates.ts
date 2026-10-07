@@ -6,7 +6,7 @@ import { AppState, Platform } from "react-native";
 import { AppUpdater } from "../../modules/app-updater";
 import { WatchSync } from "../../modules/watch-sync";
 import { CHANNEL } from "@/config";
-import { RELEASES_URL, type Update, apkFileName, downloadPercent, findUpdate, readReleases } from "@/core/updates";
+import { RELEASES_URL, type Update, apkFileName, downloadPercent, findUpdate, readReleases, watchSendOutcome } from "@/core/updates";
 
 /**
  * Update notices, from the project's GitHub releases. The phone checks for both apps: the
@@ -25,8 +25,12 @@ export type Installing =
   | { app: "phone"; step: "allow" }
   /** Android's own dialog is asking the umpire to confirm. */
   | { app: "phone"; step: "confirming" }
-  /** The watch app went to this many watches, to install there. */
+  /** Going over Bluetooth to the watch, which says when it has it. */
+  | { app: "watch"; step: "sending" }
+  /** This many watches have the watch app, to install there. */
   | { app: "watch"; step: "sent"; watches: number }
+  /** It went, but no watch said it got it: their app may be too old to take updates. */
+  | { app: "watch"; step: "unconfirmed" }
   | { app: "phone" | "watch"; step: "failed"; message: string };
 
 export interface UpdateState {
@@ -151,13 +155,24 @@ export async function sendWatchUpdate() {
     set({ installing: { app: "watch", step: "failed", message: "That download isn't the watch app." } });
     return;
   }
+  set({ installing: { app: "watch", step: "sending" } });
   try {
-    const watches = await WatchSync.sendWatchUpdate(path);
+    const result = await WatchSync.sendWatchUpdate(path);
+    const outcome = watchSendOutcome(result);
     set({
       installing:
-        watches > 0
-          ? { app: "watch", step: "sent", watches }
-          : { app: "watch", step: "failed", message: "No watch got it. Keep your watch near the phone with Bluetooth on, then send again." },
+        outcome === "ready"
+          ? { app: "watch", step: "sent", watches: result.ready }
+          : outcome === "unconfirmed"
+            ? { app: "watch", step: "unconfirmed" }
+            : {
+                app: "watch",
+                step: "failed",
+                message:
+                  outcome === "rejected"
+                    ? "Your watch turned it down: it didn't all arrive, or it's no newer than the watch's app. Send it again."
+                    : "No watch got it. Keep your watch near the phone with Bluetooth on, then send again.",
+              },
     });
   } catch (err) {
     set({ installing: { app: "watch", step: "failed", message: `Couldn't send it to the watch: ${message(err)}` } });

@@ -101,3 +101,14 @@ export function findUpdate(releases: Release[], installed: Installed, includePre
   const watch = release.watch && installed.watches.some((b) => b < release.watch!.build) ? release.watch : null;
   return phone || watch ? { release, phone, watch } : null;
 }
+
+/**
+ * How sending the watch app went, from what the watches said: one kept it to install, they
+ * turned it down (cut short, or no newer than their app), none answered (a watch app from
+ * before build 17, which doesn't), or there was no watch to send it to.
+ */
+export function watchSendOutcome(r: { sent: number; ready: number; rejected: number }): "ready" | "rejected" | "unconfirmed" | "noWatch" {
+  if (r.ready > 0) return "ready";
+  if (r.rejected > 0) return "rejected";
+  return r.sent > 0 ? "unconfirmed" : "noWatch";
+}

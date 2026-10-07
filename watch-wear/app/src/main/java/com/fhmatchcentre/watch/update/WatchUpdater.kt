@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.pm.PackageInstaller
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.fhmatchcentre.watch.BuildConfig
@@ -29,7 +30,11 @@ import java.io.File
  * and Android's installer asks them to confirm.
  *
  * Android only installs an update signed with the same key as this app; this also checks
- * it's this app and newer, and throws away anything else.
+ * it's this app and newer, and throws away anything else. Either way the watch tells the
+ * phone (`/update-received`), so the phone knows whether it got there.
+ *
+ * Installing needs the watch's "Install unknown apps" allowed for this app (Settings →
+ * Apps → FH Match Centre → Advanced), which Install update opens the first time.
  */
 class WatchUpdater(private val context: Context) {
     private val dir = File(context.filesDir, "update")
@@ -53,14 +58,16 @@ class WatchUpdater(private val context: Context) {
         return part
     }
 
-    /** The whole file has arrived: keeps it if it's a newer version of this app, and says so. */
-    fun arrived() {
+    /** The whole file has arrived: keeps it if it's a newer version of this app, and says so. Returns its version, or null if it was thrown away. */
+    fun arrived(): String? {
         if (part.exists()) {
             apk.delete()
             part.renameTo(apk)
         }
         _ready.value = check()
+        _problem.value = null
         _ready.value?.let { notifyReady(it) }
+        return _ready.value
     }
 
     /** The waiting update's version, after checking it; anything that isn't a newer copy of this app is deleted. */
@@ -77,10 +84,22 @@ class WatchUpdater(private val context: Context) {
         return info.versionName ?: ""
     }
 
-    /** Hands the update to Android's installer, which asks the umpire to confirm. Call it from the screen. */
+    /**
+     * Hands the update to Android's installer, which asks the umpire to confirm. Call it from
+     * the screen. The first time, it opens the setting that lets this app install apps instead.
+     */
     fun install() {
         if (check() == null) {
             _ready.value = null
+            return
+        }
+        if (!context.packageManager.canRequestPackageInstalls()) {
+            _problem.value = "Allow Install unknown apps, then tap again"
+            runCatching {
+                context.startActivity(
+                    Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
+            }.onFailure { Log.w(TAG, "Couldn't open the Install unknown apps setting", it) }
             return
         }
         _problem.value = null
@@ -130,6 +149,9 @@ class WatchUpdater(private val context: Context) {
     companion object {
         const val TAG = "WatchUpdater"
         const val PATH = "/update-apk"
+
+        /** The watch's answer to the phone: "ready" when the update is kept to install, otherwise "rejected". */
+        const val RECEIVED_PATH = "/update-received"
         private const val CHANNEL = "updates"
         private const val NOTIFICATION_ID = 2
     }
@@ -173,7 +195,11 @@ class UpdateListenerService : WearableListenerService() {
     override fun onInputClosed(channel: ChannelClient.Channel, closeReason: Int, appSpecificErrorCode: Int) {
         if (channel.path != WatchUpdater.PATH) return
         // A file cut short isn't an app, and check() throws it away.
-        updater.arrived()
+        val version = updater.arrived()
+        Log.i(WatchUpdater.TAG, "Update arrived (close reason $closeReason): ${version ?: "thrown away"}")
         Wearable.getChannelClient(this).close(channel)
+        Wearable.getMessageClient(this)
+            .sendMessage(channel.nodeId, WatchUpdater.RECEIVED_PATH, (if (version != null) "ready" else "rejected").toByteArray())
+            .addOnFailureListener { Log.w(WatchUpdater.TAG, "Couldn't tell the phone", it) }
     }
 }

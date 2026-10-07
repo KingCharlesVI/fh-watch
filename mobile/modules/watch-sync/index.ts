@@ -23,6 +23,15 @@ export interface WatchVersion {
   build: number;
 }
 
+/** How sending a new watch app went: how many watches it went to, and what they said about it. */
+export interface WatchUpdateResult {
+  sent: number;
+  /** Kept to install. */
+  ready: number;
+  /** Not a newer copy of the watch's app, or it didn't arrive whole. Watches before build 17 don't answer at all. */
+  rejected: number;
+}
+
 interface WatchSyncNative {
   listInbox(): Promise<InboxItem[]>;
   removeFromInbox(id: string): Promise<void>;
@@ -31,8 +40,8 @@ interface WatchSyncNative {
   connectedWatches(): Promise<Watch[]>;
   /** Sends a match setup (JSON) to every watch in reach. Returns how many got it. */
   sendSetup(json: string): Promise<number>;
-  /** Streams a new watch app to every watch in reach (Android). Returns how many got all of it. */
-  sendWatchUpdate?(path: string): Promise<number>;
+  /** Streams a new watch app to every watch in reach (Android), and waits for them to answer. */
+  sendWatchUpdate?(path: string): Promise<WatchUpdateResult>;
   watchVersions(): Promise<WatchVersion[]>;
   addListener(event: "onMatchReceived", listener: (e: { id: string }) => void): { remove(): void };
 }
@@ -49,7 +58,7 @@ export const WatchSync = {
   connectedWatches: () => native?.connectedWatches() ?? Promise.resolve([]),
   sendSetup: (json: string) => native?.sendSetup(json) ?? Promise.resolve(0),
   /** Android only: the iPhone's native module has no such function (Apple Watch apps update through TestFlight). */
-  sendWatchUpdate: (path: string) => native?.sendWatchUpdate?.(path) ?? Promise.resolve(0),
+  sendWatchUpdate: (path: string): Promise<WatchUpdateResult> => native?.sendWatchUpdate?.(path) ?? Promise.resolve({ sent: 0, ready: 0, rejected: 0 }),
   watchVersions: () => native?.watchVersions() ?? Promise.resolve([]),
   onMatchReceived(listener: (id: string) => void): () => void {
     const sub = native?.addListener("onMatchReceived", (e) => listener(e.id));
