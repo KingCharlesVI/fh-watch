@@ -23,17 +23,24 @@ describe("setup on phone", () => {
     expect(setupErrors({ ...DEFAULT_SETUP, periods: 2, halfTimeMinutes: 99 })).toEqual({});
   });
 
-  it("sends trimmed names and no empty venue", () => {
-    const sent = JSON.parse(setupMessage({ ...DEFAULT_SETUP, homeName: "  Hawks M2 ", venue: "  " }));
+  it("sends trimmed names and no empty venue or competition", () => {
+    const sent = JSON.parse(setupMessage({ ...DEFAULT_SETUP, homeName: "  Hawks M2 ", venue: "  ", competition: "" }));
     expect(sent.homeName).toBe("Hawks M2");
     expect(sent.venue).toBeNull();
+    expect(sent.competition).toBeNull();
     // Every field the watch reads (Setup.fromPhone in watch-wear/.../data/Prefs.kt).
     expect(Object.keys(sent).sort()).toEqual(Object.keys(DEFAULT_SETUP).sort());
+  });
+
+  it("sends the competition, trimmed", () => {
+    expect(JSON.parse(setupMessage({ ...DEFAULT_SETUP, competition: "  South Men's Division 2 " })).competition).toBe("South Men's Division 2");
   });
 
   it("starts from the last setup sent, or the defaults", () => {
     expect(readSavedSetup(null)).toEqual(DEFAULT_SETUP);
     expect(readSavedSetup("not json")).toEqual(DEFAULT_SETUP);
     expect(readSavedSetup(JSON.stringify({ homeName: "Hawks M2" })).homeName).toBe("Hawks M2");
+    // Saved before setups had a competition.
+    expect(readSavedSetup(JSON.stringify({ homeName: "Hawks M2", venue: "Iffley Road" })).competition).toBeNull();
   });
 });

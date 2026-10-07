@@ -68,7 +68,7 @@ function UpcomingItem({ match: u, today, first }: { match: UpcomingMatch; today:
         <Swatch color={s.awayColor} />
       </View>
       <Text style={{ color: c.muted, fontSize: 14 }} numberOfLines={1}>
-        {[format, s.venue?.trim()].filter(Boolean).join(" · ")}
+        {[format, s.competition?.trim(), s.venue?.trim()].filter(Boolean).join(" · ")}
       </Text>
     </Pressable>
   );

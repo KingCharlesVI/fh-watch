@@ -2,15 +2,15 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Switch, View } from "react-native";
 import { COLOUR_NAMES, PRESETS, TEAM_COLOURS, type WatchSetup, hasHalfTime, presetOf, setupErrors } from "@/core/setup";
 import { DirectoryField } from "@/features/directory-field";
-import { searchTeams, searchVenues, useListAdders } from "@/services/directory";
+import { searchCompetitions, searchTeams, searchVenues, useListAdders } from "@/services/directory";
 import { Card, Choice, Field, Row, Swatch, T } from "@/ui/kit";
 import { space, useColors } from "@/ui/theme";
 
 type NumberKey = "periods" | "periodMinutes" | "breakMinutes" | "halfTimeMinutes" | "homeCaptain" | "awayCaptain";
 
 /**
- * The match a watch is set up with: format, teams and venue, the same fields as the
- * watch's own setup screen. Give it a `key` per match, so what's half-typed doesn't
+ * The match a watch is set up with: format, teams, venue and competition, the same
+ * fields as the watch's own setup screen. Give it a `key` per match, so what's half-typed doesn't
  * carry over from one to the next.
  */
 export function SetupForm({ setup, onChange }: { setup: WatchSetup; onChange: (change: Partial<WatchSetup>) => void }) {
@@ -88,8 +88,17 @@ export function SetupForm({ setup, onChange }: { setup: WatchSetup; onChange: (c
         </Card>
       ))}
 
-      <Card title="Venue">
+      <Card title="Venue and competition">
         <DirectoryField label="Where (optional)" value={setup.venue ?? ""} maxLength={120} search={searchVenues} add={adders.venue} icon="location-outline" onChangeText={(v) => onChange({ venue: v })} />
+        <DirectoryField
+          label="Competition (optional)"
+          value={setup.competition ?? ""}
+          maxLength={120}
+          search={searchCompetitions}
+          add={adders.competition}
+          icon="trophy-outline"
+          onChangeText={(v) => onChange({ competition: v })}
+        />
       </Card>
     </>
   );

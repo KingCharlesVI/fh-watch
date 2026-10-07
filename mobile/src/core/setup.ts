@@ -34,6 +34,7 @@ export interface WatchSetup {
   awayColor: string;
   awayCaptain: number | null;
   venue: string | null;
+  competition: string | null;
 }
 
 export const DEFAULT_SETUP: WatchSetup = {
@@ -49,6 +50,7 @@ export const DEFAULT_SETUP: WatchSetup = {
   awayColor: "#DC2626",
   awayCaptain: null,
   venue: null,
+  competition: null,
 };
 
 export interface Preset {
@@ -103,13 +105,14 @@ export function setupErrors(s: WatchSetup): Partial<Record<keyof WatchSetup, str
   return errors;
 }
 
-/** The message the watch reads (Setup.fromPhone): trimmed, with an empty venue left out. */
+/** The message the watch reads (Setup.fromPhone): trimmed, with an empty venue or competition left out. */
 export function setupMessage(s: WatchSetup): string {
   return JSON.stringify({
     ...s,
     homeName: s.homeName.trim().slice(0, 80),
     awayName: s.awayName.trim().slice(0, 80),
     venue: s.venue?.trim().slice(0, 120) || null,
+    competition: s.competition?.trim().slice(0, 120) || null,
   });
 }
 
