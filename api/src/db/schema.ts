@@ -58,14 +58,23 @@ export const teams = pgTable(
 );
 
 /**
- * Where matches are played, e.g. "Banbury Road, Oxford": one list, not tied to any club
- * (clubs share grounds), kept by admins and offered to umpires setting up a match.
+ * A list of names admins keep and umpires pick from: venues and competitions. A match keeps
+ * the name as text, so changing a list never changes a match. Typed with a plain string
+ * name so every such table has the same type, and the routes serve any of them.
  */
-export const venues = pgTable("venues", {
-  id: uuid().primaryKey().defaultRandom(),
-  name: text().notNull().unique(),
-  createdAt: createdAt(),
-});
+const namedList = (name: string) =>
+  pgTable(name, {
+    id: uuid().primaryKey().defaultRandom(),
+    name: text().notNull().unique(),
+    createdAt: createdAt(),
+  });
+export type NamedListTable = ReturnType<typeof namedList>;
+
+/** Where matches are played, e.g. "Banbury Road, Oxford": not tied to any club, as clubs share grounds. */
+export const venues = namedList("venues");
+
+/** What a match is played in, e.g. "South Men's Division 2" or "Hampshire Cup". */
+export const competitions = namedList("competitions");
 
 export const users = pgTable(
   "users",

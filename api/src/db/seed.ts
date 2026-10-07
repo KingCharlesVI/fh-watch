@@ -9,7 +9,7 @@ import { memoryMailer } from "../services/mailer.js";
 import { fakePdfRenderer } from "../services/pdf.js";
 import { memoryPushSender } from "../services/push.js";
 import { createDb } from "./client.js";
-import { clubs, teams, users, venues } from "./schema.js";
+import { clubs, competitions, teams, users, venues } from "./schema.js";
 
 /**
  * `pnpm db:seed`: demo accounts, clubs and matches for development. Matches go
@@ -67,6 +67,10 @@ async function seed() {
   await db
     .insert(venues)
     .values([{ name: "Banbury Road, Oxford" }, { name: "Sonning Lane, Reading" }, { name: "Lambridge, Bath" }, { name: "Coombe Dingle, Bristol" }]);
+  // The league match's competition is one of these.
+  await db
+    .insert(competitions)
+    .values([{ name: "South League Premier" }, { name: "South League Division 1" }, { name: "West Women's League" }, { name: "Hampshire Cup" }]);
 
   const passwordHash = await hashPassword(DEMO_PASSWORD);
   const makeUser = async (email: string, displayName: string, roles: Role[], clubId: string | null = null) => {

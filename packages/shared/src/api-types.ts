@@ -83,8 +83,14 @@ export interface TeamWithClub extends ClubTeam {
   club: Club;
 }
 
-/** Where matches are played: one list, not tied to clubs, offered when an umpire sets up a match. */
+/** Where matches are played: one list, not tied to clubs, offered when an umpire sets up or edits a match. */
 export interface Venue {
+  id: string;
+  name: string;
+}
+
+/** What a match is played in: one list, offered when an umpire edits a match. */
+export interface Competition {
   id: string;
   name: string;
 }

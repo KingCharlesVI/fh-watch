@@ -50,6 +50,13 @@
       "when": 1791380260617,
       "tag": "0006_venues_without_clubs",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791392791356,
+      "tag": "0007_competitions",
+      "breakpoints": true
     }
   ]
 }
