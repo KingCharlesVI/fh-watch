@@ -132,8 +132,7 @@ export default async function SupportPage() {
         <Topic icon={Trash2} title="Deleting your account, or your data">
           <p className="font-medium text-foreground">Your account</p>
           <p className="mt-1">
-            <Link href="/account">Your account page</Link> has <strong>Delete account</strong> at the bottom. An admin removes it and you&apos;ll get an
-            email when it&apos;s done. Can&apos;t sign in? Email <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> from the address the account
+            <Link href="/account">Your account page</Link> has <strong>Delete account</strong> at the bottom. An admin removes it. Can&apos;t sign in? Email <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> from the address the account
             uses.
           </p>
           <p className="mt-3 font-medium text-foreground">Your data, without closing the account</p>
@@ -143,7 +142,10 @@ export default async function SupportPage() {
               A match you uploaded: unpublish it and it stops being public at once. To have the copy removed, email us its link. Deleted matches are
               purged after 30 days.
             </li>
-            <li>Notifications: turn them off in the phone app and the token we hold for your device goes with them.</li>
+            <li>
+              Notifications: signing out of the phone app removes the token we hold for your device. Turning notifications off in your phone&apos;s
+              settings stops them, but the token stays until you sign out.
+            </li>
             <li>Workouts never reach this website at all.</li>
           </ul>
           <p className="mt-3">
