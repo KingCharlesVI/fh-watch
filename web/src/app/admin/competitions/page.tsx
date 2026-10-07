@@ -11,7 +11,7 @@ export default async function AdminCompetitionsPage() {
       list="competitions"
       title="Competitions"
       noun="competition"
-      description="Offered when an umpire edits a match. A match keeps its competition as text, so changing this list never changes a match."
+      description="Offered when an umpire edits a match, where umpires can add one that's missing. A match keeps its competition as text, so changing this list never changes a match."
       example="South League Premier, or Hampshire Cup"
     />
   );

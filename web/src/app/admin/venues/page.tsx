@@ -11,7 +11,7 @@ export default async function AdminVenuesPage() {
       list="venues"
       title="Venues"
       noun="venue"
-      description="Offered when an umpire sets up or edits a match. A match keeps its venue as text, so changing this list never changes a match."
+      description="Offered when an umpire sets up or edits a match, where umpires can add one that's missing. A match keeps its venue as text, so changing this list never changes a match."
       example="Banbury Road, Oxford"
     />
   );

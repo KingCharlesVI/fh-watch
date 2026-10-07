@@ -144,7 +144,7 @@ Two lists of names that umpires pick from: the grounds matches are played at (no
 | | Route | |
 | --- | --- | --- |
 | 🔓 | `GET /venues?q=` · `GET /competitions?q=` | All of them by name; with `q`, those whose name has every word of it, e.g. `banbury road` |
-| 🛡️ | `POST /venues` · `POST /competitions` | Add one, `{ name }`: 2 to 120 characters, unique |
+| 🔑 | `POST /venues` · `POST /competitions` | Add one, `{ name }`: 2 to 120 characters (umpires and admins). `201` with the new one; `200` with the one already there if the name matches in any capitals |
 | 🛡️ | `PATCH /venues/:id` · `PATCH /competitions/:id` | Rename it |
 | 🛡️ | `DELETE /venues/:id` · `DELETE /competitions/:id` | Delete it |
 

@@ -124,7 +124,7 @@ Every event carries `seq` and, when recorded on the watch, `wallTime` (UTC). Eve
 | `clubs` | id, name, slug |
 | `club_requests` | id, user_id, club_id? (existing club) or club_name (new club), status (pending/approved/rejected), reviewed_by, reviewed_at |
 | `teams` | id, club_id, name (e.g. "Men's 1s"), slug |
-| `venues`, `competitions` | id, name (unique, e.g. "Banbury Road, Oxford", "South League Premier"). Lists admins keep, not tied to clubs (clubs share grounds). Offered to umpires setting up (venues) and editing (both) a match; a match keeps the names as text. |
+| `venues`, `competitions` | id, name (unique, e.g. "Banbury Road, Oxford", "South League Premier"). Lists umpires add to as they go and admins tidy, not tied to clubs (clubs share grounds). Offered to umpires setting up (venues) and editing (both) a match; a match keeps the names as text. |
 | `matches` | id (watch UUID), home_team_id?, away_team_id?, home_name, away_name, venue?, competition?, played_at, status (`draft` / `published`), current_revision, share_code |
 | `match_umpires` | match_id, slot (1 or 2), user_id?, name. user_id is empty when that umpire isn't registered. |
 | `match_revisions` | match_id, revision, document (jsonb), created_by, created_at, source (`watch` / `mobile` / `web`) |
@@ -319,7 +319,7 @@ The API is a versioned REST service (`/v1`) written in Fastify, and all input is
 | `GET /matches/export.csv?…` | Club admin (own club) / admin | Bulk CSV for a filtered list |
 | `GET/POST/PATCH/DELETE /clubs`, `/clubs/{id}/teams` | Read: public · Clubs: admin · Teams: admin or club admin (own club) · Delete: admin | Club and team directory. `GET /clubs/{id or slug}` includes the teams. |
 | `GET /teams?q=` | Public | Search teams by club and team name together (e.g. `hawks m1`), for linking a match and setting one up |
-| `GET /venues?q=` · `POST /venues` · `PATCH/DELETE /venues/{id}`, and the same at `/competitions` | Read: public · Write and delete: admin | The venue and competition lists: all of one, or those whose name has every word of `q`, for setting up and editing a match |
+| `GET /venues?q=` · `POST /venues` · `PATCH/DELETE /venues/{id}`, and the same at `/competitions` | Read: public · Add: umpire or admin (an existing name, in any capitals, is answered with that one) · Rename and delete: admin | The venue and competition lists: all of one, or those whose name has every word of `q`, for setting up and editing a match |
 | `GET/POST /club-requests` · `POST /club-requests/{id}/approve` · `/reject` | Signed in (own) / admin | Ask for a new club or to be a club's admin; admins review |
 
 **Background jobs**
@@ -353,7 +353,8 @@ An account holds a set of roles, so one person can be both an umpire and a club 
 | Edit own account, ask an admin to delete it | — | Yes | Yes | Yes |
 | Request a new club or club-admin role | — | Yes | Yes | Creates directly |
 | Manage clubs and teams | — | — | Add and edit own club's teams | Yes |
-| Manage venues and competitions | — | — | — | Yes |
+| Add a venue or competition | — | Yes | — | Yes |
+| Rename or delete venues and competitions | — | — | — | Yes |
 | Manage users and roles | — | — | — | Yes |
 
 "Own club's" means the home or away team belongs to the club admin's club. Checks run in one API policy module, `can(user, action, match)`, which allows an action if any of the user's roles allows it. The website and phone app use the same module only to hide buttons, never to enforce access.
@@ -468,7 +469,7 @@ None at the moment.
 - No auto-publish: a match stays a draft until an umpire publishes it. The phone reminds the umpire to upload a match from the watch that isn't uploaded 2 hours after it arrived.
 - Email goes through Amazon SES (SMTP), in eu-north-1.
 - The server is an old laptop running Ubuntu Desktop 24.04 LTS, behind a Cloudflare Tunnel; a VPS later if needed.
-- Only admins create clubs; club admins add and edit their own club's teams; admins keep the lists of venues and competitions, apart from clubs; users can request clubs and club-admin status.
+- Only admins create clubs; club admins add and edit their own club's teams; umpires add to the lists of venues and competitions and admins tidy them, apart from clubs; users can request clubs and club-admin status.
 - Anyone can register as an umpire, with no approval.
 - Accounts hold a set of roles.
 - Live scoring is out of scope until v3 at the earliest.

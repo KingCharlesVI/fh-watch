@@ -55,7 +55,7 @@ Each can be saved to a folder you pick (**Save to phone**) or shared:
 
 **Edit match** fixes anything the watch got wrong, or adds what it didn't record:
 
-- **Details**: competition and venue. Type them, or pick from the website's lists as you type (e.g. `south` for **South League Premier**).
+- **Details**: competition and venue. Type them, or pick from the website's lists as you type (e.g. `south` for **South League Premier**). One that isn't on the list can be added there, as for a venue when setting up a match.
 - **Teams**: names, colours and captains, and the **club team** each one is: search for it (e.g. `hawks m1`) to link it, which puts the match on the club's pages on the website.
 - **Umpires**: your colleague. Search for them if they have an account (they can then edit the match too), or type their name if they don't.
 - **Events**: add a goal, card, penalty corner, stroke or note at a period and time; cancel an event (it's kept, struck through, and can be restored); add or change a card's reason.
@@ -66,7 +66,7 @@ Each can be saved to a folder you pick (**Save to phone**) or shared:
 
 Typing team names is easier on the phone. **Settings → Set up a match**: choose the format, the teams' names, colours and captains, and the venue, then **Send to watch**. The watch opens its setup screen with it; check it and tap **Ready**.
 
-The team names and the venue can be anything you type. As you type, the app also offers the clubs' teams and the venues listed on the website (e.g. type `hawks` for **Oxford Hawks M1**, or `banbury` for **Banbury Road, Oxford**): tap one to use it. Clubs keep their teams up to date, and the site's admins the venues; with no signal, you just type.
+The team names and the venue can be anything you type. As you type, the app also offers the clubs' teams and the venues listed on the website (e.g. type `hawks` for **Oxford Hawks M1**, or `banbury` for **Banbury Road, Oxford**): tap one to use it. Clubs keep their teams up to date. A venue that isn't on the list yet can be added from the field: type it in full, then tap **Add “…” as a new venue**, and it's there for everyone from then on. With no signal, you just type.
 
 On a Wear OS watch you can start from the watch instead: **Setup on phone** on the watch opens this screen on the phone.
 
