@@ -1,10 +1,16 @@
 # The phone app
 
-Every match you've umpired, on your phone. In the alpha, everything stays on the phone unless you send it somewhere yourself.
+Every match you've umpired, on your phone: check it, fix it, upload it and publish the result on the [website](guide/website.md).
+
+## Signing in
+
+The app opens on **Sign in**. No account yet? Tap **Create an account**: your name, email address, a password and, if you like, your club (pick it from the list, or ask for one that isn't there). Confirm your address from the email you're sent, then sign in. **Forgotten your password?** emails you a link: paste it into the app, or open it, and choose a new password.
+
+?> The alpha builds (`-alpha` on the GitHub releases page) have no account: matches stay on the phone, under **New** and **Saved**, and there's no uploading or publishing.
 
 ## Your matches
 
-Matches from the watch arrive by themselves, even when the app is closed, and appear under **New** until you've opened them. The rest are under **Saved**. (From 1.0, with an account: **New**, **Drafts** and **Published**.)
+Matches from the watch arrive by themselves, even when the app is closed, and appear under **New** until you've opened them. The rest are under **Drafts** (uploaded, but only you and your colleague can see them) and **Published** (on the website for everyone). Matches you've uploaded from another phone, or that a colleague added you to, are listed too, and download when you open them.
 
 Pull down on the list to check for anything waiting.
 
@@ -18,6 +24,14 @@ Opening a match shows:
 - The **score by period** and the **statistics** (cards, and corners and strokes in older matches).
 - **Your workout**, if the watch recorded one: see [Workouts](guide/workouts.md).
 - The **umpires**.
+
+### Uploading and publishing
+
+Nothing leaves the phone until you ask. A match that's only on the phone says so at the top, with **Upload**: it then goes to the website as a **draft**, which only you and your colleague can see. With no signal, it waits and goes as soon as there's a connection. Change it afterwards and it says **Upload changes**.
+
+When you're happy with it, **Publish** puts it on the website for everyone. **Share link** then shows its QR code and a link to copy or send; **Unpublish** takes it off again. **Open on the website** opens its page there.
+
+If someone saved a newer version on the website since your last upload, the match says so: **Keep mine** replaces theirs, **Use theirs** drops your changes.
 
 ### Sharing the match report
 
@@ -42,8 +56,8 @@ Each can be saved to a folder you pick (**Save to phone**) or shared:
 **Edit match** fixes anything the watch got wrong, or adds what it didn't record:
 
 - **Details**: competition and venue.
-- **Teams**: names, colours and captains.
-- **Umpires**: your name and your colleague's (they go on the match report).
+- **Teams**: names, colours and captains, and the **club team** each one is: search for it (e.g. `hawks m1`) to link it, which puts the match on the club's pages on the website.
+- **Umpires**: your colleague. Search for them if they have an account (they can then edit the match too), or type their name if they don't.
 - **Events**: add a goal, card, penalty corner, stroke or note at a period and time; cancel an event (it's kept, struck through, and can be restored); add or change a card's reason.
 
 **Save** checks the match first (the score and the events must make sense) and says what to fix if something's wrong.
@@ -51,6 +65,8 @@ Each can be saved to a folder you pick (**Save to phone**) or shared:
 ## Setting up a match on the phone
 
 Typing team names is easier on the phone. **Settings → Set up a match**: choose the format, the teams' names, colours and captains, and the venue, then **Send to watch**. The watch opens its setup screen with it; check it and tap **Ready**.
+
+The team names and the venue can be anything you type. As you type, the app also offers the clubs' own teams and venues from the website (e.g. type `hawks` for **Oxford Hawks M1** or **Oxford Hawks, Pitch 1**): tap one to use it. Clubs keep these lists up to date; with no signal, you just type.
 
 On a Wear OS watch you can start from the watch instead: **Setup on phone** on the watch opens this screen on the phone.
 
@@ -64,17 +80,19 @@ Upcoming matches are kept on the phone only, and aren't in backups.
 
 ## Backups and moving phones
 
-Matches live on the phone, so back them up now and then:
+Uploaded matches are safe on the website. Anything only on the phone isn't, so back up now and then:
 
 - **Settings → Save a backup** (to a folder) or **Share a backup** (to email, Drive and so on): one file with every match, its umpires, workout and red card reports.
 - **Settings → Import from a file** reads a backup, or a single match exported from the app or the website. Matches the phone already has are skipped.
 
-?> Uninstalling the app deletes its matches. Save a backup first.
+?> Uninstalling the app deletes its matches. Upload them or save a backup first.
 
 ## Settings
 
 | Setting | |
 | --- | --- |
+| **Account** | Your name, email and roles, **Manage on the website**, and **Sign out**. Signing out removes the matches from this phone; anything not uploaded is lost, so it warns you first. |
+| **Notifications** | **Turn on notifications** for a reminder when a match from your watch hasn't been uploaded 2 hours after it arrived. |
 | **Watch** | Whether your watch is connected, and **Set up a match**. A match from the watch that couldn't be read shows here, with a way to export it. |
 | **Health Connect** (Android) | Save workouts to Health Connect, for Samsung Health and other fitness apps. See [Workouts](guide/workouts.md). |
 | **Your matches** | Backups and importing. |

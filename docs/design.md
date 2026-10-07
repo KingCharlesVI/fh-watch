@@ -1,6 +1,6 @@
 # Field Hockey Match System — Design
 
-Last updated: 2026-09-23
+Last updated: 2026-10-07
 
 ## Overview & goals
 
@@ -124,6 +124,7 @@ Every event carries `seq` and, when recorded on the watch, `wallTime` (UTC). Eve
 | `clubs` | id, name, slug |
 | `club_requests` | id, user_id, club_id? (existing club) or club_name (new club), status (pending/approved/rejected), reviewed_by, reviewed_at |
 | `teams` | id, club_id, name (e.g. "Men's 1s"), slug |
+| `venues` | id, club_id, name (e.g. "Banbury Road, Pitch 1"), unique per club. Offered to umpires setting up a match; a match keeps its venue as text. |
 | `matches` | id (watch UUID), home_team_id?, away_team_id?, home_name, away_name, venue?, competition?, played_at, status (`draft` / `published`), current_revision, share_code |
 | `match_umpires` | match_id, slot (1 or 2), user_id?, name. user_id is empty when that umpire isn't registered. |
 | `match_revisions` | match_id, revision, document (jsonb), created_by, created_at, source (`watch` / `mobile` / `web`) |
@@ -196,7 +197,8 @@ When a match ends, the watch queues the whole match document with the platform's
 | Confirmation to watch | `sendMessage` `{ack: id}` when the watch is in reach, otherwise `transferUserInfo` | `MessageClient` at `/ack/{id}` |
 | Bridge to the JS app | Expo module event `onMatchReceived` plus a native inbox the JS side drains at startup | Same |
 | Umpire's workout (watch → phone) | The workout session that keeps the match running (below) collects heart rate, distance, steps and active calories. With **Record workout** on it's saved to Health, and its summary goes with the match as `fitness`, in the same JSON as Wear OS's; otherwise it's discarded. | With **Record workout** on in the watch's Settings, a Health Services exercise (no GPS) records heart rate, steps, distance and calories from the first period to the final whistle. The summary goes in the match's DataItem as `fitness` (or `fitnessAsset`), JSON, apart from the match document: it's the umpire's own data and is never uploaded or published. The phone keeps it on the match row, shows it on the match page, and saves it to Health Connect (the `health-connect` Expo module, write-only) when the umpire taps Save or turns on Save automatically. Each record's client ID is built from the match ID, so saving again replaces it. |
-| Watch app version (watch → phone) | Sent in the application context, but not used: the watch app comes with the iPhone app, so there are no separate updates to tell about. | The watch puts its version and build number as a DataItem at `/watch-info` when the app starts. The phone reads it (`getDataItems`) to tell the umpire when a newer watch app is out (below). |
+| Watch app version (watch → phone) | Sent in the application context, but not used: the watch app comes with the iPhone app, so there are no separate updates to tell about. | The watch puts its version and build number as a DataItem at `/watch-info` when the app starts. The phone reads it (`getDataItems`) to tell the umpire when a newer watch app is out. |
+| Watch app update (phone → watch) | None: TestFlight and the App Store update the watch app with the iPhone app. | GitHub builds only. The phone downloads the release's watch APK and streams it with `ChannelClient` at `/update-apk`. The watch keeps it if it's a newer copy of its own app and answers with `MessageClient` at `/update-received` (`ready` or `rejected`; builds before 17 don't answer), so the phone can say whether it arrived. **Install update** on the watch's home screen (never during a match) hands it to Android's installer, first opening the app's "Install unknown apps" setting if that's off. |
 | Setup on phone (phone → watch) | The phone sends `{setup: json}` with `sendMessage` when the watch is in reach. The watch checks it the same way and opens its setup screen with it. There's no opening the phone app from the watch, so the umpire starts on the phone. | The watch's **Setup on phone** opens the phone app's setup screen (`fhmatchcentre://setup`) with `RemoteActivityHelper`. The phone sends the setup as JSON with `MessageClient` at `/setup` to each watch in reach. The watch checks every value (`Setup.fromPhone`), saves it as the last setup, and opens its own setup screen with it, where the umpire checks it and taps Ready. |
 
 ```mermaid
@@ -220,7 +222,7 @@ The native module confirms receipt once it has written the file, not when the JS
 - Every message carries `schemaVersion`. The phone accepts its current version and one earlier; anything else goes to a "Needs app update" list and is never dropped.
 - A document that fails validation is kept as raw JSON, flagged in the app, and can be exported for debugging.
 - A "Resend all unsynced" action on the watch covers a phone that was reinstalled or changed.
-- Sync runs in one direction only: watch to phone. In a later version the phone could push team lists and presets to the watch over the same channels.
+- Matches only go from watch to phone. The other way, the phone sends a match setup (Setup on phone, and upcoming matches) and, on Wear OS GitHub builds, a new watch app (both in the table above). Team and venue names reach the watch only as part of a setup; the watch keeps no lists of its own.
 
 ## Mobile app
 
@@ -229,9 +231,9 @@ The phone app is an inbox for matches from the watch. The umpire reviews a match
 **Stages.** The phone app is built for one of two stages (`EXPO_PUBLIC_STAGE`, baked in at build time):
 
 - **Alpha:** the watch and the phone only. No account, no sign-in and no network use. Matches are saved on the phone, edited there (including umpire names, kept on the phone), and exported when the umpire chooses: a one-page PDF report (the same report the website prints, rendered on the phone with `expo-print`), the events as CSV, or the match as JSON. Each can be saved to a folder the umpire picks or shared. A backup puts every match in one JSON file, and "Import from a file" reads it back (skipping matches already on the phone). Matches can be deleted from the phone.
-- **1.0** (built with `EXPO_PUBLIC_STAGE=beta`, the name the build switch still has): adds the API and website: sign-in, upload, publishing, share links, team linking and umpire 2 from the directory. Exports, backups and deleting stay available. There's no public beta: the alpha goes straight to 1.0.
+- **Beta** (`EXPO_PUBLIC_STAGE=beta`, every release from 1.0): adds the API and website: sign-in, upload, publishing, share links, team linking and umpire 2 from the directory, and the club directory's teams and venues offered when setting up a match. Exports, backups and deleting stay available. The beta is for invited testers; the public release follows it with the same build.
 
-Upgrading a phone from the alpha to 1.0 keeps its matches: signing in clears the phone only when a different user signs in.
+Upgrading a phone from the alpha to the beta keeps its matches: signing in clears the phone only when a different user signs in.
 
 **Screens**
 
@@ -243,9 +245,12 @@ Upgrading a phone from the alpha to 1.0 keeps its matches: signing in clears the
 | Matches | Tabs: New from watch, Drafts, Published (alpha: New and Saved). Each row shows the teams, score, date and an upload status badge. Published matches with unlinked teams show a "Link teams" badge. |
 | Match detail | Score header, per-period summary, event timeline, and card and penalty-corner totals. |
 | Edit match | Link the home and away teams to clubs and teams (searchable), set venue and competition, add umpire 2, add, change or void events, and add notes. The score updates live as events change. |
-| Publish | Checks that both teams are linked (or confirmed as free text), then uploads. |
+| Publish | Uploads any changes first, then publishes. Unpublish takes it off the website again. |
 | Share | QR code shown full screen, plus a copy-link button and the native share sheet. |
-| Settings | Account, watch connection status, notification permission, "Import from file" (a fallback), and sign out. |
+| Set up a match | The watch's setup fields (format, teams, colours, captains, venue), sent to the watch. Team names and the venue are free text, with the directory's teams (`GET /teams`) and venues (`GET /venues`) offered as the umpire types (beta, when online). |
+| Upcoming | Setups made ahead of time, with a day and kick-off from the platform's date and time pickers, kept on the phone and sent to the watch at the ground. |
+| Summary | The umpire's matches added up by season. |
+| Settings | Account and sign out, notification permission, watch connection status and Set up a match, Health Connect (Android), backups and "Import from file", and the version with update notices (Android GitHub builds). |
 
 **Data and upload**
 
@@ -263,8 +268,8 @@ Upgrading a phone from the alpha to 1.0 keeps its matches: signing in clears the
 
 **Push notifications**
 
-- After sign-in the app registers its Expo push token with `POST /me/push-tokens`. Sign-out removes it.
-- Nothing sends a push yet: the upload reminders are local notifications, scheduled on the phone. The token registration and the API's Expo Push Service sender are kept for messages from the server later.
+- After sign-in, once notifications are allowed, the app registers its Expo push token with `POST /me/push-tokens`. Sign-out removes it. The token is best effort: an emulator, or an Android build without Firebase (FCM) set up, has none, and Settings still shows notifications as on, since the reminders don't need it.
+- Nothing sends a push yet: the upload reminders are local notifications, scheduled on the phone. The token registration and the API's Expo Push Service sender are kept for messages from the server later, which will need Firebase set up for Android first.
 - Tapping a notification opens its match.
 
 **Share link and QR code**
@@ -312,8 +317,10 @@ The API is a versioned REST service (`/v1`) written in Fastify, and all input is
 | `GET /matches/{id}/revisions` · `GET /matches/{id}/revisions/{n}` | Umpire (own), club admin (own club), admin | Edit history, and any past revision's document |
 | `GET /matches/{id}/export.{json,csv,pdf}` | Same as reading the match | Downloads |
 | `GET /matches/export.csv?…` | Club admin (own club) / admin | Bulk CSV for a filtered list |
-| `GET/POST/PATCH/DELETE /clubs`, `/clubs/{id}/teams` | Read: public · Clubs: admin · Teams: admin or club admin (own club) · Delete: admin | Club and team directory. `GET /clubs/{id or slug}` includes the teams. |
-| `GET /teams?q=` | Public | Search teams by club and team name together (e.g. `hawks m1`), for linking a match |
+| `GET/POST/PATCH/DELETE /clubs`, `/clubs/{id}/teams` | Read: public · Clubs: admin · Teams: admin or club admin (own club) · Delete: admin | Club and team directory. `GET /clubs/{id or slug}` includes the teams and venues. |
+| `GET/POST/PATCH/DELETE /clubs/{id}/venues` | Read: public · Write and delete: admin or club admin (own club) | A club's venues |
+| `GET /teams?q=` | Public | Search teams by club and team name together (e.g. `hawks m1`), for linking a match and setting one up |
+| `GET /venues?q=` | Public | Search venues by club and venue name together (e.g. `hawks pitch`), for setting up a match |
 | `GET/POST /club-requests` · `POST /club-requests/{id}/approve` · `/reject` | Signed in (own) / admin | Ask for a new club or to be a club's admin; admins review |
 
 **Background jobs**
@@ -333,7 +340,7 @@ The API is a versioned REST service (`/v1`) written in Fastify, and all input is
 
 Admins can do everything. Umpires control every match where they're a registered umpire 1 or 2. Club admins can read every match their club's teams played, including unpublished ones, but can't change them.
 
-An account holds a set of roles, so one person can be both an umpire and a club admin. Their permissions are the union of their roles. Every account gets `umpire` when it registers, with no approval step. A club admin is tied to one club, and a club can have several club admins. Only admins create clubs. Any user can ask for a missing club to be added, or to become a club admin, at sign-up or later, and an admin approves or rejects the request. Approval adds `club_admin` to the user's roles. Club admins can add and edit their own club's teams. Only admins can delete anything.
+An account holds a set of roles, so one person can be both an umpire and a club admin. Their permissions are the union of their roles. Every account gets `umpire` when it registers, with no approval step. A club admin is tied to one club, and a club can have several club admins. Only admins create clubs. Any user can ask for a missing club to be added, or to become a club admin, at sign-up or later, and an admin approves or rejects the request. Approval adds `club_admin` to the user's roles. Club admins can add and edit their own club's teams, and add, edit and delete its venues. Otherwise only admins can delete anything.
 
 | Action | Public | Umpire | Club admin | Admin |
 | --- | --- | --- | --- | --- |
@@ -347,6 +354,7 @@ An account holds a set of roles, so one person can be both an umpire and a club 
 | Edit own account, ask an admin to delete it | — | Yes | Yes | Yes |
 | Request a new club or club-admin role | — | Yes | Yes | Creates directly |
 | Manage clubs and teams | — | — | Add and edit own club's teams | Yes |
+| Manage venues | — | — | Own club's | Yes |
 | Manage users and roles | — | — | — | Yes |
 
 "Own club's" means the home or away team belongs to the club admin's club. Checks run in one API policy module, `can(user, action, match)`, which allows an action if any of the user's roles allows it. The website and phone app use the same module only to hide buttons, never to enforce access.
@@ -381,6 +389,7 @@ The website is a Next.js app. Public pages are rendered on the server, so shared
 | `/dashboard` | All | My matches (umpire) and/or Club matches (club admin), with filters |
 | `/matches/{id}/edit` | Umpire (own), admin | Same edit features as the phone app, for fixes made at a desk |
 | `/admin/users`, `/admin/clubs`, `/admin/club-requests` | Admin | User roles, club-admin assignment, club and team directory, request review |
+| `/admin/clubs/{id}` | Admin, club admin (own club) | A club's teams and venues; for admins also its name, web address, logo and deletion |
 
 **Export formats**
 
@@ -439,7 +448,8 @@ The work runs from the server outwards, so every step can be tested end to end b
 | 6 | Wear OS app + Android sync | Full umpiring features. A match reaches the phone automatically. Tested at a real match. Built: the app, sync and phone receiver, tested on emulators (see below); the match screen is now swiped pages (timing, goals, cards, settings), after MatchGear. Still to do: a paired end-to-end test and a real match. |
 | 7 | Alpha (Android) | Watch and phone only: no account, matches saved and exported on the phone (PDF, CSV, JSON, backups), uploads only when the umpire asks. Released to umpires through Google Play internal testing ([play-store.md](play-store.md)). |
 | 8 | watchOS app + iOS sync | Same features as Wear OS, including workout session, Action Button and double-tap |
-| 9 | 1.0 | No public beta: straight from the alpha. The API and website in the apps (sign-in and upload), the server deployed, email through Amazon SES. Closed testing on Google Play first (Google requires 12 testers for 14 days before production), then Google Play and the App Store. |
+| 9 | Beta (1.0 and later) | The API and website in the apps (sign-in and upload), the server deployed, email through Amazon SES, for invited testers. Closed testing on Google Play first (Google requires 12 testers for 14 days before production). |
+| 10 | Public release | Google Play and the App Store, for everyone. |
 
 The watchOS work (8) doesn't depend on the Android alpha and can run alongside it. Releasing the iOS and watchOS apps needs an Apple Developer account ($99/yr) and a Mac. The Google Play Console account is in place.
 
@@ -454,11 +464,11 @@ None at the moment.
 - Umpires can edit every match where they're a registered umpire 1 or 2.
 - A match has one or two umpires; both registered umpires can edit it.
 - Only one watch uploads each match (umpire 1's).
-- No public beta: the alpha goes straight to 1.0.
+- Three stages: the alpha (watch and phone only), the beta (accounts and the website, invited testers, from 1.0) and the public release.
 - No auto-publish: a match stays a draft until an umpire publishes it. The phone reminds the umpire to upload a match from the watch that isn't uploaded 2 hours after it arrived.
 - Email goes through Amazon SES (SMTP), in eu-north-1.
 - The server is an old laptop running Ubuntu Desktop 24.04 LTS, behind a Cloudflare Tunnel; a VPS later if needed.
-- Only admins create clubs; club admins add and edit their own club's teams; users can request clubs and club-admin status.
+- Only admins create clubs; club admins add and edit their own club's teams and venues; users can request clubs and club-admin status.
 - Anyone can register as an umpire, with no approval.
 - Accounts hold a set of roles.
 - Live scoring is out of scope until v3 at the earliest.

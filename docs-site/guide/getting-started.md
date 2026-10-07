@@ -11,9 +11,9 @@ A Wear OS watch only pairs with an Android phone, and an Apple Watch only with a
 
 ?> The watch works on its own during a match. The phone is only needed afterwards, to receive the match.
 
-## Installing (alpha)
+## Installing (beta)
 
-The alpha is for invited umpires. Ask to join from [fhmatchcentre.com](https://fhmatchcentre.com/#download).
+The beta is for invited umpires. Ask to join from [fhmatchcentre.com](https://fhmatchcentre.com/#download).
 
 ### Android and Wear OS
 
@@ -28,6 +28,10 @@ Install the **phone and watch apps from the same build**: they need to match to 
 
 The iPhone app comes through **TestFlight**. Install TestFlight from the App Store, accept the invitation, and install FH Match Centre. The Apple Watch app comes with it: open the **Watch** app on your iPhone, find FH Match Centre under **Available apps** and tap **Install** (or it installs by itself if automatic app installs are on).
 
+### Your account
+
+Open the phone app and tap **Create an account** (or sign in, if you made one on the [website](https://app.fhmatchcentre.com)). Confirm your email address from the email you're sent, then sign in. See [Signing in](guide/phone.md?id=signing-in).
+
 ## Your first match
 
 1. **Open the app on the watch** and tap **New match**. It starts from your last match's choices.
@@ -37,6 +41,7 @@ The iPhone app comes through **TestFlight**. Install TestFlight from the App Sto
 4. **During the match**, swipe between the pages: **Timing** (the clock and score), **Goals**, **Cards** and **Settings**. The button stops and restarts the clock.
 5. **At the end of each period** the watch buzzes; press the button to end the period. The break counts down; tap **Next: Q2** (or press the button) to move on, then start the clock when play restarts. After the last period, tap **End match**.
 6. **The match goes to your phone** by itself when it's in reach. Open the phone app: it's under **New**.
+7. **Upload and publish it** from its page in the phone app when you've checked it: see [Uploading and publishing](guide/phone.md?id=uploading-and-publishing).
 
 The [Wear OS](guide/wear-os.md) and [Apple Watch](guide/apple-watch.md) pages go through everything in detail.
 

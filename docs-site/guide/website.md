@@ -1,8 +1,6 @@
 # The website
 
-?> The website arrives with **1.0**, at [app.fhmatchcentre.com](https://app.fhmatchcentre.com). In the alpha, matches stay on your phone.
-
-The website is where results are published: umpires upload their matches, and anyone can see published results, by match and by club.
+The website, at [app.fhmatchcentre.com](https://app.fhmatchcentre.com), is where results are published: umpires upload their matches, and anyone can see published results, by match and by club.
 
 ## For everyone
 
@@ -21,8 +19,13 @@ Register with your email address, in the phone app (**Create an account** on the
 
 Both umpires on a match can edit it; the website keeps every revision.
 
-The **Dashboard** lists your matches, with downloads of them all.
+The **Dashboard** lists your matches, with downloads of them all. A match's **Edit** page has the same fixes as the phone app, for doing them at a desk.
 
 ## For clubs
 
-Club admins keep their club's teams up to date, so umpires can link a match's teams to them. Anyone can ask for a new club, or to be a club's admin, from their account page.
+Club admins keep their club up to date from **manage club** on the **Dashboard** (or **Manage club** on the club's page):
+
+- **Teams**: add and rename them. Umpires link a match's teams to these, which puts the match on the club's pages, and the phone app offers them as team names when an umpire sets up a match.
+- **Venues**: where the club plays, e.g. `Banbury Road, Pitch 1`. Add, rename or delete them; the phone app offers them when an umpire sets up a match. Deleting one doesn't change matches already played there.
+
+Anyone can ask for a new club, or to be a club's admin, from their account page; an admin approves it.
