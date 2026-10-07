@@ -222,7 +222,7 @@ The native module confirms receipt once it has written the file, not when the JS
 - Every message carries `schemaVersion`. The phone accepts its current version and one earlier; anything else goes to a "Needs app update" list and is never dropped.
 - A document that fails validation is kept as raw JSON, flagged in the app, and can be exported for debugging.
 - A "Resend all unsynced" action on the watch covers a phone that was reinstalled or changed.
-- Matches only go from watch to phone. The other way, the phone sends a match setup (Setup on phone, and upcoming matches) and, on Wear OS GitHub builds, a new watch app (both in the table above). Team and venue names reach the watch only as part of a setup; the watch keeps no lists of its own.
+- Matches only go from watch to phone. The other way, the phone sends a match setup (Setup on phone, and upcoming matches) and, on Wear OS GitHub builds, a new watch app (both in the table above). Team, venue and competition names reach the watch only as part of a setup; the watch keeps no lists of its own.
 
 ## Mobile app
 
@@ -247,7 +247,7 @@ Upgrading a phone from the alpha to the beta keeps its matches: signing in clear
 | Edit match | Link the home and away teams to clubs and teams (searchable), set venue and competition (typed, or picked from the lists as the umpire types), add umpire 2, add, change or void events, and add notes. The score updates live as events change. |
 | Publish | Uploads any changes first, then publishes. Unpublish takes it off the website again. |
 | Share | QR code shown full screen, plus a copy-link button and the native share sheet. |
-| Set up a match | The watch's setup fields (format, teams, colours, captains, venue), sent to the watch. Team names and the venue are free text, with the directory's teams (`GET /teams`) and venues (`GET /venues`) offered as the umpire types (beta, when online). |
+| Set up a match | The watch's setup fields (format, teams, colours, captains, venue, competition), sent to the watch. Team names, the venue and the competition are free text, with the directory's teams (`GET /teams`), venues (`GET /venues`) and competitions (`GET /competitions`) offered as the umpire types (beta, when online). The watch puts the venue and competition in the match it starts. |
 | Upcoming | Setups made ahead of time, with a day and kick-off from the platform's date and time pickers, kept on the phone and sent to the watch at the ground. |
 | Summary | The umpire's matches added up by season. |
 | Settings | Account and sign out, notification permission, watch connection status and Set up a match, Health Connect (Android), backups and "Import from file", and the version with update notices (Android GitHub builds). |

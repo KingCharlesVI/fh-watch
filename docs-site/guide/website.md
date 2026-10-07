@@ -32,6 +32,6 @@ Anyone can ask for a new club, or to be a club's admin, from their account page;
 The site keeps two lists that umpires pick from, apart from the clubs:
 
 - **Venues**, the grounds matches are played at (e.g. `Banbury Road, Oxford`): offered when setting up a match in the phone app, and when editing one in the app or here. They aren't tied to a club, since clubs often share a ground.
-- **Competitions**, the leagues and cups (e.g. `South League Premier`): offered when editing a match.
+- **Competitions**, the leagues and cups (e.g. `South League Premier`): offered when setting up a match in the phone app, and when editing one in the app or here.
 
 Umpires add one that's missing as they go: typing a name the list doesn't have offers **Add “…” as a new venue** (or competition), in the phone app and on a match's **Edit** page. Adding one that's already there, in different capitals, just picks that one. Admins tidy the lists under **Admin → Venues** and **Admin → Competitions**: add, rename and delete. A match keeps its venue and competition as text, so renaming or deleting one doesn't change matches already played.

@@ -20,6 +20,7 @@ For Wear OS 3 and later: Samsung Galaxy Watch 4 and newer, Google Pixel Watch. T
 | **Teams** | Tap a team to rename it (keyboard or voice). Pick each team's colour. |
 | **Captain** | Optional: the captain's shirt number. |
 | **Venue** | Optional. |
+| **Competition** | Optional. Usually filled in from the phone, which has the list of competitions. |
 | **Shootout if drawn** | Offers a shootout at full time when the score is level. |
 
 Tap **Ready**. The watch remembers these choices for next time.

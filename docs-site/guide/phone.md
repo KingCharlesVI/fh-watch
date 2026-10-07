@@ -64,9 +64,9 @@ Each can be saved to a folder you pick (**Save to phone**) or shared:
 
 ## Setting up a match on the phone
 
-Typing team names is easier on the phone. **Settings → Set up a match**: choose the format, the teams' names, colours and captains, and the venue, then **Send to watch**. The watch opens its setup screen with it; check it and tap **Ready**.
+Typing team names is easier on the phone. **Settings → Set up a match**: choose the format, the teams' names, colours and captains, and the venue and competition, then **Send to watch**. The watch opens its setup screen with it; check it and tap **Ready**.
 
-The team names and the venue can be anything you type. As you type, the app also offers the clubs' teams and the venues listed on the website (e.g. type `hawks` for **Oxford Hawks M1**, or `banbury` for **Banbury Road, Oxford**): tap one to use it. Clubs keep their teams up to date. A venue that isn't on the list yet can be added from the field: type it in full, then tap **Add “…” as a new venue**, and it's there for everyone from then on. With no signal, you just type.
+The team names, venue and competition can be anything you type. As you type, the app also offers the clubs' teams and the venues and competitions listed on the website (e.g. type `hawks` for **Oxford Hawks M1**, or `banbury` for **Banbury Road, Oxford**): tap one to use it. Clubs keep their teams up to date. A venue or competition that isn't on the list yet can be added from the field: type it in full, then tap **Add “…” as a new venue** (or competition), and it's there for everyone from then on. With no signal, you just type.
 
 On a Wear OS watch you can start from the watch instead: **Setup on phone** on the watch opens this screen on the phone.
 
