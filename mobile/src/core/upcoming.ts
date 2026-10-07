@@ -18,9 +18,6 @@ export interface UpcomingMatch {
   sentAt: string | null;
 }
 
-/** How far ahead a match can be dated: two weeks covers the next couple of fixtures. */
-export const DAYS_AHEAD = 14;
-
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -63,21 +60,27 @@ function parseDay(day: string): Date {
   return new Date(y!, m! - 1, d!);
 }
 
-/** "Today", "Tomorrow", or "Sat 11 Oct". */
+/** "Today", "Tomorrow", "Sat 11 Oct", or "Sat 9 Jan 2027" in another year. */
 export function dayLabel(day: string, today: Date): string {
   const d = parseDay(day);
   if (day === isoDay(today)) return "Today";
   const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
   if (day === isoDay(tomorrow)) return "Tomorrow";
-  return `${WEEKDAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  const year = d.getFullYear() === today.getFullYear() ? "" : ` ${d.getFullYear()}`;
+  return `${WEEKDAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}${year}`;
 }
 
-/** The days a match can be put on, from today: value and label. */
-export function upcomingDays(today: Date, days = DAYS_AHEAD): { value: string; label: string }[] {
-  return Array.from({ length: days }, (_, i) => {
-    const day = isoDay(new Date(today.getFullYear(), today.getMonth(), today.getDate() + i));
-    return { value: day, label: dayLabel(day, today) };
-  });
+/** "14:05" for a time of day, in the phone's own time zone. */
+export function clockTime(d: Date): string {
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+/** Where the date and time pickers start: the match's day and kick-off, or today at 14:00. */
+export function pickerStart(u: Pick<UpcomingMatch, "date" | "time">, today: Date): Date {
+  const d = u.date ? parseDay(u.date) : new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const [h, m] = (u.time ?? "14:00").split(":").map(Number);
+  d.setHours(h!, m!);
+  return d;
 }
 
 /** When, for the list: "Sat 11 Oct, 14:00", "Today", or null if there's no date. */
@@ -104,14 +107,4 @@ export function playedUpcoming(list: readonly UpcomingMatch[], played: readonly 
         played.some((m) => same(m.teams.home.name, u.setup.homeName) && same(m.teams.away.name, u.setup.awayName) && Date.parse(m.startedAt) >= Date.parse(u.sentAt!)),
     )
     .map((u) => u.id);
-}
-
-/** A kick-off as typed, "14:00" or "9:30", made "09:30"; null if it isn't a time. */
-export function parseTime(typed: string): string | null {
-  const m = /^(\d{1,2})[:.](\d{2})$/.exec(typed.trim());
-  if (!m) return null;
-  const h = Number(m[1]);
-  const min = Number(m[2]);
-  if (h > 23 || min > 59) return null;
-  return `${String(h).padStart(2, "0")}:${m[2]}`;
 }

@@ -4,11 +4,12 @@ import Storage from "expo-sqlite/kv-store";
 import { useEffect, useState } from "react";
 import { Alert, View } from "react-native";
 import { LAST_SETUP_KEY, type WatchSetup, readSavedSetup, setupErrors, setupMessage } from "@/core/setup";
-import { type UpcomingMatch, dayLabel, parseTime, upcomingDays } from "@/core/upcoming";
+import type { UpcomingMatch } from "@/core/upcoming";
 import { SetupForm } from "@/features/setup-form";
+import { WhenFields } from "@/features/when-fields";
 import { WatchSync, useConnectedWatches, watchSyncAvailable } from "@/services/watch";
 import { upcoming, useUpcoming } from "@/state/upcoming";
-import { Banner, Button, Card, Choice, Empty, Field, Screen } from "@/ui/kit";
+import { Banner, Button, Card, Empty, Screen } from "@/ui/kit";
 import { space } from "@/ui/theme";
 
 /**
@@ -22,7 +23,6 @@ export default function UpcomingMatchScreen() {
   const list = useUpcoming();
   const watches = useConnectedWatches();
   const [draft, setDraft] = useState<UpcomingMatch | null>(null);
-  const [time, setTime] = useState("");
   const [busy, setBusy] = useState<"save" | "send" | null>(null);
   const [result, setResult] = useState<"sent" | "noWatch" | "failed" | null>(null);
 
@@ -35,10 +35,7 @@ export default function UpcomingMatchScreen() {
         .then((saved) => setDraft({ id: randomUUID(), setup: readSavedSetup(saved), date: null, time: null, createdAt: new Date().toISOString(), sentAt: null }));
     } else {
       const found = list.find((u) => u.id === id);
-      if (found) {
-        setDraft(found);
-        setTime(found.time ?? "");
-      }
+      if (found) setDraft(found);
     }
   }, [draft, list, id, isNew]);
 
@@ -53,17 +50,15 @@ export default function UpcomingMatchScreen() {
     );
   }
 
-  const timeError = time.trim() && !parseTime(time) ? "A time like 14:00" : undefined;
   const update = (change: Partial<WatchSetup>) => {
     setDraft({ ...draft, setup: { ...draft.setup, ...change } });
     setResult(null);
   };
-  const withTime = (): UpcomingMatch => ({ ...draft, time: parseTime(time) });
 
   async function save() {
     setBusy("save");
     try {
-      await upcoming.save(withTime());
+      await upcoming.save(draft!);
       router.back();
     } finally {
       setBusy(null);
@@ -75,7 +70,7 @@ export default function UpcomingMatchScreen() {
     try {
       const got = await WatchSync.sendSetup(setupMessage(draft!.setup));
       if (got > 0) {
-        const sent = { ...withTime(), sentAt: new Date().toISOString() };
+        const sent = { ...draft!, sentAt: new Date().toISOString() };
         setDraft(sent);
         await upcoming.save(sent);
         await Storage.setItem(LAST_SETUP_KEY, JSON.stringify(sent.setup)).catch(() => {});
@@ -102,22 +97,13 @@ export default function UpcomingMatchScreen() {
     ]);
   }
 
-  const today = new Date();
-  const days = upcomingDays(today);
-  // A day that's gone stays on offer until it's changed.
-  if (draft.date && !days.some((d) => d.value === draft.date)) days.unshift({ value: draft.date, label: dayLabel(draft.date, today) });
   const ready = Object.keys(setupErrors(draft.setup)).length === 0;
 
   return (
     <Screen>
       <Stack.Screen options={{ title }} />
       <Card title="When">
-        <Choice
-          value={draft.date ?? ""}
-          options={[{ value: "", label: "Not set" }, ...days]}
-          onChange={(date) => setDraft({ ...draft, date: date || null })}
-        />
-        <Field label="Kick-off (optional)" value={time} placeholder="14:00" keyboardType="numbers-and-punctuation" maxLength={5} onChangeText={setTime} error={timeError} />
+        <WhenFields when={draft} onChange={(change) => setDraft({ ...draft, ...change })} />
       </Card>
 
       <SetupForm key={draft.id} setup={draft.setup} onChange={update} />
@@ -137,8 +123,8 @@ export default function UpcomingMatchScreen() {
       {result === "failed" && <Banner tone="danger" icon="alert-circle-outline" title="Couldn't send to the watch" />}
 
       <View style={{ gap: space.sm }}>
-        <Button title="Send to watch" icon="watch-outline" onPress={send} loading={busy === "send"} disabled={!ready || !!timeError || !watchSyncAvailable || busy !== null} />
-        <Button title="Save" variant="outline" icon="save-outline" onPress={save} loading={busy === "save"} disabled={!!timeError || busy !== null} />
+        <Button title="Send to watch" icon="watch-outline" onPress={send} loading={busy === "send"} disabled={!ready || !watchSyncAvailable || busy !== null} />
+        <Button title="Save" variant="outline" icon="save-outline" onPress={save} loading={busy === "save"} disabled={busy !== null} />
         {!isNew && <Button title="Delete" variant="danger" icon="trash-outline" onPress={remove} disabled={busy !== null} />}
       </View>
     </Screen>
