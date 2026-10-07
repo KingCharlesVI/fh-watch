@@ -4,25 +4,20 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { api } from "./index";
 
-export type PushStatus =
-  | { state: "on"; token: string }
-  | { state: "denied" }
-  | { state: "unavailable"; reason: string };
+/** On once the umpire allows notifications; the token is null when this device can't get server pushes. */
+export type PushStatus = { state: "on"; token: string | null } | { state: "denied" };
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
 });
 
 /**
- * Asks for permission, gets this device's Expo push token and registers it
- * with the API. Upload reminders are local (services/upload-reminders.ts); the push token is
- * registered for messages from the server later.
+ * Asks for permission, then gets this device's Expo push token and registers it with the
+ * API. Upload reminders are local (services/upload-reminders.ts), so they only need the
+ * permission; the push token is for messages from the server later, and is best effort:
+ * an emulator, or an Android build without Firebase set up, has none.
  */
 export async function enablePush(askIfNeeded: boolean): Promise<PushStatus> {
-  if (!Device.isDevice) return { state: "unavailable", reason: "Push notifications need a real phone, not an emulator." };
-  const projectId = (Constants.expoConfig?.extra?.eas as { projectId?: string } | undefined)?.projectId;
-  if (!projectId) return { state: "unavailable", reason: "This build isn't set up for push notifications yet (no Expo project ID)." };
-
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("default", { name: "Match updates", importance: Notifications.AndroidImportance.DEFAULT });
   }
@@ -30,18 +25,20 @@ export async function enablePush(askIfNeeded: boolean): Promise<PushStatus> {
   if (status !== "granted" && askIfNeeded) status = (await Notifications.requestPermissionsAsync()).status;
   if (status !== "granted") return { state: "denied" };
 
+  const projectId = (Constants.expoConfig?.extra?.eas as { projectId?: string } | undefined)?.projectId;
+  if (!Device.isDevice || !projectId) return { state: "on", token: null };
   try {
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
     await api.registerPushToken(token, Platform.OS === "ios" ? "ios" : "android");
     return { state: "on", token };
-  } catch (err) {
-    return { state: "unavailable", reason: err instanceof Error ? err.message : "Couldn't get a push token." };
+  } catch {
+    return { state: "on", token: null };
   }
 }
 
 /** Stops pushes to this device, for signing out. */
 export async function disablePush(status: PushStatus | null) {
-  if (status?.state === "on") await api.removePushToken(status.token).catch(() => {});
+  if (status?.state === "on" && status.token) await api.removePushToken(status.token).catch(() => {});
 }
 
 /** Where a tapped notification should open: the match, or its editor when teams need linking. */
