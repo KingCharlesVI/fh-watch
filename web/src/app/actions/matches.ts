@@ -73,6 +73,17 @@ export async function searchTeams(q: string): Promise<TeamWithClub[]> {
   return (await api<Items<TeamWithClub>>("/v1/teams", { query: { q } })).items;
 }
 
+/** Venues and competitions whose names have every word of q, from the lists admins keep. */
+export async function searchVenues(q: string): Promise<{ id: string; name: string }[]> {
+  if (q.trim().length < 1) return [];
+  return (await api<Items<{ id: string; name: string }>>("/v1/venues", { query: { q }, auth: false })).items;
+}
+
+export async function searchCompetitions(q: string): Promise<{ id: string; name: string }[]> {
+  if (q.trim().length < 1) return [];
+  return (await api<Items<{ id: string; name: string }>>("/v1/competitions", { query: { q }, auth: false })).items;
+}
+
 export async function searchUmpires(q: string): Promise<{ id: string; displayName: string }[]> {
   if (q.trim().length < 1) return [];
   return (await api<Items<{ id: string; displayName: string }>>("/v1/umpires", { query: { q } })).items;

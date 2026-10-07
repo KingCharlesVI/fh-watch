@@ -1,4 +1,4 @@
-import { Building2, ClipboardList, Inbox, MapPin, UserPlus, Users } from "lucide-react";
+import { Building2, ClipboardList, Inbox, MapPin, Trophy, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PageHeader } from "@/components/PageHeader";
@@ -35,6 +35,9 @@ export default async function AdminPage() {
         </Tile>
         <Tile href="/admin/venues" icon={<MapPin />} title="Venues">
           Grounds offered when setting up a match
+        </Tile>
+        <Tile href="/admin/competitions" icon={<Trophy />} title="Competitions">
+          Leagues and cups offered when editing a match
         </Tile>
         <Tile href="/dashboard?view=all" icon={<ClipboardList />} title="All matches">
           Drafts included

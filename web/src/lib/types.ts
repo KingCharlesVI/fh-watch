@@ -4,6 +4,7 @@ export type {
   AccessRequest,
   ClubRequest,
   ClubWithTeams,
+  Competition,
   FullMatch,
   Items,
   Match,

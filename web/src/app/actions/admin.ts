@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { api } from "@/lib/api";
 import { type FormState, formError, optionalText, text } from "@/lib/forms";
-import type { Club, ClubRequest, Team, Venue } from "@/lib/types";
+import type { Club, ClubRequest, Team, Venue as NamedItem } from "@/lib/types";
 
 const done = (ok: string, ...paths: string[]): FormState => {
   for (const p of paths) revalidatePath(p);
@@ -166,33 +166,47 @@ export async function deleteTeam(_: FormState, fd: FormData): Promise<FormState>
   return done("Team deleted.", `/admin/clubs/${clubId}`);
 }
 
-// ---- Venues ----
+// ---- Venues and competitions ----
 
-export async function createVenue(_: FormState, fd: FormData): Promise<FormState> {
-  try {
-    await api<Venue>("/v1/venues", { method: "POST", body: { name: text(fd, "name") } });
-  } catch (err) {
-    return formError(err);
-  }
-  return done("Venue added.", "/admin/venues");
+/** The lists admins keep for umpires to pick from (the API's /venues and /competitions). */
+const LISTS = { venues: "Venue", competitions: "Competition" } as const;
+export type ListName = keyof typeof LISTS;
+
+/** The list a form is about, from its hidden `list` field; only ever one of LISTS. */
+function list(fd: FormData): ListName {
+  const name = text(fd, "list");
+  if (!(name in LISTS)) throw new Error(`Not a list: ${name}`);
+  return name as ListName;
 }
 
-export async function renameVenue(_: FormState, fd: FormData): Promise<FormState> {
+export async function createListItem(_: FormState, fd: FormData): Promise<FormState> {
+  const l = list(fd);
   try {
-    await api(`/v1/venues/${text(fd, "id")}`, { method: "PATCH", body: { name: text(fd, "name") } });
+    await api<NamedItem>(`/v1/${l}`, { method: "POST", body: { name: text(fd, "name") } });
   } catch (err) {
     return formError(err);
   }
-  return done("Saved.", "/admin/venues");
+  return done(`${LISTS[l]} added.`, `/admin/${l}`);
 }
 
-export async function deleteVenue(_: FormState, fd: FormData): Promise<FormState> {
+export async function renameListItem(_: FormState, fd: FormData): Promise<FormState> {
+  const l = list(fd);
   try {
-    await api(`/v1/venues/${text(fd, "id")}`, { method: "DELETE" });
+    await api(`/v1/${l}/${text(fd, "id")}`, { method: "PATCH", body: { name: text(fd, "name") } });
   } catch (err) {
     return formError(err);
   }
-  return done("Venue deleted.", "/admin/venues");
+  return done("Saved.", `/admin/${l}`);
+}
+
+export async function deleteListItem(_: FormState, fd: FormData): Promise<FormState> {
+  const l = list(fd);
+  try {
+    await api(`/v1/${l}/${text(fd, "id")}`, { method: "DELETE" });
+  } catch (err) {
+    return formError(err);
+  }
+  return done(`${LISTS[l]} deleted.`, `/admin/${l}`);
 }
 
 // ---- Testing requests ----
