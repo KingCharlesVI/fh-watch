@@ -1,3 +1,22 @@
+## [1.1.3-beta.19] - 2026-10-07
+
+### 🚀 Features
+
+- *(api)* Competitions, a list admins keep like venues
+- *(web)* Competitions to manage, and venues and competitions to pick when editing a match
+- *(mobile)* Pick the venue and competition from the site's lists when editing a match
+- *(api)* Umpires can add a venue or competition that's missing
+- *(mobile)* Add a missing venue or competition while setting up or editing a match
+- *(web)* Add a missing venue or competition while editing a match
+
+### 📚 Documentation
+
+- Competitions, and picking venues and competitions when editing a match
+- Umpires add missing venues and competitions as they go
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* V1.1.3 build 19
 ## [1.1.2-beta.18] - 2026-10-07
 
 ### 🚀 Features
