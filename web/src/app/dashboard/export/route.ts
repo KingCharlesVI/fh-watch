@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { apiFetch } from "@/lib/api";
 
-const ALLOWED = ["clubId", "teamId", "umpireId", "from", "to", "competition", "status"];
+const ALLOWED = ["clubId", "teamId", "umpireId", "from", "to", "competition", "venue", "status"];
 
 /** Bulk CSV of the dashboard's current filters, fetched with the user's session. */
 export async function GET(request: NextRequest) {

@@ -283,6 +283,25 @@ describe("deleting", () => {
   });
 });
 
+describe("filtering", () => {
+  it("narrows the list by club, team, competition and venue", async () => {
+    const { club, teams } = await t.createClub("Oxford Hawks", ["M1", "M2"]);
+    const umpire = await t.createUser();
+    const ids = async (query: string) => (await get(`/v1/matches?${query}`, umpire.headers)).json().items.map((m: { id: string }) => m.id);
+    const m1 = { ...matchDoc({ homeTeamId: teams[0]!.id }), competition: "South Men's Division 2", venue: "Banbury Road, Oxford" };
+    const m2 = { ...matchDoc({ awayTeamId: teams[1]!.id, endedAt: "2026-09-12T11:30:00Z" }), competition: "Hampshire Cup", venue: "Sonning Lane, Reading" };
+    const other = matchDoc({ endedAt: "2026-09-05T11:30:00Z" });
+    for (const doc of [m1, m2, other]) await put(doc, umpire.headers);
+
+    expect(await ids(`umpireId=${umpire.user.id}`)).toEqual([m1.id, m2.id, other.id]);
+    expect(await ids(`clubId=${club.id}`)).toEqual([m1.id, m2.id]);
+    expect(await ids(`teamId=${teams[1]!.id}`)).toEqual([m2.id]);
+    expect(await ids(`competition=${encodeURIComponent("hampshire")}`)).toEqual([m2.id]);
+    expect(await ids(`venue=${encodeURIComponent("banbury road")}`)).toEqual([m1.id]);
+    expect(await ids(`clubId=${club.id}&venue=sonning`)).toEqual([m2.id]);
+  });
+});
+
 describe("exports", () => {
   it("downloads one match as CSV or JSON", async () => {
     const { headers } = await t.createUser();

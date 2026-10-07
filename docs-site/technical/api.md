@@ -103,7 +103,7 @@ A match the caller isn't allowed to see answers `404`, not `403`, so draft match
 
 | | Route | |
 | --- | --- | --- |
-| 🔓 | `GET /matches` | Matches you can see, newest first. Filters: `clubId`, `teamId`, `umpireId`, `from`, `to`, `competition`, `status` |
+| 🔓 | `GET /matches` | Matches you can see, newest first. Filters: `clubId`, `teamId`, `umpireId`, `from`, `to`, `competition`, `venue`, `status` (`competition` and `venue` match names containing them, in any capitals) |
 | 🔓 | `GET /matches/:id` | A match: its document, summary and umpires |
 | 🔓 | `GET /m/:shareCode` | The same, by its six-character share code |
 | 🔓 | `GET /matches/:id/export.json` · `.csv` · `.pdf` | Download a match |
