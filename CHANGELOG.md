@@ -1,3 +1,26 @@
+## [1.1.0-beta.17] - 2026-10-07
+
+### 🚀 Features
+
+- A 10-minute half-time in the 2 × 35 min preset
+- *(mobile)* Pick an upcoming match's day and kick-off with date and time pickers
+
+### 🐛 Bug Fixes
+
+- *(mobile)* Notifications show as on without a push token
+- Sending the watch app from the phone, and installing it on the watch
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* V1.1.1 build 17
+
+### 💼 Other
+
+- Update content.ts
+- Merge pull request #39 from KingCharlesVI/main
+
+minor changes
+- Update CHANGELOG.md
 ## [1.1.0] - 2026-10-06
 
 ### 💼 Other
