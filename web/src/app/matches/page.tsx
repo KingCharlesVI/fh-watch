@@ -1,5 +1,6 @@
-import { Search } from "lucide-react";
+import { Filter, Search } from "lucide-react";
 import Link from "next/link";
+import { MatchFilterFields, type MatchFilterParams, loadMatchFilters } from "@/components/MatchFilters";
 import { MatchList, Pager } from "@/components/MatchList";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -10,12 +11,15 @@ import type { Club, Items, Match, Page, TeamWithClub } from "@/lib/types";
 
 export const metadata = { title: "Results" };
 
-/** Every published result, newest first, with a search for clubs and teams. */
-export default async function Matches({ searchParams }: { searchParams: Promise<{ q?: string; cursor?: string }> }) {
-  const { q, cursor } = await searchParams;
-  const query = q?.trim();
+/** Every published result, newest first, with a search for clubs and teams, and filters. */
+export default async function Matches({ searchParams }: { searchParams: Promise<MatchFilterParams & { q?: string; cursor?: string }> }) {
+  const sp = await searchParams;
+  const { cursor } = sp;
+  const query = sp.q?.trim();
+  const filters = await loadMatchFilters(sp);
+  const filtered = Object.values(filters.query).some(Boolean);
   const [matches, teams, clubs] = await Promise.all([
-    api<Page<Match>>("/v1/matches", { query: { status: "published", limit: 25, cursor } }),
+    api<Page<Match>>("/v1/matches", { query: { status: "published", limit: 25, cursor, ...filters.query } }),
     query ? api<Items<TeamWithClub>>("/v1/teams", { query: { q: query } }) : null,
     query ? api<Items<Club>>("/v1/clubs", { query: { q: query } }) : null,
   ]);
@@ -59,8 +63,26 @@ export default async function Matches({ searchParams }: { searchParams: Promise<
         </Card>
       )}
 
-      <MatchList matches={matches.items} empty="No results have been published yet." />
-      <Pager cursor={matches.nextCursor} params={{ q: query }} />
+      <Card>
+        <CardContent>
+          <form aria-label="Filter results" action="/matches" className="flex flex-wrap items-end gap-3">
+            <MatchFilterFields filters={filters} />
+            <div className="flex gap-2">
+              <Button type="submit" variant="secondary">
+                <Filter /> Filter
+              </Button>
+              {filtered && (
+                <Button variant="outline" asChild>
+                  <Link href="/matches">Clear</Link>
+                </Button>
+              )}
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <MatchList matches={matches.items} empty={filtered ? "No results match these filters." : "No results have been published yet."} />
+      <Pager cursor={matches.nextCursor} params={{ q: query, ...filters.query }} />
     </div>
   );
 }

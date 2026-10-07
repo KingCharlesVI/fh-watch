@@ -2,6 +2,7 @@ import { hasRole } from "@fh/shared";
 import { CircleCheck, Download, FilePen, Filter, Hourglass, Link2Off } from "lucide-react";
 import Link from "next/link";
 import { FilterSelect } from "@/components/FilterSelect";
+import { MatchFilterFields, type MatchFilterParams, loadMatchFilters } from "@/components/MatchFilters";
 import { MatchList, Pager } from "@/components/MatchList";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import type { ClubWithTeams, Match, Page } from "@/lib/types";
 
 export const metadata = { title: "Dashboard" };
 
-type Search = { view?: string; status?: string; from?: string; to?: string; cursor?: string; deleted?: string };
+type Search = MatchFilterParams & { view?: string; status?: string; from?: string; to?: string; cursor?: string; deleted?: string };
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<Search> }) {
   const user = await requireUser("/dashboard");
@@ -30,15 +31,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   ];
   const view = views.find((v) => v.key === sp.view)?.key ?? views[0]?.key;
   const status = sp.status === "draft" || sp.status === "published" ? sp.status : undefined;
+  // The summary counts this view's matches, whatever the filters below say.
+  const scope = view === "mine" ? { umpireId: user.id } : view === "club" ? { clubId: user.clubId ?? undefined } : {};
+  // A club admin's club view is fixed to their club; the other views can pick one.
+  const picked = await loadMatchFilters(sp, view === "club" ? { clubId: user.clubId ?? undefined } : undefined);
   const filters = {
     status,
     from: dayStartIso(sp.from),
     to: sp.to ? dayStartIso(addDaysIso(sp.to, 1)) : undefined,
-    ...(view === "mine" ? { umpireId: user.id } : view === "club" ? { clubId: user.clubId ?? undefined } : {}),
+    ...scope,
+    ...picked.query,
   };
 
-  // The summary counts this view's matches, whatever the filters below say.
-  const scope = view === "mine" ? { umpireId: user.id } : view === "club" ? { clubId: user.clubId ?? undefined } : {};
   const [matches, club, drafts, published] = await Promise.all([
     view ? api<Page<Match>>("/v1/matches", { query: { ...filters, limit: 25, cursor: sp.cursor } }) : null,
     isClubAdmin ? api<ClubWithTeams>(`/v1/clubs/${user.clubId}`) : null,
@@ -111,6 +115,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   <FieldLabel htmlFor="to">To</FieldLabel>
                   <Input id="to" type="date" name="to" defaultValue={sp.to} />
                 </Field>
+                <MatchFilterFields filters={picked} />
                 <div className="flex gap-2">
                   <Button type="submit" variant="secondary">
                     <Filter /> Filter
@@ -126,7 +131,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </Card>
 
           <MatchList matches={matches!.items} manage empty="No matches match these filters." />
-          <Pager cursor={matches!.nextCursor} params={{ view, status, from: sp.from, to: sp.to }} />
+          <Pager
+            cursor={matches!.nextCursor}
+            params={{ view, status, from: sp.from, to: sp.to, ...(view === "club" ? { ...picked.query, clubId: undefined } : picked.query) }}
+          />
         </>
       )}
     </div>
