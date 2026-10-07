@@ -1,18 +1,20 @@
-import { and, asc, eq, ilike } from "drizzle-orm";
+import { canAddToLists } from "@fh/shared";
+import { and, asc, eq, ilike, sql } from "drizzle-orm";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { requireRole } from "../auth.js";
+import { requireActor, requireRole } from "../auth.js";
 import type { DbOrTx } from "../db/client.js";
 import { type NamedListTable, competitions, venues } from "../db/schema.js";
 import type { AppDeps } from "../deps.js";
-import { conflict, isUniqueViolation, notFound } from "../lib/errors.js";
+import { conflict, forbidden, isUniqueViolation, notFound } from "../lib/errors.js";
 import { containsPattern } from "../lib/sql.js";
 import { audit } from "../services/audit.js";
 
 /**
- * Lists of names that admins keep and umpires pick from when setting up or editing a match:
- * venues (where it's played, not tied to any club, as clubs share grounds) and competitions.
- * A match keeps the name as text, so changing a list never changes a match.
+ * Lists of names umpires pick from when setting up or editing a match: venues (where it's
+ * played, not tied to any club, as clubs share grounds) and competitions. Umpires add ones
+ * that are missing as they go; admins tidy the lists (rename, delete). A match keeps the
+ * name as text, so changing a list never changes a match.
  */
 
 /** As long as a match document's venue or competition can be. */
@@ -82,18 +84,32 @@ export const listRoutes =
         },
       );
 
-      app.post(`/${path}`, { schema: { tags, body: z.strictObject({ name: Name }) } }, async (request, reply) => {
-        const actor = requireRole(request, "admin");
-        const { name } = request.body;
-        const row = await uniqueName(() =>
-          db.transaction(async (tx) => {
-            const [created] = await tx.insert(table).values({ name }).returning();
-            await audit(tx, actor.id, "create", entity, created!.id, { name });
-            return created!;
-          }),
-        );
-        return reply.code(201).send(dto(row));
-      });
+      app.post(
+        `/${path}`,
+        {
+          schema: {
+            tags,
+            summary: `Add a ${noun} (umpires and admins). One that's already there, in any capitals, is answered with 200 and not added again.`,
+            body: z.strictObject({ name: Name }),
+          },
+        },
+        async (request, reply) => {
+          const actor = requireActor(request);
+          if (!canAddToLists(actor)) throw forbidden();
+          // Spaces tidied, so "Banbury  Road" doesn't sit next to "Banbury Road".
+          const name = request.body.name.replace(/\s+/g, " ");
+          const [existing] = await db.select().from(table).where(sql`lower(${table.name}) = lower(${name})`);
+          if (existing) return reply.code(200).send(dto(existing));
+          const row = await uniqueName(() =>
+            db.transaction(async (tx) => {
+              const [created] = await tx.insert(table).values({ name }).returning();
+              await audit(tx, actor.id, "create", entity, created!.id, { name });
+              return created!;
+            }),
+          );
+          return reply.code(201).send(dto(row));
+        },
+      );
 
       app.patch(`/${path}/:id`, { schema: { tags, params: Params, body: z.strictObject({ name: Name }) } }, async (request) => {
         const actor = requireRole(request, "admin");

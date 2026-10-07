@@ -16,7 +16,11 @@ describe.each([
     const res = await add(admin.headers, examples[0]!);
     expect(res.statusCode).toBe(201);
     expect(res.json()).toEqual({ id: expect.any(String), name: examples[0] });
-    expect((await add(admin.headers, examples[0]!)).statusCode).toBe(409);
+    // Renaming onto a name that's taken is refused.
+    const other = await add(admin.headers, examples[2]!);
+    const clash = await t.app.inject({ method: "PATCH", url: `/v1/${path}/${res.json().id}`, headers: admin.headers, payload: { name: examples[2] } });
+    expect(clash.statusCode).toBe(409);
+    await t.app.inject({ method: "DELETE", url: `/v1/${path}/${other.json().id}`, headers: admin.headers });
 
     const rename = await t.app.inject({ method: "PATCH", url: `/v1/${path}/${res.json().id}`, headers: admin.headers, payload: { name: examples[1] } });
     expect(rename.json().name).toBe(examples[1]);
@@ -27,11 +31,28 @@ describe.each([
     expect(await names(`/v1/${path}`)).toEqual([]);
   });
 
-  it("leaves them to admins: not club admins or umpires", async () => {
+  it("lets umpires add a missing one, but leaves renaming and deleting to admins", async () => {
+    const umpire = await t.createUser();
+    const res = await add(umpire.headers, examples[0]!);
+    expect(res.statusCode).toBe(201);
+    const id = res.json().id;
+    expect((await t.app.inject({ method: "PATCH", url: `/v1/${path}/${id}`, headers: umpire.headers, payload: { name: "Other" } })).statusCode).toBe(403);
+    expect((await t.app.inject({ method: "DELETE", url: `/v1/${path}/${id}`, headers: umpire.headers })).statusCode).toBe(403);
+
+    // Signed in, but not an umpire.
     const { club } = await t.createClub("Oxford Hawks");
     const clubAdmin = await t.createUser({ roles: ["club_admin"], clubId: club.id });
-    expect((await add(clubAdmin.headers, examples[0]!)).statusCode).toBe(403);
-    expect((await add((await t.createUser()).headers, examples[0]!)).statusCode).toBe(403);
+    expect((await add(clubAdmin.headers, examples[1]!)).statusCode).toBe(403);
+    expect((await t.app.inject({ method: "POST", url: `/v1/${path}`, payload: { name: examples[1] } })).statusCode).toBe(401);
+  });
+
+  it("answers with the one already there, whatever its capitals and spaces", async () => {
+    const umpire = await t.createUser();
+    const first = await add(umpire.headers, examples[0]!);
+    const again = await add(umpire.headers, `  ${examples[0]!.toUpperCase().replace(" ", "   ")} `);
+    expect(again.statusCode).toBe(200);
+    expect(again.json()).toEqual(first.json());
+    expect(await names(`/v1/${path}`)).toEqual([examples[0]]);
   });
 
   it("lists them publicly, and finds them by every word typed", async () => {

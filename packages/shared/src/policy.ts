@@ -28,6 +28,14 @@ export function hasRole(actor: Actor | null | undefined, role: Role): boolean {
   return !!actor && actor.roles.includes(role);
 }
 
+/**
+ * Adding a venue or competition the lists don't have yet, while setting up or editing a
+ * match: umpires and admins. Renaming and deleting stay with admins.
+ */
+export function canAddToLists(actor: Actor | null | undefined): boolean {
+  return hasRole(actor, "umpire") || hasRole(actor, "admin");
+}
+
 const isMatchUmpire = (actor: Actor, match: MatchAccess) =>
   hasRole(actor, "umpire") && match.umpireUserIds.includes(actor.id);
 
