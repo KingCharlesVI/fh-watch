@@ -27,7 +27,10 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
+  type AddResult,
   type SaveResult,
+  addCompetition,
+  addVenue,
   saveMatch,
   searchCompetitions,
   searchTeams,
@@ -114,15 +117,22 @@ export function MatchEditor({ initial }: { initial: FullMatch }) {
               id="competition"
               value={doc.competition ?? ""}
               search={searchCompetitions}
+              add={{ noun: "competition", run: addCompetition }}
               onChange={(v) => update((d) => void (d.competition = v || null))}
             />
           </Field>
           <Field>
             <FieldLabel htmlFor="venue">Venue</FieldLabel>
-            <Suggest id="venue" value={doc.venue ?? ""} search={searchVenues} onChange={(v) => update((d) => void (d.venue = v || null))} />
+            <Suggest
+              id="venue"
+              value={doc.venue ?? ""}
+              search={searchVenues}
+              add={{ noun: "venue", run: addVenue }}
+              onChange={(v) => update((d) => void (d.venue = v || null))}
+            />
           </Field>
         </FieldGroup>
-        <FieldDescription className="mt-3">Type anything, or pick from the site&apos;s lists as you type.</FieldDescription>
+        <FieldDescription className="mt-3">Type anything, or pick from the site&apos;s lists as you type. One that isn&apos;t there can be added.</FieldDescription>
       </Section>
 
       <UmpiresEditor matchId={initial.match.id} initialUmpires={initial.match.umpires} />
@@ -321,42 +331,66 @@ function Search<T extends { id: string }>({
   );
 }
 
+type Named = { id: string; name: string };
+
 /**
  * A text field that offers names from one of the site's lists (venues, competitions) as
- * you type: pick one, or keep what you typed. The match keeps the text either way.
+ * you type: pick one, or keep what you typed. A name the list doesn't have can be added
+ * to it from here. The match keeps the text either way.
  */
 function Suggest({
   id,
   value,
   search,
+  add,
   onChange,
 }: {
   id: string;
   value: string;
-  search: (q: string) => Promise<{ id: string; name: string }[]>;
+  search: (q: string) => Promise<Named[]>;
+  /** Adds what's typed to the list; `noun` says what it is, e.g. "venue". */
+  add: { noun: string; run: (name: string) => Promise<AddResult> };
   onChange: (value: string) => void;
 }) {
   const [focused, setFocused] = useState(false);
-  const [results, setResults] = useState<{ id: string; name: string }[]>([]);
+  // What was searched for, and what came back: the add option waits until the list has answered.
+  const [found, setFound] = useState<{ q: string; items: Named[] } | null>(null);
+  const [adding, setAdding] = useState(false);
   const latest = useRef(0);
-  const q = value.trim();
+  const q = value.trim().replace(/\s+/g, " ");
 
   useEffect(() => {
     const ticket = ++latest.current;
     if (!focused || q.length < 2) {
-      setResults([]);
+      setFound(null);
       return;
     }
     const timer = setTimeout(async () => {
-      const found = await search(q).catch(() => []);
-      if (ticket === latest.current) setResults(found.slice(0, 8));
+      const items = await search(q).catch(() => null);
+      if (ticket === latest.current) setFound(items && { q, items: items.slice(0, 8) });
     }, 250);
     return () => clearTimeout(timer);
   }, [q, focused, search]);
 
+  const same = (s: string) => s.toLowerCase() === q.toLowerCase();
+  const results = found?.q === q ? found.items : [];
   // Nothing to offer once what's typed is one of them.
-  const shown = results.filter((r) => r.name.toLowerCase() !== q.toLowerCase());
+  const shown = results.filter((r) => !same(r.name));
+  // Once added, it's among the results, so this goes by itself.
+  const canAdd = found?.q === q && !results.some((r) => same(r.name));
+  const open = shown.length > 0 || canAdd;
 
+  async function addTyped() {
+    setAdding(true);
+    const res = await add.run(q);
+    setAdding(false);
+    if (!res.ok) return void toast.error(`Couldn't add it: ${res.error}`);
+    toast.success(`Added “${res.name}” to the ${add.noun}s.`);
+    onChange(res.name);
+    setFound({ q: res.name, items: [{ id: "added", name: res.name }, ...results] });
+  }
+
+  const option = "flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground";
   return (
     <div className="relative">
       <Input
@@ -365,30 +399,38 @@ function Suggest({
         maxLength={120}
         autoComplete="off"
         role="combobox"
-        aria-expanded={shown.length > 0}
+        aria-expanded={open}
         aria-controls={`${id}-options`}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
       />
-      {shown.length > 0 && (
-        <ul id={`${id}-options`} role="listbox" className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-md">
+      {open && (
+        <ul id={`${id}-options`} role="listbox" className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-md">
           {shown.map((r) => (
             <li key={r.id} role="option" aria-selected={false}>
               <button
                 type="button"
-                className="w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                className={option}
                 // Before the field's blur, which would close the list first.
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  onChange(r.name.slice(0, 120));
-                  setResults([]);
-                }}
+                onClick={() => onChange(r.name.slice(0, 120))}
               >
                 {r.name}
               </button>
             </li>
           ))}
+          {canAdd && (
+            <li role="option" aria-selected={false} className={cn(shown.length > 0 && "mt-1 border-t pt-1")}>
+              <button type="button" className={option} disabled={adding} onMouseDown={(e) => e.preventDefault()} onClick={() => void addTyped()}>
+                <Plus className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  <span className="text-primary">{adding ? `Adding “${q}”…` : `Add “${q}” as a new ${add.noun}`}</span>
+                  <span className="block text-xs text-muted-foreground">For everyone to pick from. Only add it if the list doesn&apos;t have it already.</span>
+                </span>
+              </button>
+            </li>
+          )}
         </ul>
       )}
     </div>
