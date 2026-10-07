@@ -26,7 +26,7 @@ import { TEAM_COLOURS } from "@/core/setup";
 import { ONLINE } from "@/config";
 import { DirectoryField } from "@/features/directory-field";
 import { api, sync } from "@/services";
-import { searchCompetitions, searchVenues } from "@/services/directory";
+import { searchCompetitions, searchVenues, useListAdders } from "@/services/directory";
 import { useMatch } from "@/state/sync";
 import { Badge, Banner, Button, Card, Choice, Field, Row, Screen, Swatch, T, Text } from "@/ui/kit";
 import { space, useColors } from "@/ui/theme";
@@ -42,6 +42,7 @@ export default function EditMatchScreen() {
   const [umpires, setUmpires] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
   const navigation = useNavigation();
+  const adders = useListAdders();
 
   useEffect(() => {
     if (saved && !doc) setDoc(saved);
@@ -123,6 +124,7 @@ export default function EditMatchScreen() {
           value={doc.competition ?? ""}
           maxLength={120}
           search={searchCompetitions}
+          add={adders.competition}
           icon="trophy-outline"
           onChangeText={(v) => update((d) => void (d.competition = v || null))}
         />
@@ -131,6 +133,7 @@ export default function EditMatchScreen() {
           value={doc.venue ?? ""}
           maxLength={120}
           search={searchVenues}
+          add={adders.venue}
           icon="location-outline"
           onChangeText={(v) => update((d) => void (d.venue = v || null))}
         />

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Switch, View } from "react-native";
 import { COLOUR_NAMES, PRESETS, TEAM_COLOURS, type WatchSetup, hasHalfTime, presetOf, setupErrors } from "@/core/setup";
 import { DirectoryField } from "@/features/directory-field";
-import { searchTeams, searchVenues } from "@/services/directory";
+import { searchTeams, searchVenues, useListAdders } from "@/services/directory";
 import { Card, Choice, Field, Row, Swatch, T } from "@/ui/kit";
 import { space, useColors } from "@/ui/theme";
 
@@ -31,6 +31,7 @@ export function SetupForm({ setup, onChange }: { setup: WatchSetup; onChange: (c
     },
   });
   const preset = presetOf(setup);
+  const adders = useListAdders();
 
   return (
     <>
@@ -88,7 +89,7 @@ export function SetupForm({ setup, onChange }: { setup: WatchSetup; onChange: (c
       ))}
 
       <Card title="Venue">
-        <DirectoryField label="Where (optional)" value={setup.venue ?? ""} maxLength={120} search={searchVenues} icon="location-outline" onChangeText={(v) => onChange({ venue: v })} />
+        <DirectoryField label="Where (optional)" value={setup.venue ?? ""} maxLength={120} search={searchVenues} add={adders.venue} icon="location-outline" onChangeText={(v) => onChange({ venue: v })} />
       </Card>
     </>
   );
