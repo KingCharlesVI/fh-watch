@@ -16,4 +16,6 @@ export type {
   TokenPair,
   Umpire,
   User,
+  Venue,
+  VenueWithClub,
 } from "@fh/shared";

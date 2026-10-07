@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { api } from "@/lib/api";
 import { type FormState, formError, optionalText, text } from "@/lib/forms";
-import type { Club, ClubRequest, Team } from "@/lib/types";
+import type { Club, ClubRequest, Team, Venue } from "@/lib/types";
 
 const done = (ok: string, ...paths: string[]): FormState => {
   for (const p of paths) revalidatePath(p);
@@ -164,6 +164,36 @@ export async function deleteTeam(_: FormState, fd: FormData): Promise<FormState>
     return formError(err);
   }
   return done("Team deleted.", `/admin/clubs/${clubId}`);
+}
+
+export async function createVenue(_: FormState, fd: FormData): Promise<FormState> {
+  const clubId = text(fd, "clubId");
+  try {
+    await api<Venue>(`/v1/clubs/${clubId}/venues`, { method: "POST", body: { name: text(fd, "name") } });
+  } catch (err) {
+    return formError(err);
+  }
+  return done("Venue added.", `/admin/clubs/${clubId}`);
+}
+
+export async function renameVenue(_: FormState, fd: FormData): Promise<FormState> {
+  const clubId = text(fd, "clubId");
+  try {
+    await api(`/v1/clubs/${clubId}/venues/${text(fd, "venueId")}`, { method: "PATCH", body: { name: text(fd, "name") } });
+  } catch (err) {
+    return formError(err);
+  }
+  return done("Saved.", `/admin/clubs/${clubId}`);
+}
+
+export async function deleteVenue(_: FormState, fd: FormData): Promise<FormState> {
+  const clubId = text(fd, "clubId");
+  try {
+    await api(`/v1/clubs/${clubId}/venues/${text(fd, "venueId")}`, { method: "DELETE" });
+  } catch (err) {
+    return formError(err);
+  }
+  return done("Venue deleted.", `/admin/clubs/${clubId}`);
 }
 
 // ---- Testing requests ----
