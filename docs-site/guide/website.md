@@ -19,7 +19,7 @@ Register with your email address, in the phone app (**Create an account** on the
 
 Both umpires on a match can edit it; the website keeps every revision.
 
-The **Dashboard** lists your matches, with downloads of them all. A match's **Edit** page has the same fixes as the phone app, for doing them at a desk.
+The **Dashboard** lists your matches, with downloads of them all. A match's **Edit** page has the same fixes as the phone app, for doing them at a desk: link each team to its club team, and type the venue and competition or pick them from the site's lists.
 
 ## For clubs
 
@@ -27,6 +27,11 @@ Club admins keep their club's **teams** up to date from **manage teams** on the 
 
 Anyone can ask for a new club, or to be a club's admin, from their account page; an admin approves it.
 
-## Venues
+## Venues and competitions
 
-The site keeps one list of venues, the grounds matches are played at (e.g. `Banbury Road, Oxford`), apart from the clubs, since clubs often share a ground. The phone app offers them when an umpire sets up a match. Admins keep the list under **Admin → Venues**; a match keeps its venue as text, so renaming or deleting one doesn't change matches already played there. To have one added, ask an admin.
+The site keeps two lists that umpires pick from, apart from the clubs:
+
+- **Venues**, the grounds matches are played at (e.g. `Banbury Road, Oxford`): offered when setting up a match in the phone app, and when editing one in the app or here. They aren't tied to a club, since clubs often share a ground.
+- **Competitions**, the leagues and cups (e.g. `South League Premier`): offered when editing a match.
+
+Admins keep them under **Admin → Venues** and **Admin → Competitions**. A match keeps its venue and competition as text, so renaming or deleting one doesn't change matches already played. To have one added, ask an admin.

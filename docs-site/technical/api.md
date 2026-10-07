@@ -51,10 +51,10 @@ An account has one or more roles. What each role can do is defined in [`packages
 
 | Role | Can |
 | --- | --- |
-| *Public* (no token) | See published matches, clubs, teams and venues |
+| *Public* (no token) | See published matches, clubs, teams, venues and competitions |
 | `umpire` | Upload matches; edit, publish and see the history of matches they umpired |
 | `club_admin` | See their club's matches, including drafts; add and rename their club's teams |
-| `admin` | Everything: users, clubs, club logos, venues, requests, deleting matches |
+| `admin` | Everything: users, clubs, club logos, venues, competitions, requests, deleting matches |
 
 A match the caller isn't allowed to see answers `404`, not `403`, so draft matches can't be found by guessing IDs.
 
@@ -137,16 +137,16 @@ The match document itself is described in [The match format](technical/match-for
 | 🔑 | `PATCH /clubs/:id/teams/:teamId` | Rename a team (admins, or that club's admin) |
 | 🛡️ | `DELETE /clubs/:id/teams/:teamId` | Delete a team; its matches keep the name |
 
-### Venues
+### Venues and competitions
 
-One list of the grounds matches are played at, not tied to any club. A match keeps its venue as text, so changing the list never changes a match.
+Two lists of names that umpires pick from: the grounds matches are played at (not tied to any club), and the leagues and cups. Both work the same way, at `/venues` and `/competitions`. A match keeps its venue and competition as text, so changing a list never changes a match.
 
 | | Route | |
 | --- | --- | --- |
-| 🔓 | `GET /venues?q=` | Every venue by name; with `q`, those whose name has every word of it, e.g. `banbury road` |
-| 🛡️ | `POST /venues` | Add a venue, `{ name }`: 2 to 120 characters, unique |
-| 🛡️ | `PATCH /venues/:id` | Rename it |
-| 🛡️ | `DELETE /venues/:id` | Delete it |
+| 🔓 | `GET /venues?q=` · `GET /competitions?q=` | All of them by name; with `q`, those whose name has every word of it, e.g. `banbury road` |
+| 🛡️ | `POST /venues` · `POST /competitions` | Add one, `{ name }`: 2 to 120 characters, unique |
+| 🛡️ | `PATCH /venues/:id` · `PATCH /competitions/:id` | Rename it |
+| 🛡️ | `DELETE /venues/:id` · `DELETE /competitions/:id` | Delete it |
 
 ### Requests
 

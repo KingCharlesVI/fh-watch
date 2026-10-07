@@ -55,7 +55,7 @@ Each can be saved to a folder you pick (**Save to phone**) or shared:
 
 **Edit match** fixes anything the watch got wrong, or adds what it didn't record:
 
-- **Details**: competition and venue.
+- **Details**: competition and venue. Type them, or pick from the website's lists as you type (e.g. `south` for **South League Premier**).
 - **Teams**: names, colours and captains, and the **club team** each one is: search for it (e.g. `hawks m1`) to link it, which puts the match on the club's pages on the website.
 - **Umpires**: your colleague. Search for them if they have an account (they can then edit the match too), or type their name if they don't.
 - **Events**: add a goal, card, penalty corner, stroke or note at a period and time; cancel an event (it's kept, struck through, and can be restored); add or change a card's reason.
