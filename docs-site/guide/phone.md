@@ -14,6 +14,8 @@ Matches from the watch arrive by themselves, even when the app is closed, and ap
 
 Pull down on the list to check for anything waiting.
 
+To find a match, type in the box above the list: a team, club, competition or venue (e.g. `hawks cup`). Every word has to be in one of them, and the tabs count only what's found.
+
 ## A match
 
 Opening a match shows:

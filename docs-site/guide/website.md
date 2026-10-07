@@ -4,7 +4,7 @@ The website, at [app.fhmatchcentre.com](https://app.fhmatchcentre.com), is where
 
 ## For everyone
 
-- **Matches**: published results, newest first, with the score, timeline, cards and statistics.
+- **Matches**: published results, newest first, with the score, timeline, cards and statistics. Filter them by club, team, competition or venue.
 - **Clubs**: each club's teams and their matches.
 - A match can be downloaded as a report (PDF), a spreadsheet (CSV) or data (JSON).
 
@@ -19,7 +19,7 @@ Register with your email address, in the phone app (**Create an account** on the
 
 Both umpires on a match can edit it; the website keeps every revision.
 
-The **Dashboard** lists your matches, with downloads of them all. A match's **Edit** page has the same fixes as the phone app, for doing them at a desk: link each team to its club team, and type the venue and competition or pick them from the site's lists.
+The **Dashboard** lists your matches, with downloads of them all. Filter them by status, dates, club, team, competition and venue: pick a club to choose one of its teams, and type a competition or venue or pick it from the site's lists (any name containing what you type counts). The CSV download has the same filters. A match's **Edit** page has the same fixes as the phone app, for doing them at a desk: link each team to its club team, and type the venue and competition or pick them from the site's lists.
 
 ## For clubs
 
