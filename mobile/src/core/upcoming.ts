@@ -108,3 +108,64 @@ export function playedUpcoming(list: readonly UpcomingMatch[], played: readonly 
     )
     .map((u) => u.id);
 }
+
+/** Where the list is kept: expo-sqlite's key-value store on the phone, a Map in tests. */
+export interface KeyValueStorage {
+  getItem(key: string): Promise<string | null>;
+  setItem(key: string, value: string): Promise<void>;
+}
+
+/**
+ * The list, kept as one small JSON value. It's read once; after that, each save and delete
+ * builds on the one before, not on what was first read, so none is lost.
+ */
+export function upcomingStore(storage: KeyValueStorage, key = "upcomingMatches") {
+  let list: UpcomingMatch[] | null = null;
+  const listeners = new Set<() => void>();
+  const set = (next: UpcomingMatch[]) => {
+    list = next;
+    for (const l of listeners) l();
+  };
+
+  let loading: Promise<void> | null = null;
+  /** The current list, read from storage the first time. */
+  async function load(): Promise<UpcomingMatch[]> {
+    await (loading ??= storage
+      .getItem(key)
+      .catch(() => null)
+      .then((saved) => {
+        // Something saved meanwhile wins over what was read.
+        if (list === null) set(readUpcoming(saved));
+      }));
+    return list!;
+  }
+
+  /**
+   * Makes a change to the list as it is now. The change is worked out straight after the
+   * list is loaded, with nothing awaited in between, so two at once both land.
+   */
+  async function update(change: (current: UpcomingMatch[]) => UpcomingMatch[]) {
+    await load();
+    const next = change(list!);
+    set(next);
+    await storage.setItem(key, JSON.stringify(next));
+  }
+
+  return {
+    load,
+    /** The list (null until it's loaded), unsorted. */
+    current: () => list,
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    save: (match: UpcomingMatch) => update((current) => saveUpcoming(current, match)),
+    remove: (id: string) => update((current) => removeUpcoming(current, id)),
+    async removeAll(ids: readonly string[]) {
+      if (ids.length === 0) return;
+      await update((current) => current.filter((u) => !ids.includes(u.id)));
+    },
+  };
+}
