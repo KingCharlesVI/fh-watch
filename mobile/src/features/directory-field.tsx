@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type ComponentProps, useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { ONLINE } from "@/config";
 import { Field, Ionicons, Text } from "@/ui/kit";
@@ -22,6 +22,7 @@ export function DirectoryField({
   value,
   onChangeText,
   search,
+  icon,
   error,
   maxLength,
   placeholder,
@@ -30,6 +31,8 @@ export function DirectoryField({
   value: string;
   onChangeText: (v: string) => void;
   search: (q: string) => Promise<Suggestion[]>;
+  /** Beside each suggestion. */
+  icon: ComponentProps<typeof Ionicons>["name"];
   error?: string;
   maxLength: number;
   placeholder?: string;
@@ -84,7 +87,7 @@ export function DirectoryField({
               }}
               style={({ pressed }) => [styles.row, i > 0 && { borderTopWidth: 1, borderTopColor: c.border }, pressed && { backgroundColor: c.subtle }]}
             >
-              <Ionicons name="business-outline" size={16} color={c.muted} />
+              <Ionicons name={icon} size={16} color={c.muted} />
               <View style={{ flex: 1 }}>
                 <Text style={{ color: c.text }}>{r.value}</Text>
                 {r.detail && <Text style={{ color: c.muted, fontSize: 13 }}>{r.detail}</Text>}

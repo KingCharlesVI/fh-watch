@@ -53,8 +53,8 @@ An account has one or more roles. What each role can do is defined in [`packages
 | --- | --- |
 | *Public* (no token) | See published matches, clubs, teams and venues |
 | `umpire` | Upload matches; edit, publish and see the history of matches they umpired |
-| `club_admin` | See their club's matches, including drafts; add and rename their club's teams; add, rename and delete its venues |
-| `admin` | Everything: users, clubs, club logos, requests, deleting matches |
+| `club_admin` | See their club's matches, including drafts; add and rename their club's teams |
+| `admin` | Everything: users, clubs, club logos, venues, requests, deleting matches |
 
 A match the caller isn't allowed to see answers `404`, not `403`, so draft matches can't be found by guessing IDs.
 
@@ -119,28 +119,34 @@ A match the caller isn't allowed to see answers `404`, not `403`, so draft match
 
 The match document itself is described in [The match format](technical/match-format.md).
 
-### Clubs, teams and venues
+### Clubs and teams
 
 | | Route | |
 | --- | --- | --- |
 | 🔓 | `GET /clubs?q=` | All clubs, by name |
-| 🔓 | `GET /clubs/:idOrSlug` | A club, its teams and its venues |
+| 🔓 | `GET /clubs/:idOrSlug` | A club and its teams |
 | 🔓 | `GET /clubs/:id/teams` | A club's teams |
-| 🔓 | `GET /clubs/:id/venues` | A club's venues |
 | 🔓 | `GET /teams?q=` | Search teams by club and team name, e.g. `hawks m1` |
-| 🔓 | `GET /venues?q=` | Search venues by club and venue name, e.g. `hawks pitch` |
 | 🔓 | `GET /clubs/:id/logo` | The club's logo image. Clubs give its path as `logoUrl`, which changes when the logo does |
 | 🛡️ | `POST /clubs` | Add a club |
 | 🛡️ | `PATCH /clubs/:id` | Rename it or change its web address |
-| 🛡️ | `DELETE /clubs/:id` | Delete it, its teams and its venues |
+| 🛡️ | `DELETE /clubs/:id` | Delete it and its teams |
 | 🛡️ | `PUT /clubs/:id/logo` | Set its logo: the image itself as the body, with `Content-Type: image/png`, `image/jpeg` or `image/webp`, up to 512 KB |
 | 🛡️ | `DELETE /clubs/:id/logo` | Remove it; the initials show instead |
 | 🔑 | `POST /clubs/:id/teams` | Add a team (admins, or that club's admin) |
 | 🔑 | `PATCH /clubs/:id/teams/:teamId` | Rename a team (admins, or that club's admin) |
 | 🛡️ | `DELETE /clubs/:id/teams/:teamId` | Delete a team; its matches keep the name |
-| 🔑 | `POST /clubs/:id/venues` | Add a venue, `{ name }` up to 120 characters, unique in the club (admins, or that club's admin) |
-| 🔑 | `PATCH /clubs/:id/venues/:venueId` | Rename a venue (admins, or that club's admin) |
-| 🔑 | `DELETE /clubs/:id/venues/:venueId` | Delete a venue (admins, or that club's admin); matches keep their venue text |
+
+### Venues
+
+One list of the grounds matches are played at, not tied to any club. A match keeps its venue as text, so changing the list never changes a match.
+
+| | Route | |
+| --- | --- | --- |
+| 🔓 | `GET /venues?q=` | Every venue by name; with `q`, those whose name has every word of it, e.g. `banbury road` |
+| 🛡️ | `POST /venues` | Add a venue, `{ name }`: 2 to 120 characters, unique |
+| 🛡️ | `PATCH /venues/:id` | Rename it |
+| 🛡️ | `DELETE /venues/:id` | Delete it |
 
 ### Requests
 

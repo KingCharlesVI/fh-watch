@@ -17,5 +17,4 @@ export type {
   Umpire,
   User,
   Venue,
-  VenueWithClub,
 } from "@fh/shared";

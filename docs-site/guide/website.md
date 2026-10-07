@@ -23,9 +23,10 @@ The **Dashboard** lists your matches, with downloads of them all. A match's **Ed
 
 ## For clubs
 
-Club admins keep their club up to date from **manage club** on the **Dashboard** (or **Manage club** on the club's page):
-
-- **Teams**: add and rename them. Umpires link a match's teams to these, which puts the match on the club's pages, and the phone app offers them as team names when an umpire sets up a match.
-- **Venues**: where the club plays, e.g. `Banbury Road, Pitch 1`. Add, rename or delete them; the phone app offers them when an umpire sets up a match. Deleting one doesn't change matches already played there.
+Club admins keep their club's **teams** up to date from **manage teams** on the **Dashboard** (or **Manage club** on the club's page): add and rename them. Umpires link a match's teams to these, which puts the match on the club's pages, and the phone app offers them as team names when an umpire sets up a match.
 
 Anyone can ask for a new club, or to be a club's admin, from their account page; an admin approves it.
+
+## Venues
+
+The site keeps one list of venues, the grounds matches are played at (e.g. `Banbury Road, Oxford`), apart from the clubs, since clubs often share a ground. The phone app offers them when an umpire sets up a match. Admins keep the list under **Admin → Venues**; a match keeps its venue as text, so renaming or deleting one doesn't change matches already played there. To have one added, ask an admin.

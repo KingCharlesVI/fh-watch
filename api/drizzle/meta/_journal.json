@@ -43,6 +43,13 @@
       "when": 1791379755898,
       "tag": "0005_venues",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791380260617,
+      "tag": "0006_venues_without_clubs",
+      "breakpoints": true
     }
   ]
 }

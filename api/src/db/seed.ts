@@ -64,12 +64,9 @@ async function seed() {
     }
   }
   const hawksId = (await db.select().from(clubs).where(eq(clubs.name, "Oxford Hawks")))[0]!.id;
-  const readingId = (await db.select().from(clubs).where(eq(clubs.name, "Reading")))[0]!.id;
-  await db.insert(venues).values([
-    { clubId: hawksId, name: "Banbury Road, Pitch 1" },
-    { clubId: hawksId, name: "Banbury Road, Pitch 2" },
-    { clubId: readingId, name: "Sonning Lane" },
-  ]);
+  await db
+    .insert(venues)
+    .values([{ name: "Banbury Road, Oxford" }, { name: "Sonning Lane, Reading" }, { name: "Lambridge, Bath" }, { name: "Coombe Dingle, Bristol" }]);
 
   const passwordHash = await hashPassword(DEMO_PASSWORD);
   const makeUser = async (email: string, displayName: string, roles: Role[], clubId: string | null = null) => {

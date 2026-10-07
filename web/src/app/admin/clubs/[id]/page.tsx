@@ -2,18 +2,7 @@ import { canEditTeams, hasRole } from "@fh/shared";
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import {
-  createTeam,
-  createVenue,
-  deleteClub,
-  deleteTeam,
-  deleteVenue,
-  removeClubLogo,
-  renameClub,
-  renameTeam,
-  renameVenue,
-  setClubLogo,
-} from "@/app/actions/admin";
+import { createTeam, deleteClub, deleteTeam, removeClubLogo, renameClub, renameTeam, setClubLogo } from "@/app/actions/admin";
 import { ActionForm } from "@/components/ActionForm";
 import { ClubBadge } from "@/components/ClubBadge";
 import { LogoField } from "@/components/LogoField";
@@ -28,7 +17,7 @@ import type { ClubWithTeams } from "@/lib/types";
 
 export const metadata = { title: "Manage club" };
 
-/** Admins manage any club here; a club admin manages their own club's teams and venues. */
+/** Admins manage any club here; a club admin manages their own club's teams. */
 export default async function ManageClubPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireUser(`/admin/clubs/${id}`);
@@ -88,41 +77,6 @@ export default async function ManageClubPage({ params }: { params: Promise<{ id:
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Venues</CardTitle>
-          <CardDescription>Where the club plays. Umpires pick from these when they set up a match in the phone app.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {club.venues.length === 0 && <p className="text-muted-foreground">No venues yet.</p>}
-          {club.venues.map((v) => (
-            <div key={v.id} className="flex flex-wrap items-end gap-2">
-              <ActionForm action={renameVenue} submitLabel="Rename" variant="outline" inline>
-                <input type="hidden" name="clubId" value={club.id} />
-                <input type="hidden" name="venueId" value={v.id} />
-                <Input name="name" defaultValue={v.name} required minLength={2} maxLength={120} aria-label={`Name of ${v.name}`} className="w-72" />
-              </ActionForm>
-              <ActionForm
-                action={deleteVenue}
-                submitLabel="Delete"
-                variant="destructive"
-                inline
-                confirm={{ title: `Delete ${v.name}?`, description: "Matches played there keep the venue's name." }}
-              >
-                <input type="hidden" name="clubId" value={club.id} />
-                <input type="hidden" name="venueId" value={v.id} />
-              </ActionForm>
-            </div>
-          ))}
-          <div className="border-t pt-4">
-            <ActionForm action={createVenue} submitLabel="Add venue" inline>
-              <input type="hidden" name="clubId" value={club.id} />
-              <Input name="name" placeholder="e.g. Banbury Road, Pitch 1" required minLength={2} maxLength={120} aria-label="New venue name" className="w-72" />
-            </ActionForm>
-          </div>
-        </CardContent>
-      </Card>
-
       {isAdmin && (
         <>
           <Card>
@@ -173,14 +127,14 @@ export default async function ManageClubPage({ params }: { params: Promise<{ id:
           <Card className="border-destructive/30">
             <CardHeader>
               <CardTitle>Delete club</CardTitle>
-              <CardDescription>Deletes its teams and venues too. Its club admins lose that role; matches keep their team and venue names.</CardDescription>
+              <CardDescription>Deletes its teams too. Its club admins lose that role; matches keep their team names.</CardDescription>
             </CardHeader>
             <CardContent>
               <ActionForm
                 action={deleteClub}
                 submitLabel="Delete club"
                 variant="destructive"
-                confirm={{ title: `Delete ${club.name}?`, description: "This deletes the club and all its teams and venues. It can't be undone." }}
+                confirm={{ title: `Delete ${club.name}?`, description: "This deletes the club and all its teams. It can't be undone." }}
               >
                 <input type="hidden" name="id" value={club.id} />
               </ActionForm>

@@ -10,9 +10,8 @@ import { space, useColors } from "@/ui/theme";
 const searchTeams = async (q: string): Promise<Suggestion[]> =>
   (await api.searchTeams(q)).items.map((t) => ({ id: t.id, value: `${t.club.name} ${t.name}` }));
 
-/** Club venues: "Oxford Hawks, Pitch 1". */
-const searchVenues = async (q: string): Promise<Suggestion[]> =>
-  (await api.searchVenues(q)).items.map((v) => ({ id: v.id, value: `${v.club.name}, ${v.name}` }));
+/** Venues, from the website's list: "Banbury Road, Oxford". */
+const searchVenues = async (q: string): Promise<Suggestion[]> => (await api.searchVenues(q)).items.map((v) => ({ id: v.id, value: v.name }));
 
 type NumberKey = "periods" | "periodMinutes" | "breakMinutes" | "halfTimeMinutes" | "homeCaptain" | "awayCaptain";
 
@@ -86,6 +85,7 @@ export function SetupForm({ setup, onChange }: { setup: WatchSetup; onChange: (c
             value={setup[`${side}Name`]}
             maxLength={80}
             search={searchTeams}
+            icon="shield-outline"
             onChangeText={(v) => onChange({ [`${side}Name`]: v })}
             error={errors[`${side}Name`]}
           />
@@ -95,7 +95,7 @@ export function SetupForm({ setup, onChange }: { setup: WatchSetup; onChange: (c
       ))}
 
       <Card title="Venue">
-        <DirectoryField label="Where (optional)" value={setup.venue ?? ""} maxLength={120} search={searchVenues} onChangeText={(v) => onChange({ venue: v })} />
+        <DirectoryField label="Where (optional)" value={setup.venue ?? ""} maxLength={120} search={searchVenues} icon="location-outline" onChangeText={(v) => onChange({ venue: v })} />
       </Card>
     </>
   );

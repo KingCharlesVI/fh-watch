@@ -166,34 +166,33 @@ export async function deleteTeam(_: FormState, fd: FormData): Promise<FormState>
   return done("Team deleted.", `/admin/clubs/${clubId}`);
 }
 
+// ---- Venues ----
+
 export async function createVenue(_: FormState, fd: FormData): Promise<FormState> {
-  const clubId = text(fd, "clubId");
   try {
-    await api<Venue>(`/v1/clubs/${clubId}/venues`, { method: "POST", body: { name: text(fd, "name") } });
+    await api<Venue>("/v1/venues", { method: "POST", body: { name: text(fd, "name") } });
   } catch (err) {
     return formError(err);
   }
-  return done("Venue added.", `/admin/clubs/${clubId}`);
+  return done("Venue added.", "/admin/venues");
 }
 
 export async function renameVenue(_: FormState, fd: FormData): Promise<FormState> {
-  const clubId = text(fd, "clubId");
   try {
-    await api(`/v1/clubs/${clubId}/venues/${text(fd, "venueId")}`, { method: "PATCH", body: { name: text(fd, "name") } });
+    await api(`/v1/venues/${text(fd, "id")}`, { method: "PATCH", body: { name: text(fd, "name") } });
   } catch (err) {
     return formError(err);
   }
-  return done("Saved.", `/admin/clubs/${clubId}`);
+  return done("Saved.", "/admin/venues");
 }
 
 export async function deleteVenue(_: FormState, fd: FormData): Promise<FormState> {
-  const clubId = text(fd, "clubId");
   try {
-    await api(`/v1/clubs/${clubId}/venues/${text(fd, "venueId")}`, { method: "DELETE" });
+    await api(`/v1/venues/${text(fd, "id")}`, { method: "DELETE" });
   } catch (err) {
     return formError(err);
   }
-  return done("Venue deleted.", `/admin/clubs/${clubId}`);
+  return done("Venue deleted.", "/admin/venues");
 }
 
 // ---- Testing requests ----
