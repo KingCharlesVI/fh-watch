@@ -62,7 +62,7 @@ export interface Preset {
 /** The watch's presets (Setup.PRESETS). */
 export const PRESETS: Preset[] = [
   { label: "4 × 15 min", periods: 4, periodMinutes: 15, breakMinutes: 2, halfTimeMinutes: 5 },
-  { label: "2 × 35 min", periods: 2, periodMinutes: 35, breakMinutes: 5, halfTimeMinutes: 5 },
+  { label: "2 × 35 min", periods: 2, periodMinutes: 35, breakMinutes: 10, halfTimeMinutes: 5 },
   { label: "2 × 30 min", periods: 2, periodMinutes: 30, breakMinutes: 5, halfTimeMinutes: 5 },
   { label: "2 × 25 min", periods: 2, periodMinutes: 25, breakMinutes: 5, halfTimeMinutes: 5 },
 ];
