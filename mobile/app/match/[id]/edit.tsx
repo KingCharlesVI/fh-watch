@@ -24,7 +24,9 @@ import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { errorMessage } from "@/core/api";
 import { TEAM_COLOURS } from "@/core/setup";
 import { ONLINE } from "@/config";
+import { DirectoryField } from "@/features/directory-field";
 import { api, sync } from "@/services";
+import { searchCompetitions, searchVenues } from "@/services/directory";
 import { useMatch } from "@/state/sync";
 import { Badge, Banner, Button, Card, Choice, Field, Row, Screen, Swatch, T, Text } from "@/ui/kit";
 import { space, useColors } from "@/ui/theme";
@@ -116,8 +118,22 @@ export default function EditMatchScreen() {
       <TeamEditor side="away" doc={doc} update={update} />
 
       <Card title="Details">
-        <Field label="Competition" value={doc.competition ?? ""} maxLength={120} onChangeText={(v) => update((d) => void (d.competition = v || null))} />
-        <Field label="Venue" value={doc.venue ?? ""} maxLength={120} onChangeText={(v) => update((d) => void (d.venue = v || null))} />
+        <DirectoryField
+          label="Competition"
+          value={doc.competition ?? ""}
+          maxLength={120}
+          search={searchCompetitions}
+          icon="trophy-outline"
+          onChangeText={(v) => update((d) => void (d.competition = v || null))}
+        />
+        <DirectoryField
+          label="Venue"
+          value={doc.venue ?? ""}
+          maxLength={120}
+          search={searchVenues}
+          icon="location-outline"
+          onChangeText={(v) => update((d) => void (d.venue = v || null))}
+        />
       </Card>
 
       {ONLINE ? <UmpiresCard id={id} /> : <LocalUmpires names={umpires ?? []} onChange={setUmpires} />}

@@ -1,17 +1,10 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Switch, View } from "react-native";
 import { COLOUR_NAMES, PRESETS, TEAM_COLOURS, type WatchSetup, hasHalfTime, presetOf, setupErrors } from "@/core/setup";
-import { DirectoryField, type Suggestion } from "@/features/directory-field";
-import { api } from "@/services";
+import { DirectoryField } from "@/features/directory-field";
+import { searchTeams, searchVenues } from "@/services/directory";
 import { Card, Choice, Field, Row, Swatch, T } from "@/ui/kit";
 import { space, useColors } from "@/ui/theme";
-
-/** Club teams, named as the website names them: "Oxford Hawks M1". */
-const searchTeams = async (q: string): Promise<Suggestion[]> =>
-  (await api.searchTeams(q)).items.map((t) => ({ id: t.id, value: `${t.club.name} ${t.name}` }));
-
-/** Venues, from the website's list: "Banbury Road, Oxford". */
-const searchVenues = async (q: string): Promise<Suggestion[]> => (await api.searchVenues(q)).items.map((v) => ({ id: v.id, value: v.name }));
 
 type NumberKey = "periods" | "periodMinutes" | "breakMinutes" | "halfTimeMinutes" | "homeCaptain" | "awayCaptain";
 

@@ -1,5 +1,6 @@
 import type {
   Club,
+  Competition,
   FullMatch,
   Items,
   Match,
@@ -151,6 +152,7 @@ export class ApiClient {
 
   searchTeams = (q: string) => this.request<Items<TeamWithClub>>("/v1/teams", { query: { q } });
   searchVenues = (q: string) => this.request<Items<Venue>>("/v1/venues", { query: { q } });
+  searchCompetitions = (q: string) => this.request<Items<Competition>>("/v1/competitions", { query: { q } });
   /** Public, so it works from the registration screen, before there's an account. */
   searchClubs = (q: string) => this.request<Items<Club>>("/v1/clubs", { query: { q }, auth: false });
   searchUmpires = (q: string) => this.request<Items<{ id: string; displayName: string }>>("/v1/umpires", { query: { q } });
