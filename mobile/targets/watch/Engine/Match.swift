@@ -93,9 +93,10 @@ private func rule(_ ok: Bool, _ message: @autoclosure () -> String) throws {
 enum Engine {
     static let defaultCards = CardDurations(green: 120, yellowShort: 300, yellowLong: 600)
 
-    static func newMatch(settings: MatchSettings, teams: Teams, venue: String?, now: Moment, id: String? = nil) throws -> MatchRecord {
+    static func newMatch(settings: MatchSettings, teams: Teams, venue: String?, now: Moment, id: String? = nil, competition: String? = nil) throws -> MatchRecord {
         try rule(settings.breakLengthsSec.count == settings.periods - 1, "Need \(settings.periods - 1) break lengths.")
         let trimmed = venue?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let league = competition?.trimmingCharacters(in: .whitespacesAndNewlines)
         return MatchRecord(
             document: MatchDocument(
                 schemaVersion: schemaVersion,
@@ -104,7 +105,7 @@ enum Engine {
                 settings: settings,
                 teams: teams,
                 venue: trimmed?.isEmpty == false ? trimmed : nil,
-                competition: nil,
+                competition: league?.isEmpty == false ? league : nil,
                 // Replaced when the first period starts.
                 startedAt: now.iso,
                 endedAt: nil,

@@ -34,6 +34,7 @@ struct SetupView: View {
             team(.home)
             team(.away)
             TextField("Venue", text: Binding(get: { setup.venue ?? "" }, set: { setup.venue = String($0.prefix(120)) }))
+            TextField("Competition", text: Binding(get: { setup.competition ?? "" }, set: { setup.competition = String($0.prefix(120)) }))
             Toggle("Shootout if drawn", isOn: $setup.shootoutIfDrawn)
             ChoiceButton(label: starting ? "Starting…" : "Ready", color: .brand) { start() }
                 .disabled(starting)
@@ -65,7 +66,7 @@ struct SetupView: View {
             _ = await controller.workout.requestAuthorization()
             controller.prefs.lastSetup = chosen
             do {
-                try controller.create(settings: chosen.settings(), teams: chosen.teams(), venue: chosen.venue)
+                try controller.create(settings: chosen.settings(), teams: chosen.teams(), venue: chosen.venue, competition: chosen.competition)
                 path = []
             } catch {
                 controller.refused = String(describing: error)

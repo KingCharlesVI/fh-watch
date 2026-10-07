@@ -117,11 +117,11 @@ class MatchController(
         if (record.clock.phase != Phase.READY) scope.launch { fitness.start(record.id) }
     }
 
-    suspend fun create(settings: MatchSettings, teams: Teams, venue: String?) {
+    suspend fun create(settings: MatchSettings, teams: Teams, venue: String?, competition: String? = null) {
         mutex.withLock {
             val now = now()
             createdAt = now.wallMs
-            val record = Engine.newMatch(settings, teams, venue, now)
+            val record = Engine.newMatch(settings, teams, venue, now, competition = competition)
             save(record)
             _active.value = record
         }

@@ -62,10 +62,10 @@ final class MatchController {
         if row.record.clock.phase != .ready { Task { await workout.recover() } }
     }
 
-    func create(settings: MatchSettings, teams: Teams, venue: String?) throws {
+    func create(settings: MatchSettings, teams: Teams, venue: String?, competition: String? = nil) throws {
         let now = currentMoment()
         createdAt = now.wallMs
-        let record = try Engine.newMatch(settings: settings, teams: teams, venue: venue, now: now)
+        let record = try Engine.newMatch(settings: settings, teams: teams, venue: venue, now: now, competition: competition)
         save(record)
         active = record
         startTicking()
