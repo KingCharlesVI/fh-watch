@@ -1,3 +1,31 @@
+## [1.1.2-beta.18] - 2026-10-07
+
+### 🚀 Features
+
+- *(api)* Club venues, managed like teams and searchable
+- *(web)* Manage a club's venues
+- *(mobile)* Pick teams and venues from the clubs when setting up a match
+- *(api)* Delete answered test and club requests after 12 months
+- *(deploy)* Keep the services' logs for 30 days
+- *(mobile)* Report a bug or suggest a feature on GitHub from Settings
+
+### 🐛 Bug Fixes
+
+- *(mobile)* No touch effect on the tab bar
+
+### 📚 Documentation
+
+- Bring the guide and docs up to date for the beta
+- The privacy policy for the beta, with accounts and uploads
+- The support pages say what account deletion and notifications really do
+
+### 🚜 Refactor
+
+- Venues are one list of their own, not a club's
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* V1.1.2 build 18
 ## [1.1.0-beta.17] - 2026-10-07
 
 ### 🚀 Features
