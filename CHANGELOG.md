@@ -1,3 +1,62 @@
+## [1.1.2-beta.18] - 2026-10-07
+
+### 🚀 Features
+
+- *(api)* Club venues, managed like teams and searchable
+- *(web)* Manage a club's venues
+- *(mobile)* Pick teams and venues from the clubs when setting up a match
+- *(api)* Delete answered test and club requests after 12 months
+- *(deploy)* Keep the services' logs for 30 days
+- *(mobile)* Report a bug or suggest a feature on GitHub from Settings
+
+### 🐛 Bug Fixes
+
+- *(mobile)* No touch effect on the tab bar
+
+### 📚 Documentation
+
+- Bring the guide and docs up to date for the beta
+- The privacy policy for the beta, with accounts and uploads
+- The support pages say what account deletion and notifications really do
+
+### 🚜 Refactor
+
+- Venues are one list of their own, not a club's
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* V1.1.2 build 18
+## [1.1.0-beta.17] - 2026-10-07
+
+### 🚀 Features
+
+- A 10-minute half-time in the 2 × 35 min preset
+- *(mobile)* Pick an upcoming match's day and kick-off with date and time pickers
+
+### 🐛 Bug Fixes
+
+- *(mobile)* Notifications show as on without a push token
+- Sending the watch app from the phone, and installing it on the watch
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* V1.1.1 build 17
+
+### 💼 Other
+
+- Update content.ts
+- Merge pull request #39 from KingCharlesVI/main
+
+minor changes
+- Update CHANGELOG.md
+## [1.1.0] - 2026-10-06
+
+### 💼 Other
+
+- Update content.ts
+- Merge pull request #39 from KingCharlesVI/main
+
+minor changes
 ## [1.1.0-beta.15] - 2026-10-05
 
 ### 🚀 Features

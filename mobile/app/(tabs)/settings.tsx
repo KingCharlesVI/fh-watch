@@ -7,6 +7,7 @@ import { API_URL, CHANNEL, ONLINE, WEB_URL } from "@/config";
 import { errorMessage } from "@/core/api";
 import { sync } from "@/services";
 import { saveBackup, shareBackup } from "@/services/export";
+import { reportBug, suggestFeature } from "@/services/feedback";
 import { HealthConnect, useHealthConnect } from "@/services/health";
 import { importFromFile, sampleMatch } from "@/services/import";
 import { useConnectedWatches, useWatchProblems, watchSyncAvailable } from "@/services/watch";
@@ -103,6 +104,22 @@ export default function SettingsScreen() {
         </Row>
         <Button title="Import from a file" variant="outline" icon="document-attach-outline" onPress={doImport} loading={importing} />
         <T variant="small">Reads a backup, or a match exported from this app or the website.</T>
+      </Card>
+
+      <Card title="Feedback">
+        <T variant="muted">
+          Found a bug, or want something new? Both go to the project&apos;s GitHub, which needs a free account. Issues there are public, so leave out
+          players&apos; names and anything private.
+        </T>
+        <Row>
+          <View style={{ flex: 1 }}>
+            <Button title="Report a bug" variant="outline" icon="bug-outline" onPress={() => void reportBug().catch((err) => Alert.alert("Couldn't open GitHub", errorMessage(err)))} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button title="Suggest a feature" variant="outline" icon="bulb-outline" onPress={() => void suggestFeature().catch((err) => Alert.alert("Couldn't open GitHub", errorMessage(err)))} />
+          </View>
+        </Row>
+        <T variant="small">A bug report starts with this app&apos;s version and your phone and watch models filled in.</T>
       </Card>
 
       <Card title="About">
@@ -208,10 +225,6 @@ function AccountCards({ notUploaded }: { notUploaded: number }) {
       <Card title="Notifications">
         {push?.state === "on" ? (
           <T variant="muted">On. You'll get a reminder when a match from your watch hasn't been uploaded 2 hours after it arrived.</T>
-        ) : push?.state === "unavailable" ? (
-          <Banner tone="warn" icon="notifications-off-outline" title="Not available">
-            {push.reason}
-          </Banner>
         ) : (
           <>
             <T variant="muted">Get a reminder when a match from your watch hasn't been uploaded 2 hours after it arrived.</T>

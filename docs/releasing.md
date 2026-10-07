@@ -17,24 +17,24 @@ git-cliff (for the changelog) is needed too: `cargo install git-cliff`, or `wing
 
 ## A test release (from `dev`)
 
-Replace `9` with the next build number, and `0.4.0` with the version in `version.json`.
+Replace `18` with the next build number, and `1.1.2` with the version in `version.json`. Test builds are beta builds (the phone app with accounts and the website), so the commands carry `--beta` and the tags say `beta`.
 
 **1. Bump the build.** In `version.json`, set `"build"` to one more than the last release:
 
 ```json
-{ "version": "0.4.0", "build": 9 }
+{ "version": "1.1.2", "build": 18 }
 ```
 
 **2. Add the changelog entry.** It lists the commits since the last release. To see it first, without changing anything:
 
 ```powershell
-git-cliff --unreleased --tag v0.4.0-alpha.9 -o -
+git-cliff --unreleased --tag v1.1.2-beta.18 -o -
 ```
 
 Then add it to the top of `CHANGELOG.md`:
 
 ```powershell
-git-cliff --unreleased --tag v0.4.0-alpha.9 --prepend CHANGELOG.md -o -
+git-cliff --unreleased --tag v1.1.2-beta.18 --prepend CHANGELOG.md -o -
 ```
 
 Always keep the `-o -`. `cliff.toml` names `CHANGELOG.md` as git-cliff's output, so without it git-cliff rewrites the whole file (and with `--unreleased`, down to just the new entry). If that happens, `git checkout -- CHANGELOG.md` puts it back.
@@ -43,7 +43,7 @@ Always keep the `-o -`. `cliff.toml` names `CHANGELOG.md` as git-cliff's output,
 
 ```powershell
 git add version.json CHANGELOG.md
-git commit -m "chore(release): prepare for v0.4.0-alpha.9"
+git commit -m "chore(release): prepare for v1.1.2-beta.18"
 git push
 ```
 
@@ -52,15 +52,15 @@ git push
 **4. Android: build the APKs and publish the GitHub release:**
 
 ```powershell
-pnpm release:github
+pnpm release:github --beta
 ```
 
-This makes the pre-release `v0.4.0-alpha.9`, with the phone and watch APKs and the same notes. Add `--dry-run` to build and see the notes without publishing.
+This makes the pre-release `v1.1.2-beta.18`, with the phone and watch APKs and the same notes. Add `--dry-run` to build and see the notes without publishing. (Without `--beta` it builds the alpha's phone app, with no accounts, and the tag says `alpha`.)
 
 **5. Google Play: upload the same build to internal testing** (needs the one-time setup in [play-store.md](play-store.md#5-uploading-from-the-command-line)):
 
 ```powershell
-pnpm release:play
+pnpm release:play --beta
 ```
 
 It uploads the bundles step 4 built alongside the APKs (in `dist/play/`), so there's nothing to build. Add `--dry-run` to check without releasing.
@@ -77,19 +77,19 @@ Run it in your own terminal: it can ask you to log in to Apple. It builds in Exp
 
 | Where | Tag | For |
 | --- | --- | --- |
-| `dev` | `v0.4.1-alpha.10`: version, stage, build | Test builds (pre-releases) |
-| `main` | `v0.4.0-alpha` before 1.0.0; `v1.0.0` from then on | A version that's been tested: marked Latest on GitHub |
+| `dev` | `v1.1.2-beta.18`: version, stage, build | Test builds (pre-releases) |
+| `main` | `v1.1.0` (`v0.4.0-alpha` and the like before 1.0.0) | A version that's been tested: marked Latest on GitHub |
 
-`dev` is working towards **1.0.0**, the public release, with no public beta in between: accounts, uploads, the website and the Apple apps included. Test builds until then are `v1.0.0-alpha.<build>`, then `v1.0.0-beta.<build>` once the phone app is built with `--beta` (the build switch for accounts and uploads). From 1.0.0, a fix gets the next patch version (1.0.0 → 1.0.1) and new features the next minor one (1.0 → 1.1). Every build, on either branch, gets a new build number.
+The project is in its **beta**: invited testers, with accounts, uploads, the website and the Apple apps. Test builds are `v<version>-beta.<build>`, built with `--beta` (the build switch for accounts and uploads). A fix gets the next patch version (1.1.1 → 1.1.2) and new features the next minor one (1.1 → 1.2). Every build, on either branch, gets a new build number.
 
 ## A full release (from `main`)
 
 When a test release from `dev` has been tried and is good:
 
 1. Merge `dev` into `main` on GitHub (a pull request), then `git checkout main` and `git pull`.
-2. `pnpm release:github --skip-build`. This makes `v0.4.0-alpha`, marked Latest, from the APKs of the test release you tried (they're in `dist/play/`; leave out `--skip-build` to build them again). Its notes cover everything since the last full release.
+2. `pnpm release:github --beta --skip-build`. This makes `v1.1.2`, marked Latest, from the APKs of the test release you tried (they're in `dist/play/`; leave out `--skip-build` to build them again). Its notes cover everything since the last full release.
 3. The iPhone build is already in TestFlight: nothing to do.
-4. `git checkout dev`. For a fix after a release, set `"version"` in `version.json` to the next patch (e.g. `1.0.1`), bump the build, and carry on with a test release.
+4. `git checkout dev`. For a fix after a release, set `"version"` in `version.json` to the next patch (e.g. `1.1.3`), bump the build, and carry on with a test release.
 
 ## If something fails
 

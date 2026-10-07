@@ -155,7 +155,7 @@ For the commands in order (build number, changelog, GitHub release, TestFlight),
 
 | Branch | Release | Tag | Notes cover |
 | --- | --- | --- | --- |
-| `dev` | A **pre-release**, for testing | `v<version>-alpha.<build>`, e.g. `v0.4.1-alpha.10` | Commits since the last tag (the previous pre-release) |
+| `dev` | A **pre-release**, for testing | `v<version>-<stage>.<build>`, e.g. `v1.1.2-beta.18` (with `--beta`) | Commits since the last tag (the previous pre-release) |
 | `main` | A full release, marked **Latest** | `v<version>-alpha` before 1.0.0, e.g. `v0.4.0-alpha`; `v<version>` from 1.0.0 | Commits since the last full release, so every pre-release of that version together |
 
 Each release has the phone and watch APKs from the same build attached. On GitHub: **Releases**.
@@ -196,7 +196,7 @@ The script stops before building if anything is out of order: another branch, un
 
 The landing page's APK buttons link to the newest release's APKs, pre-releases included, so a new release reaches testers as soon as it's published, without redeploying the landing page (see [landing/README.md](landing/README.md)). This needs the repository to be public: a private repository's releases need a GitHub login with access to it.
 
-The phone app tells testers about new releases itself. It checks the releases when it opens (and every six hours while in use), and shows a notice on the match list when there's a newer phone app, or a newer watch app than the one on the paired watch (which tells the phone its build number). The phone APK downloads from the notice; the watch app links to the release page, as it goes on from a computer. **Settings → About → Include pre-releases** (on by default) decides whether pre-releases from `dev` count, or only full releases from `main`. Builds are compared by the build number in the APK names, so each release needs a higher build than the last one it should replace.
+The phone app tells testers about new releases itself. It checks the releases when it opens (and every six hours while in use), and shows a notice on the match list when there's a newer phone app, or a newer watch app than the one on the paired watch (which tells the phone its build number). The phone app downloads and installs its own APK from the notice, and downloads the watch's and sends it to the watch, which installs it from **Install update** on its home screen (see the [user guide](docs-site/guide/phone.md#updates-android)). Google Play's builds show no notices, as Play updates them. **Settings → About → Include pre-releases** (on by default) decides whether pre-releases from `dev` count, or only full releases from `main`. Builds are compared by the build number in the APK names, so each release needs a higher build than the last one it should replace.
 
 ### iPhone builds (TestFlight)
 
@@ -217,7 +217,7 @@ The iPhone app is the same app as on Android, with the Apple Watch app inside it
 pnpm release:ios
 ```
 
-This builds the alpha from the committed code (`mobile/eas.json`, profile `alpha`; `beta` is the same with the API), then uploads it to App Store Connect. It reaches TestFlight after Apple's processing, usually 10 to 30 minutes. The build number comes from `version.json`, as on Android, and App Store Connect refuses one it has already seen for the same version, so build after bumping it, as for a GitHub release. EAS's free plan includes a limited number of iOS builds a month, queued behind paid ones.
+This builds the beta from the committed code (`mobile/eas.json`, profile `beta`; `alpha` is the same without the API), then uploads it to App Store Connect. It reaches TestFlight after Apple's processing, usually 10 to 30 minutes. The build number comes from `version.json`, as on Android, and App Store Connect refuses one it has already seen for the same version, so build after bumping it, as for a GitHub release. EAS's free plan includes a limited number of iOS builds a month, queued behind paid ones.
 
 
 ### Apple Watch app

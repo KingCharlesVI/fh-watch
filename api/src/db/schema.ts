@@ -57,6 +57,16 @@ export const teams = pgTable(
   (t) => [unique().on(t.clubId, t.slug)],
 );
 
+/**
+ * Where matches are played, e.g. "Banbury Road, Oxford": one list, not tied to any club
+ * (clubs share grounds), kept by admins and offered to umpires setting up a match.
+ */
+export const venues = pgTable("venues", {
+  id: uuid().primaryKey().defaultRandom(),
+  name: text().notNull().unique(),
+  createdAt: createdAt(),
+});
+
 export const users = pgTable(
   "users",
   {

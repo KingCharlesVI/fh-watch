@@ -189,6 +189,7 @@ FH Match Centre sends its emails (sign-up confirmations, password resets) throug
 ## Backups
 
 - **Nightly:** a `pg_dump` at about 03:15 (a systemd timer on Linux, a scheduled task on Windows). If the machine was off then, it runs when it's next on. 14 days are kept.
+- **Logs:** the nightly run also deletes Windows log files over 30 days old. On Linux, journald keeps 30 days. A server set up before 7 October 2026 needs its setup script run again once to get this (it's safe to re-run).
 - **Weekly restore test:** on Sunday mornings, the newest backup is restored into the `fh_restore_test` database and its row counts are printed next to the live ones. Check it with `journalctl -u fh-restore-test` (Linux) or `C:\ProgramData\fh\logs\tasks\restore-test.log` (Windows).
 - **Off-site copies:** set these up soon. A backup that only lives on the same machine doesn't survive losing the machine, and a home PC is easier to lose than a server.
 
@@ -252,7 +253,7 @@ Stop the old tunnel before starting the new one: two machines running the same t
 | Tunnel settings and credentials (written by `fh tunnel`) | `/etc/fh/tunnel.yml`, `/etc/fh/tunnel.json` | `C:\ProgramData\fh\config\tunnel.yml`, `tunnel.json` |
 | Cloudflare sign-in used by `fh tunnel` | `/root/.cloudflared/cert.pem` | `%USERPROFILE%\.cloudflared\cert.pem` |
 | Database backups | `/var/backups/fh` | `C:\ProgramData\fh\backups` |
-| Logs | journald (`fh logs`) | `C:\ProgramData\fh\logs` (`fh logs`) |
+| Logs, kept 30 days (they hold visitors' IP addresses; see the privacy policy) | journald (`fh logs`), set to 30 days by `provision.sh` | `C:\ProgramData\fh\logs` (`fh logs`): a file a day, and `fh backup` deletes those over 30 days old |
 | Cached PDF reports (safe to delete) | `/var/cache/fh-api/pdf` | `C:\ProgramData\fh\data\api\pdf` |
 | Service definitions | `/etc/systemd/system/fh-*` | `C:\ProgramData\fh\services` (WinSW) |
 

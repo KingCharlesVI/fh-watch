@@ -213,7 +213,7 @@ struct Setup: Codable, Equatable {
 
     static let presets = [
         Preset(label: "4 × 15 min", periods: 4, minutes: 15, breakMinutes: 2, halfTimeMinutes: 5),
-        Preset(label: "2 × 35 min", periods: 2, minutes: 35, breakMinutes: 5, halfTimeMinutes: 5),
+        Preset(label: "2 × 35 min", periods: 2, minutes: 35, breakMinutes: 10, halfTimeMinutes: 5),
         Preset(label: "2 × 30 min", periods: 2, minutes: 30, breakMinutes: 5, halfTimeMinutes: 5),
         Preset(label: "2 × 25 min", periods: 2, minutes: 25, breakMinutes: 5, halfTimeMinutes: 5),
     ]

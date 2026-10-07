@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type GitHubRelease, apkFileName, downloadPercent, findUpdate, readReleases } from "../src/core/updates";
+import { type GitHubRelease, apkFileName, downloadPercent, findUpdate, readReleases, watchSendOutcome } from "../src/core/updates";
 
 const release = (tag: string, build: number, prerelease: boolean, apps: ("phone" | "watch")[] = ["phone", "watch"]): GitHubRelease => {
   const version = tag.replace(/^v/, "").replace(/-.*/, "");
@@ -69,5 +69,14 @@ describe("update notices", () => {
     expect(downloadPercent(999_999, 2_000_000)).toBe(49);
     expect(downloadPercent(2_000_000, 2_000_000)).toBe(100);
     expect(downloadPercent(500, -1)).toBeNull();
+  });
+
+  it("says how sending the watch app went, from the watches' answers", () => {
+    expect(watchSendOutcome({ sent: 1, ready: 1, rejected: 0 })).toBe("ready");
+    expect(watchSendOutcome({ sent: 2, ready: 1, rejected: 1 })).toBe("ready");
+    expect(watchSendOutcome({ sent: 1, ready: 0, rejected: 1 })).toBe("rejected");
+    // A watch app from before build 17 doesn't answer.
+    expect(watchSendOutcome({ sent: 1, ready: 0, rejected: 0 })).toBe("unconfirmed");
+    expect(watchSendOutcome({ sent: 0, ready: 0, rejected: 0 })).toBe("noWatch");
   });
 });

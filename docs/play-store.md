@@ -50,7 +50,7 @@ This builds both bundles into `dist/play/`. To build one app on its own, use `pn
 
    The package name isn't typed in anywhere: Play takes it from the first bundle uploaded, and it can never be changed afterwards. Upload the phone bundle to internal testing (step 4) before filling in everything below, then check the app's package reads `com.fhmatchcentre.app`. An app that has never been published can be deleted, which is the way out of a wrong one.
 2. **App content** (Policy and programs → App content), answer each section:
-   - **Privacy policy:** a public web page is required. [privacy-policy.md](privacy-policy.md) is the alpha's policy, and the landing page serves it at `/privacy` (see [landing/README.md](../landing/README.md)): deploy that and paste the link, e.g. `https://<your landing address>/privacy`.
+   - **Privacy policy:** a public web page is required. [privacy-policy.md](privacy-policy.md) is the policy (for the beta and on), and the landing page serves a copy of it at `/privacy` (see [landing/README.md](../landing/README.md)): deploy that and paste the link, e.g. `https://<your landing address>/privacy`.
    - **App access:** from 1.0 some of it needs an account, so *All or some functionality is restricted*. Give reviewers the email and password of an account you've registered and verified for them, and say that recording a match on the watch and reviewing it on the phone need no sign-in, while uploading, publishing and sharing do.
    - **Ads:** no ads.
    - **Content rating:** fill in the questionnaire (a utility/sports app with no user-generated content shared with others).
@@ -59,7 +59,8 @@ This builds both bundles into `dist/play/`. To build one app on its own, use `pn
      - **Personal info:** name and email address — collected, stored, required, for account management. Not shared with anyone, and not used for advertising or analytics.
      - **App activity / user-generated content:** the matches an umpire uploads (teams, scores, cards, timings, shirt numbers, umpire names). Optional: nothing is uploaded until they ask for it, and nothing is public until they publish it.
      - **Device or other IDs:** the push token, for notifications, if they turn them on.
-     - Everything travels over HTTPS, and an account can be deleted from the account page on the website.
+     - Everything travels over HTTPS, and an account can be deleted from the account page on the website (or by email).
+     - Retention, as the policy states: request logs (with IP addresses) 30 days, answered test and club requests 12 months, backups 14 days.
      - Health and fitness data isn't collected in Play's sense — see the health declarations below.
    - **Health apps:** the watch reads heart rate and steps (Health Services) while **Record workout** is on, and the phone writes workouts to Health Connect (exercise, steps, distance, total calories, heart rate; write-only). Complete the Health apps declaration and the Health Connect permissions declaration, giving *fitness tracking of the umpire's own workouts during matches* as the use. Data safety: health and fitness data is processed on the user's devices only and not collected, since nothing leaves them except to Health Connect on the same phone. It is never part of an uploaded match.
    - **Foreground service permissions:** the watch app uses a special-use foreground service to keep the match clock, suspension timers and alerts running with the screen off. Describe that, and give a link to a short screen recording of a match running on the watch. With Record workout on, the same service is also a health foreground service: it keeps the workout recording for the length of the match.

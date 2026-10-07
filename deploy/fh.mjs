@@ -455,10 +455,42 @@ async function status() {
   );
 }
 
-/** WinSW's files for a service: its output, its errors and its own log. */
+/**
+ * WinSW's files for a service: its output, its errors and its own log. Output and errors go
+ * to a file a day (fh-api.20261007.out.log), so the newest of each; older setups wrote
+ * fh-api.out.log, which this reads too.
+ */
 function logFiles(service) {
   const dir = join(PATHS.logs, service.replace(/^fh-/, ""));
-  return ["out", "err", "wrapper"].map((kind) => join(dir, `${service}.${kind}.log`)).filter((f) => existsSync(f));
+  if (!existsSync(dir)) return [];
+  const names = readdirSync(dir);
+  return ["out", "err", "wrapper"].flatMap((kind) => {
+    const pattern = new RegExp(`^${service}\\.(\\d{8}\\.)?${kind}\\.log$`);
+    const newest = names
+      .filter((n) => pattern.test(n))
+      .map((n) => join(dir, n))
+      .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)[0];
+    return newest ? [newest] : [];
+  });
+}
+
+/** How long the services' logs are kept: they hold visitors' IP addresses (see the privacy policy). */
+const LOG_DAYS = 30;
+
+/** Windows: deletes the services' log files over LOG_DAYS old. On Linux, journald does it (provision.sh). */
+function pruneLogs() {
+  if (!WIN) return;
+  for (const service of Object.values(SERVICES)) {
+    const dir = join(PATHS.logs, service.replace(/^fh-/, ""));
+    if (!existsSync(dir)) continue;
+    for (const name of readdirSync(dir).filter((n) => n.endsWith(".log"))) {
+      const file = join(dir, name);
+      if (Date.now() - statSync(file).mtimeMs > LOG_DAYS * 86_400_000) {
+        rmSync(file);
+        console.log(`Removed log ${name}`);
+      }
+    }
+  }
 }
 
 function readTail(file, bytes) {
@@ -529,6 +561,8 @@ async function backup({ offsite = true } = {}) {
       console.log(`Removed ${basename(old)}`);
     }
   }
+  // The nightly backup is the one scheduled job, so it tidies the logs too.
+  pruneLogs();
 
   if (!offsite) return file;
   if (s.RCLONE_REMOTE) {

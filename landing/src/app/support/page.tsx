@@ -140,7 +140,7 @@ export default function Support() {
               <p className="font-medium text-foreground">Your account</p>
               <p className="mt-1">
                 Sign in on the website, open <strong>Your account</strong>, and use <strong>Delete account</strong>. It reaches us straight away and an
-                admin removes it; you&apos;ll get an email when it&apos;s done. If you can&apos;t sign in, email us from the address the account uses and
+                admin removes it. If you can&apos;t sign in, email us from the address the account uses and
                 we&apos;ll do the same.
               </p>
               <p className="mt-3 font-medium text-foreground">Your data, without closing the account</p>
@@ -153,7 +153,8 @@ export default function Support() {
                   copy itself removed, email us the teams and the date, or its link. Deleted matches are purged after 30 days.
                 </li>
                 <li>
-                  <strong>Notifications:</strong> turning them off in the phone app&apos;s settings removes the token we hold for your device.
+                  <strong>Notifications:</strong> signing out of the phone app removes the token we hold for your device. Turning notifications off in
+                  your phone&apos;s settings stops them, but the token stays until you sign out.
                 </li>
                 <li>
                   <strong>Workouts:</strong> they never leave your devices, so there&apos;s nothing here to delete. Remove them in Health Connect or the

@@ -10,7 +10,7 @@ import { Banner, Button, Row, T } from "@/ui/kit";
 export function UpdateNotice({ update, later }: { update: Update; later?: boolean }) {
   const { installing } = useUpdates();
   const { release, phone, watch } = update;
-  const busy = installing?.step === "downloading" || installing?.step === "confirming";
+  const busy = installing?.step === "downloading" || installing?.step === "sending" || installing?.step === "confirming";
   const body = phone && watch ? "New phone and watch apps. Send the watch's first: the phone app closes while it updates." : phone ? "A new phone app." : "A new watch app.";
   return (
     <Banner
@@ -58,8 +58,12 @@ function installingText(i: Installing): string {
       return "Allow FH Match Centre to install apps, then come back and tap Install again.";
     case "confirming":
       return "Confirm the update when Android asks. The app closes and opens on the new version.";
+    case "sending":
+      return "Sending it to your watch. Keep the watch near the phone; this can take a couple of minutes.";
     case "sent":
       return `Sent to your watch${i.watches > 1 ? "es" : ""}. On the watch, open FH Match Centre and tap Install update.`;
+    case "unconfirmed":
+      return "Sent, but your watch hasn't said it got it. If Install update doesn't appear in the watch app, install this version on the watch by hand once; after that, updates come from the phone.";
     case "failed":
       return i.message;
   }

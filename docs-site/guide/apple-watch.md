@@ -2,7 +2,7 @@
 
 The Apple Watch app works like the [Wear OS app](guide/wear-os.md): the same setup, the same four pages (Timing, Goals, Cards and Settings), the same rules for suspensions and the same vibrations. This page covers what's different.
 
-?> The Apple Watch app is in testing through TestFlight, and arrives for everyone in 1.0. It needs watchOS 10 or later (Series 4 and newer).
+?> The Apple Watch app is in testing through TestFlight, and arrives for everyone at the public release. It needs watchOS 10 or later (Series 4 and newer).
 
 ## Starting and stopping the clock
 

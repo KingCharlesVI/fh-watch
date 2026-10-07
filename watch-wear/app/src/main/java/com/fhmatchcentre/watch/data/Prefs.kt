@@ -71,7 +71,7 @@ data class Setup(
 
         val PRESETS = listOf(
             Preset("4 × 15 min", 4, 15, 2, 5),
-            Preset("2 × 35 min", 2, 35, 5, 5),
+            Preset("2 × 35 min", 2, 35, 10, 5),
             Preset("2 × 30 min", 2, 30, 5, 5),
             Preset("2 × 25 min", 2, 25, 5, 5),
         )

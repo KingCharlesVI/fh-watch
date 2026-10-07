@@ -1,8 +1,17 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Switch, View } from "react-native";
 import { COLOUR_NAMES, PRESETS, TEAM_COLOURS, type WatchSetup, hasHalfTime, presetOf, setupErrors } from "@/core/setup";
+import { DirectoryField, type Suggestion } from "@/features/directory-field";
+import { api } from "@/services";
 import { Card, Choice, Field, Row, Swatch, T } from "@/ui/kit";
 import { space, useColors } from "@/ui/theme";
+
+/** Club teams, named as the website names them: "Oxford Hawks M1". */
+const searchTeams = async (q: string): Promise<Suggestion[]> =>
+  (await api.searchTeams(q)).items.map((t) => ({ id: t.id, value: `${t.club.name} ${t.name}` }));
+
+/** Venues, from the website's list: "Banbury Road, Oxford". */
+const searchVenues = async (q: string): Promise<Suggestion[]> => (await api.searchVenues(q)).items.map((v) => ({ id: v.id, value: v.name }));
 
 type NumberKey = "periods" | "periodMinutes" | "breakMinutes" | "halfTimeMinutes" | "homeCaptain" | "awayCaptain";
 
@@ -71,14 +80,22 @@ export function SetupForm({ setup, onChange }: { setup: WatchSetup; onChange: (c
 
       {(["home", "away"] as const).map((side) => (
         <Card key={side} title={side === "home" ? "Home team" : "Away team"}>
-          <Field label="Name" value={setup[`${side}Name`]} maxLength={80} onChangeText={(v) => onChange({ [`${side}Name`]: v })} error={errors[`${side}Name`]} />
+          <DirectoryField
+            label="Name"
+            value={setup[`${side}Name`]}
+            maxLength={80}
+            search={searchTeams}
+            icon="shield-outline"
+            onChangeText={(v) => onChange({ [`${side}Name`]: v })}
+            error={errors[`${side}Name`]}
+          />
           <ColourPicker value={setup[`${side}Color`]} onChange={(col) => onChange({ [`${side}Color`]: col })} />
           <Field label="Captain's shirt number (optional)" {...numberField(`${side}Captain`)} error={errors[`${side}Captain`]} />
         </Card>
       ))}
 
       <Card title="Venue">
-        <Field label="Where (optional)" value={setup.venue ?? ""} maxLength={120} onChangeText={(v) => onChange({ venue: v })} />
+        <DirectoryField label="Where (optional)" value={setup.venue ?? ""} maxLength={120} search={searchVenues} icon="location-outline" onChangeText={(v) => onChange({ venue: v })} />
       </Card>
     </>
   );

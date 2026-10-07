@@ -75,6 +75,15 @@ HandleLidSwitchDocked=ignore
 EOF
 systemctl kill -s HUP systemd-logind 2>/dev/null || true
 
+say "Logs kept 30 days"
+# The services log to the journal, with visitors' IP addresses; the privacy policy says 30 days.
+install -d -m 755 /etc/systemd/journald.conf.d
+cat > /etc/systemd/journald.conf.d/10-fh.conf <<'EOF'
+[Journal]
+MaxRetentionSec=30day
+EOF
+systemctl restart systemd-journald
+
 say "Users and folders"
 for u in fh-api fh-web fh-tunnel; do
   id "$u" &>/dev/null || useradd --system --user-group --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin "$u"

@@ -2,15 +2,15 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_SETUP } from "../src/core/setup";
 import {
   type UpcomingMatch,
+  clockTime,
   dayLabel,
   isPast,
-  parseTime,
+  pickerStart,
   playedUpcoming,
   readUpcoming,
   removeUpcoming,
   saveUpcoming,
   sortUpcoming,
-  upcomingDays,
   whenLabel,
 } from "../src/core/upcoming";
 
@@ -63,17 +63,11 @@ describe("upcoming matches", () => {
     expect(readUpcoming("{}")).toEqual([]);
   });
 
-  it("offers the next two weeks of days, named the way people say them", () => {
-    const days = upcomingDays(today);
-    expect(days).toHaveLength(14);
-    expect(days.slice(0, 3)).toEqual([
-      { value: "2026-10-09", label: "Today" },
-      { value: "2026-10-10", label: "Tomorrow" },
-      { value: "2026-10-11", label: "Sun 11 Oct" },
-    ]);
-    // Over the end of the month.
-    expect(days.at(-1)).toEqual({ value: "2026-10-22", label: "Thu 22 Oct" });
+  it("names days the way people say them", () => {
+    expect(dayLabel("2026-10-09", today)).toBe("Today");
+    expect(dayLabel("2026-10-10", today)).toBe("Tomorrow");
     expect(dayLabel("2026-11-01", today)).toBe("Sun 1 Nov");
+    expect(dayLabel("2027-01-09", today)).toBe("Sat 9 Jan 2027");
   });
 
   it("says when, and whether the day has gone", () => {
@@ -85,12 +79,10 @@ describe("upcoming matches", () => {
     expect(isPast({ date: null }, today)).toBe(false);
   });
 
-  it("reads a kick-off time as typed", () => {
-    expect(parseTime("14:00")).toBe("14:00");
-    expect(parseTime(" 9.30 ")).toBe("09:30");
-    expect(parseTime("24:00")).toBeNull();
-    expect(parseTime("14:60")).toBeNull();
-    expect(parseTime("2pm")).toBeNull();
+  it("starts the pickers at the match's day and kick-off, or today at 14:00", () => {
+    expect(pickerStart({ date: null, time: null }, today)).toEqual(new Date(2026, 9, 9, 14, 0));
+    expect(pickerStart({ date: "2026-10-17", time: "09:30" }, today)).toEqual(new Date(2026, 9, 17, 9, 30));
+    expect(clockTime(new Date(2026, 9, 17, 9, 5))).toBe("09:05");
   });
 
   it("finds the sent matches that have been played since", () => {
