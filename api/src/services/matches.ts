@@ -1,9 +1,10 @@
 import { type MatchAccess, type MatchDocument, summarizeMatch } from "@fh/shared";
-import { and, asc, eq, inArray, isNotNull, lt, or } from "drizzle-orm";
+import { type SQL, and, asc, eq, inArray, isNotNull, lt, or } from "drizzle-orm";
 import type { DbOrTx } from "../db/client.js";
-import { emailTokens, matchUmpires, matches, refreshTokens, teams } from "../db/schema.js";
+import { emailTokens, matchRevisions, matchUmpires, matches, refreshTokens, teams } from "../db/schema.js";
 import type { AppDeps } from "../deps.js";
 import { shareCode } from "../lib/crypto.js";
+import { audit } from "./audit.js";
 
 export const SOFT_DELETE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -27,6 +28,42 @@ export function denormalize(doc: MatchDocument) {
     playedAt: new Date(doc.startedAt),
     endedAt: doc.endedAt ? new Date(doc.endedAt) : null,
   };
+}
+
+/**
+ * Saves a new revision of each match `where` picks, with `change` made to its document: for
+ * an admin merging duplicates in the directory. A new revision, not history rewritten, so
+ * phones fetch it, and an edit made from an older copy is caught as a conflict. Deleted
+ * matches are changed too. Call inside a transaction. Returns how many changed.
+ */
+export async function reviseMatches(
+  tx: DbOrTx,
+  actorId: string,
+  where: SQL,
+  change: (doc: MatchDocument) => MatchDocument,
+  now: Date,
+  reason: string,
+): Promise<number> {
+  const rows = await tx
+    .select({ id: matches.id, currentRevision: matches.currentRevision, document: matchRevisions.document })
+    .from(matches)
+    .innerJoin(matchRevisions, and(eq(matchRevisions.matchId, matches.id), eq(matchRevisions.revision, matches.currentRevision)))
+    .where(where)
+    .for("update", { of: matches });
+  let changed = 0;
+  for (const row of rows) {
+    const document = change(row.document);
+    if (JSON.stringify(document) === JSON.stringify(row.document)) continue;
+    const revision = row.currentRevision + 1;
+    await tx
+      .update(matches)
+      .set({ ...denormalize(document), currentRevision: revision, updatedAt: now })
+      .where(eq(matches.id, row.id));
+    await tx.insert(matchRevisions).values({ matchId: row.id, revision, document, createdBy: actorId, source: "web", createdAt: now });
+    await audit(tx, actorId, "update", "match", row.id, { revision, source: "web", reason });
+    changed++;
+  }
+  return changed;
 }
 
 export async function umpiresFor(db: DbOrTx, matchIds: string[]): Promise<Map<string, UmpireRow[]>> {

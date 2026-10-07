@@ -1,15 +1,16 @@
 import { canEditTeams } from "@fh/shared";
-import { and, asc, desc, eq, ilike, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { requireActor, requireRole } from "../auth.js";
 import type { DbOrTx } from "../db/client.js";
-import { LOGO_TYPES, clubLogos, clubRequests, clubs, teams, users } from "../db/schema.js";
+import { LOGO_TYPES, clubLogos, clubRequests, clubs, matches, teams, users } from "../db/schema.js";
 import type { AppDeps } from "../deps.js";
 import { badRequest, conflict, forbidden, isUniqueViolation, notFound } from "../lib/errors.js";
 import { slugify } from "../lib/slug.js";
 import { containsPattern } from "../lib/sql.js";
 import { audit } from "../services/audit.js";
+import { reviseMatches } from "../services/matches.js";
 import { ClubRequestInput } from "./auth.js";
 
 const Name = z.string().trim().min(2).max(100);
@@ -18,6 +19,7 @@ const Slug = z
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lower-case letters, digits and single hyphens.")
   .max(60);
 const ClubParams = z.object({ id: z.uuid() });
+const MergeBody = z.strictObject({ into: z.uuid() });
 const TeamParams = z.object({ id: z.uuid(), teamId: z.uuid() });
 
 function slugFor(name: string, slug?: string) {
@@ -85,6 +87,22 @@ export const clubRoutes =
     app.addContentTypeParser([...LOGO_TYPES], { parseAs: "buffer", bodyLimit: MAX_LOGO_BYTES }, (_request, body, done) =>
       done(null, body),
     );
+
+    /** Relinks a duplicate team's matches to another team, in a new revision of each, and deletes it. */
+    async function mergeTeam(tx: DbOrTx, actorId: string, from: TeamRow, into: TeamRow): Promise<number> {
+      const relink = <T extends { teamId: string | null }>(side: T): T => (side.teamId === from.id ? { ...side, teamId: into.id } : side);
+      const n = await reviseMatches(
+        tx,
+        actorId,
+        or(eq(matches.homeTeamId, from.id), eq(matches.awayTeamId, from.id))!,
+        (doc) => ({ ...doc, teams: { home: relink(doc.teams.home), away: relink(doc.teams.away) } }),
+        deps.now(),
+        "team_merge",
+      );
+      await tx.delete(teams).where(eq(teams.id, from.id));
+      await audit(tx, actorId, "merge", "team", from.id, { from: teamDto(from), into: teamDto(into), matches: n });
+      return n;
+    }
 
     // ---- Clubs ----
 
@@ -181,6 +199,45 @@ export const clubRoutes =
           await audit(tx, actor.id, "delete", "club", club.id, clubDto(club));
         });
         return reply.code(204).send();
+      },
+    );
+
+    app.post(
+      "/clubs/:id/merge",
+      {
+        schema: {
+          tags: ["clubs"],
+          summary:
+            "Merge a duplicate club into another (admins). Its teams move across, or merge into the other club's team with the same slug; its club admins, requests and (if the other has none) logo move too. Then it's deleted.",
+          params: ClubParams,
+          body: MergeBody,
+        },
+      },
+      async (request) => {
+        const actor = requireRole(request, "admin");
+        if (request.body.into === request.params.id) throw badRequest("same_club", "Pick a different club to merge into.");
+        const from = await requireClub(db, request.params.id);
+        const into = await requireClub(db, request.body.into);
+        const changed = await db.transaction(async (tx) => {
+          const theirs = await tx.select().from(teams).where(eq(teams.clubId, into.id));
+          let n = 0;
+          for (const team of await tx.select().from(teams).where(eq(teams.clubId, from.id))) {
+            const same = theirs.find((t) => t.slug === team.slug);
+            if (same) n += await mergeTeam(tx, actor.id, team, same);
+            else await tx.update(teams).set({ clubId: into.id }).where(eq(teams.id, team.id));
+          }
+          await tx.update(users).set({ clubId: into.id, updatedAt: deps.now() }).where(eq(users.clubId, from.id));
+          await tx.update(clubRequests).set({ clubId: into.id }).where(eq(clubRequests.clubId, from.id));
+          if (!into.logoUpdatedAt && from.logoUpdatedAt) {
+            await tx.update(clubLogos).set({ clubId: into.id }).where(eq(clubLogos.clubId, from.id));
+            await tx.update(clubs).set({ logoUpdatedAt: from.logoUpdatedAt }).where(eq(clubs.id, into.id));
+          }
+          await tx.delete(clubs).where(eq(clubs.id, from.id));
+          await audit(tx, actor.id, "merge", "club", from.id, { from: clubDto(from), into: clubDto(into), matches: n });
+          return n;
+        });
+        const [row] = await db.select().from(clubs).where(eq(clubs.id, into.id));
+        return { into: clubDto(row!), matches: changed };
       },
     );
 
@@ -320,6 +377,30 @@ export const clubRoutes =
           await audit(tx, actor.id, "delete", "team", team.id, teamDto(team));
         });
         return reply.code(204).send();
+      },
+    );
+
+    app.post(
+      "/clubs/:id/teams/:teamId/merge",
+      {
+        schema: {
+          tags: ["clubs"],
+          summary: "Merge a duplicate team into another (admins): its matches are linked to the other team, in a new revision, and it's deleted.",
+          params: TeamParams,
+          body: MergeBody,
+        },
+      },
+      async (request) => {
+        const actor = requireRole(request, "admin");
+        if (request.body.into === request.params.teamId) throw badRequest("same_team", "Pick a different team to merge into.");
+        const [from] = await db
+          .select()
+          .from(teams)
+          .where(and(eq(teams.id, request.params.teamId), eq(teams.clubId, request.params.id)));
+        const [into] = await db.select().from(teams).where(eq(teams.id, request.body.into));
+        if (!from || !into) throw notFound("Team not found.");
+        const changed = await db.transaction((tx) => mergeTeam(tx, actor.id, from, into));
+        return { into: teamDto(into), matches: changed };
       },
     );
 

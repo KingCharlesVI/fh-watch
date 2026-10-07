@@ -4,17 +4,19 @@ import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { requireActor, requireRole } from "../auth.js";
 import type { DbOrTx } from "../db/client.js";
-import { type NamedListTable, competitions, venues } from "../db/schema.js";
+import { type NamedListTable, competitions, matches, venues } from "../db/schema.js";
 import type { AppDeps } from "../deps.js";
-import { conflict, forbidden, isUniqueViolation, notFound } from "../lib/errors.js";
+import { badRequest, conflict, forbidden, isUniqueViolation, notFound } from "../lib/errors.js";
 import { containsPattern } from "../lib/sql.js";
 import { audit } from "../services/audit.js";
+import { reviseMatches } from "../services/matches.js";
 
 /**
  * Lists of names umpires pick from when setting up or editing a match: venues (where it's
  * played, not tied to any club, as clubs share grounds) and competitions. Umpires add ones
- * that are missing as they go; admins tidy the lists (rename, delete). A match keeps the
- * name as text, so changing a list never changes a match.
+ * that are missing as they go; admins tidy the lists (rename, delete, merge). A match keeps
+ * the name as text, so renaming or deleting one doesn't change matches; merging a duplicate
+ * into another does, so they're all under one name.
  */
 
 /** As long as a match document's venue or competition can be. */
@@ -29,11 +31,13 @@ interface ListSpec {
   entity: string;
   /** For messages, e.g. "venue". */
   noun: string;
+  /** The match document's field that holds the name. */
+  field: "venue" | "competition";
 }
 
 const LISTS: ListSpec[] = [
-  { path: "venues", table: venues, entity: "venue", noun: "venue" },
-  { path: "competitions", table: competitions, entity: "competition", noun: "competition" },
+  { path: "venues", table: venues, entity: "venue", noun: "venue", field: "venue" },
+  { path: "competitions", table: competitions, entity: "competition", noun: "competition", field: "competition" },
 ];
 
 type Row = NamedListTable["$inferSelect"];
@@ -44,7 +48,7 @@ export const listRoutes =
   async (app) => {
     const { db } = deps;
 
-    for (const { path, table, entity, noun } of LISTS) {
+    for (const { path, table, entity, noun, field } of LISTS) {
       const tags = [path];
 
       async function requireItem(tx: DbOrTx, id: string) {
@@ -123,6 +127,38 @@ export const listRoutes =
         );
         return dto(row);
       });
+
+      app.post(
+        `/${path}/:id/merge`,
+        {
+          schema: {
+            tags,
+            summary: `Merge a duplicate ${noun} into another (admins): its matches take the other's name, in a new revision, and it's deleted.`,
+            params: Params,
+            body: z.strictObject({ into: z.uuid() }),
+          },
+        },
+        async (request) => {
+          const actor = requireRole(request, "admin");
+          if (request.body.into === request.params.id) throw badRequest("same_item", `Pick a different ${noun} to merge into.`);
+          const from = await requireItem(db, request.params.id);
+          const into = await requireItem(db, request.body.into);
+          const changed = await db.transaction(async (tx) => {
+            const n = await reviseMatches(
+              tx,
+              actor.id,
+              sql`lower(${matches[field]}) = lower(${from.name})`,
+              (doc) => ({ ...doc, [field]: into.name }),
+              deps.now(),
+              `${entity}_merge`,
+            );
+            await tx.delete(table).where(eq(table.id, from.id));
+            await audit(tx, actor.id, "merge", entity, from.id, { from: dto(from), into: dto(into), matches: n });
+            return n;
+          });
+          return { into: dto(into), matches: changed };
+        },
+      );
 
       app.delete(
         `/${path}/:id`,
