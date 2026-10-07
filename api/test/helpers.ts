@@ -49,7 +49,7 @@ export async function setupTestApp(options: { authRateLimitMax?: number; env?: R
 
   beforeEach(async () => {
     await db.execute(
-      sql`truncate table audit_log, push_tokens, email_tokens, refresh_tokens, match_revisions, match_umpires, matches, club_requests, access_requests, users, teams, clubs restart identity cascade`,
+      sql`truncate table audit_log, push_tokens, email_tokens, refresh_tokens, match_revisions, match_umpires, matches, club_requests, access_requests, users, teams, clubs, venues, competitions restart identity cascade`,
     );
     mailer.sent.length = 0;
     push.sent.length = 0;
