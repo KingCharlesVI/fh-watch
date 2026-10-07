@@ -12,6 +12,21 @@ const done = (ok: string, ...paths: string[]): FormState => {
   return { ok };
 };
 
+/** Merges `from` into `into`, both picked on a Merge duplicates form, at the API's merge path for `from`. */
+async function merge(fd: FormData, path: (from: string) => string, ...paths: string[]): Promise<FormState> {
+  const from = text(fd, "from");
+  const into = text(fd, "into");
+  if (!from || !into) return { error: "Pick the duplicate and the one to keep." };
+  if (from === into) return { error: "Pick two different ones." };
+  try {
+    const res = await api<{ matches: number }>(path(from), { method: "POST", body: { into } });
+    const updated = res.matches === 0 ? "No matches needed changing." : `${res.matches} ${res.matches === 1 ? "match" : "matches"} updated.`;
+    return done(`Merged. ${updated}`, ...paths);
+  } catch (err) {
+    return formError(err);
+  }
+}
+
 // ---- Users ----
 
 export async function updateUser(_: FormState, fd: FormData): Promise<FormState> {
@@ -136,6 +151,10 @@ export async function deleteClub(_: FormState, fd: FormData): Promise<FormState>
   redirect("/admin/clubs?deleted=1");
 }
 
+export async function mergeClub(_: FormState, fd: FormData): Promise<FormState> {
+  return merge(fd, (from) => `/v1/clubs/${from}/merge`, "/admin/clubs", `/admin/clubs/${text(fd, "into")}`);
+}
+
 export async function createTeam(_: FormState, fd: FormData): Promise<FormState> {
   const clubId = text(fd, "clubId");
   try {
@@ -164,6 +183,11 @@ export async function deleteTeam(_: FormState, fd: FormData): Promise<FormState>
     return formError(err);
   }
   return done("Team deleted.", `/admin/clubs/${clubId}`);
+}
+
+export async function mergeTeam(_: FormState, fd: FormData): Promise<FormState> {
+  const clubId = text(fd, "clubId");
+  return merge(fd, (from) => `/v1/clubs/${clubId}/teams/${from}/merge`, `/admin/clubs/${clubId}`);
 }
 
 // ---- Venues and competitions ----
@@ -207,6 +231,11 @@ export async function deleteListItem(_: FormState, fd: FormData): Promise<FormSt
     return formError(err);
   }
   return done(`${LISTS[l]} deleted.`, `/admin/${l}`);
+}
+
+export async function mergeListItem(_: FormState, fd: FormData): Promise<FormState> {
+  const l = list(fd);
+  return merge(fd, (from) => `/v1/${l}/${from}/merge`, `/admin/${l}`);
 }
 
 // ---- Testing requests ----

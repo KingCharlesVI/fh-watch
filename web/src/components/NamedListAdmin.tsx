@@ -1,5 +1,6 @@
-import { type ListName, createListItem, deleteListItem, renameListItem } from "@/app/actions/admin";
+import { type ListName, createListItem, deleteListItem, mergeListItem, renameListItem } from "@/app/actions/admin";
 import { ActionForm } from "@/components/ActionForm";
+import { MergeCard } from "@/components/MergeCard";
 import { PageHeader } from "@/components/PageHeader";
 import { TextField } from "@/components/TextField";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,8 @@ import type { Items } from "@/lib/types";
 
 /**
  * An admin page for one of the lists umpires pick from (venues, competitions): every item,
- * renamed or deleted in place, and a form to add one. A match keeps the name as text.
+ * renamed or deleted in place, and forms to add one and to merge duplicates. A match keeps
+ * the name as text: renaming or deleting doesn't change matches, merging does.
  */
 export async function NamedListAdmin({
   list,
@@ -54,18 +56,27 @@ export async function NamedListAdmin({
             ))}
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Add a {noun}</CardTitle>
-            <CardDescription>For example, {example}.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ActionForm action={createListItem} submitLabel={`Add ${noun}`} className="max-w-none">
-              <input type="hidden" name="list" value={list} />
-              <TextField label="Name" name="name" required minLength={2} maxLength={120} />
-            </ActionForm>
-          </CardContent>
-        </Card>
+        <div className="grid gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Add a {noun}</CardTitle>
+              <CardDescription>For example, {example}.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ActionForm action={createListItem} submitLabel={`Add ${noun}`} className="max-w-none">
+                <input type="hidden" name="list" value={list} />
+                <TextField label="Name" name="name" required minLength={2} maxLength={120} />
+              </ActionForm>
+            </CardContent>
+          </Card>
+          <MergeCard
+            action={mergeListItem}
+            hidden={{ list }}
+            items={items.items}
+            noun={noun}
+            description={`Matches played at the duplicate (in any capitals) take the other ${noun}'s name.`}
+          />
+        </div>
       </div>
     </div>
   );

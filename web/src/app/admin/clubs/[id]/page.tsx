@@ -2,10 +2,11 @@ import { canEditTeams, hasRole } from "@fh/shared";
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createTeam, deleteClub, deleteTeam, removeClubLogo, renameClub, renameTeam, setClubLogo } from "@/app/actions/admin";
+import { createTeam, deleteClub, deleteTeam, mergeTeam, removeClubLogo, renameClub, renameTeam, setClubLogo } from "@/app/actions/admin";
 import { ActionForm } from "@/components/ActionForm";
 import { ClubBadge } from "@/components/ClubBadge";
 import { LogoField } from "@/components/LogoField";
+import { MergeCard } from "@/components/MergeCard";
 import { PageHeader } from "@/components/PageHeader";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/ui/button";
@@ -79,6 +80,13 @@ export default async function ManageClubPage({ params }: { params: Promise<{ id:
 
       {isAdmin && (
         <>
+          <MergeCard
+            action={mergeTeam}
+            hidden={{ clubId: club.id }}
+            items={club.teams}
+            noun="team"
+            description="The duplicate's matches are linked to the team you keep. To merge with another club's team, merge the clubs."
+          />
           <Card>
             <CardHeader>
               <CardTitle>Club details</CardTitle>
