@@ -96,6 +96,7 @@ Uploaded matches are safe on the website. Anything only on the phone isn't, so b
 | **Watch** | Whether your watch is connected, and **Set up a match**. A match from the watch that couldn't be read shows here, with a way to export it. |
 | **Health Connect** (Android) | Save workouts to Health Connect, for Samsung Health and other fitness apps. See [Workouts](guide/workouts.md). |
 | **Your matches** | Backups and importing. |
+| **Feedback** | **Report a bug** or **Suggest a feature**: opens the form on the project's GitHub (it needs a free GitHub account). A bug report starts with the app's version and your phone and watch models filled in. Issues there are public, so leave out players' names and anything private. |
 | **About** | The version and build. On Android: update notices, and whether to include test builds (**Include pre-releases**). |
 
 ## Updates (Android)
