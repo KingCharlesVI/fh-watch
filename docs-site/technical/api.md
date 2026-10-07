@@ -73,7 +73,7 @@ A match the caller isn't allowed to see answers `404`, not `403`, so draft match
   ```
 
 - **Lists** return `{ "items": [...] }`. The long ones (`/matches` and `/users`) are paged: pass `limit` (1–100, default 50), then send back the `nextCursor` from each response as `cursor`, until it is `null`.
-- **Saving a match** works with revisions. `GET /matches/:id` returns the current revision as an `ETag`. To change an existing match, send it back as `If-Match: "<revision>"`: leaving it out returns `428`, and a stale revision returns `412`. Re-sending the current document changes nothing, so retrying an upload is safe.
+- **Saving a match** works with revisions. `GET /matches/:id` returns the current revision as an `ETag`. To change an existing match, send it back as `If-Match: "<revision>"`: leaving it out returns `428`, and a stale revision returns `412`. Re-sending the current document changes nothing, so retrying an upload is safe. An admin merging duplicate teams, venues or competitions saves a new revision of each match it changes, so a phone holding an older copy fetches the new one, and an edit made from the old one gets `412`.
 - **IDs** are UUIDs. A match's ID is created by the watch (a UUIDv7), so the same match uploaded twice stays one match.
 
 ## Endpoints
@@ -131,15 +131,17 @@ The match document itself is described in [The match format](technical/match-for
 | 🛡️ | `POST /clubs` | Add a club |
 | 🛡️ | `PATCH /clubs/:id` | Rename it or change its web address |
 | 🛡️ | `DELETE /clubs/:id` | Delete it and its teams |
+| 🛡️ | `POST /clubs/:id/merge` | Merge a duplicate club into another, `{ into }`: its teams move across (one with the same slug there is merged into it), as do its club admins, requests and, if the other has none, its logo. Then it's deleted. Answers `{ into, matches }`, how many matches changed |
 | 🛡️ | `PUT /clubs/:id/logo` | Set its logo: the image itself as the body, with `Content-Type: image/png`, `image/jpeg` or `image/webp`, up to 512 KB |
 | 🛡️ | `DELETE /clubs/:id/logo` | Remove it; the initials show instead |
 | 🔑 | `POST /clubs/:id/teams` | Add a team (admins, or that club's admin) |
 | 🔑 | `PATCH /clubs/:id/teams/:teamId` | Rename a team (admins, or that club's admin) |
 | 🛡️ | `DELETE /clubs/:id/teams/:teamId` | Delete a team; its matches keep the name |
+| 🛡️ | `POST /clubs/:id/teams/:teamId/merge` | Merge a duplicate team into another (any club's), `{ into }`: its matches are linked to that team. Answers `{ into, matches }` |
 
 ### Venues and competitions
 
-Two lists of names that umpires pick from: the grounds matches are played at (not tied to any club), and the leagues and cups. Both work the same way, at `/venues` and `/competitions`. A match keeps its venue and competition as text, so changing a list never changes a match.
+Two lists of names that umpires pick from: the grounds matches are played at (not tied to any club), and the leagues and cups. Both work the same way, at `/venues` and `/competitions`. A match keeps its venue and competition as text, so renaming or deleting one never changes a match; merging does.
 
 | | Route | |
 | --- | --- | --- |
@@ -147,6 +149,7 @@ Two lists of names that umpires pick from: the grounds matches are played at (no
 | 🔑 | `POST /venues` · `POST /competitions` | Add one, `{ name }`: 2 to 120 characters (umpires and admins). `201` with the new one; `200` with the one already there if the name matches in any capitals |
 | 🛡️ | `PATCH /venues/:id` · `PATCH /competitions/:id` | Rename it |
 | 🛡️ | `DELETE /venues/:id` · `DELETE /competitions/:id` | Delete it |
+| 🛡️ | `POST /venues/:id/merge` · `POST /competitions/:id/merge` | Merge a duplicate into another, `{ into }`: matches with its name, in any capitals, take the other's, and it's deleted. Answers `{ into, matches }` |
 
 ### Requests
 

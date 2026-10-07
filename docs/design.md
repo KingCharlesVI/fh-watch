@@ -354,7 +354,8 @@ An account holds a set of roles, so one person can be both an umpire and a club 
 | Request a new club or club-admin role | — | Yes | Yes | Creates directly |
 | Manage clubs and teams | — | — | Add and edit own club's teams | Yes |
 | Add a venue or competition | — | Yes | — | Yes |
-| Rename or delete venues and competitions | — | — | — | Yes |
+| Rename, delete or merge venues and competitions | — | — | — | Yes |
+| Merge duplicate clubs or teams | — | — | — | Yes |
 | Manage users and roles | — | — | — | Yes |
 
 "Own club's" means the home or away team belongs to the club admin's club. Checks run in one API policy module, `can(user, action, match)`, which allows an action if any of the user's roles allows it. The website and phone app use the same module only to hide buttons, never to enforce access.
