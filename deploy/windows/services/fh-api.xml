@@ -19,8 +19,8 @@
   <!-- Ctrl+C first, so the API finishes its requests and closes the database cleanly. -->
   <stoptimeout>20 sec</stoptimeout>
   <logpath>__ROOT__\logs\api</logpath>
-  <log mode="roll-by-size">
-    <sizeThreshold>10240</sizeThreshold>
-    <keepFiles>5</keepFiles>
+  <!-- A file a day; `fh backup` (nightly) deletes those over 30 days old, as the privacy policy says. -->
+  <log mode="roll-by-time">
+    <pattern>yyyyMMdd</pattern>
   </log>
 </service>
