@@ -79,7 +79,7 @@ A match the caller isn't allowed to see answers `404`, not `403`, so draft match
 
 ## Endpoints
 
-🔓 public · 🔑 signed in · 🛡️ admin. "Signed in" routes may also check what the user can do with that particular match or club.
+🔓 public · 🔑 signed in · 🏷️ the club's admins (and admins) · 🛡️ admin. "Signed in" routes may also check what the user can do with that particular match or club.
 
 ### Accounts
 
@@ -98,7 +98,7 @@ A match the caller isn't allowed to see answers `404`, not `403`, so draft match
 | 🔑 | `DELETE /me` | Ask an admin to delete your account |
 | 🔑 | `POST /me/push-tokens` | Register a phone for notifications |
 | 🔑 | `DELETE /me/push-tokens/:token` | Unregister one |
-| 🔑 | `GET /umpires?q=` | Find registered umpires by name, to add as umpire 2 |
+| 🔑 | `GET /umpires?q=` | Find registered umpires by name, to add as umpire 2 or (club admins) to a club's umpire list |
 
 ### Matches
 
@@ -157,6 +157,36 @@ Two lists of names that umpires pick from: the grounds matches are played at (no
 | | Route | |
 | --- | --- | --- |
 | 🛡️ | `POST /import` | Add many at once from a spreadsheet's rows: `{ kind, rows, dryRun }`. `kind` is `clubs` (each row `[club, team]`, the team optional), `venues` or `competitions` (each row `[name]`); up to 2000 rows, without the heading. Anything already there, by name in any capitals or (for clubs and teams) by slug, is left alone. Answers `{ added, existing, errors }`, with each bad row by its index. `dryRun: true` answers the same without saving anything |
+
+### Club umpiring
+
+A club's admins (and admins) run its umpiring: 🏷️ below. Dates are local days (`2026-09-26`) and kick-offs local times (`14:00`), in UK time. See [Club umpiring](guide/club-umpiring.md) for how it works.
+
+| | Route | |
+| --- | --- | --- |
+| 🏷️ | `GET /clubs/:id/umpires` | The club's umpire list, with each one's level, team and appointments this season |
+| 🏷️ | `PUT /clubs/:id/umpires/:userId` | Add a registered umpire, or change `{ level, playsForTeamId }` (level 0–4: Trainee to National) |
+| 🔑 | `DELETE /clubs/:id/umpires/:userId` | Take someone off the list: the club's admins, or the umpire themself |
+| 🔑 | `GET /me/umpiring-clubs` | The clubs whose list you're on |
+| 🏷️ | `GET /clubs/:id/fixtures` | Fixtures from today (or `from`, `to`), with their appointments. `needsUmpires=true`: only those with fewer accepted than needed |
+| 🏷️ | `POST /clubs/:id/fixtures` · `PATCH`/`DELETE /clubs/:id/fixtures/:fixtureId` | Add, change or delete one. Moving or deleting it emails its umpires |
+| 🏷️ | `POST /clubs/:id/fixtures/import` | Add many from a spreadsheet's rows, `[date, time, home, away, venue, competition, umpires]`, with `dryRun` to preview |
+| 🏷️ | `GET /clubs/:id/fixtures/:fixtureId/suggestions` | The club's umpires for it, best first, with availability, this season's count and `clashes` |
+| 🏷️ | `POST /clubs/:id/fixtures/:fixtureId/appointments` | Ask an umpire on the list, `{ userId, role: "watch" \| "second", mentoring }`. One watch and one second at most, and no more than the fixture needs. Emails them |
+| 🏷️ | `DELETE /clubs/:id/fixtures/:fixtureId/appointments/:appointmentId` | Take them off, emailing them |
+| 🔑 | `GET /me/appointments` | Your appointments from today (or `from`), with each fixture, club and the other umpire |
+| 🔑 | `POST /me/appointments/:id/accept` · `decline` | Answer one. Declining emails the club's admins |
+| 🔑 | `POST /me/appointments/:id/cover` | `{ requested }`: ask (or stop asking) for someone to cover one you accepted. Emails the club's umpires and admins |
+| 🔑 | `GET /me/cover-requests` | Appointments in your clubs that need covering |
+| 🔑 | `POST /me/cover-requests/:id/take` | Take one over; it's released from the umpire who asked |
+| 🔑 | `GET /me/availability` · `PUT`/`DELETE /me/availability/:date` | Days you've marked free (with optional hours `from`, `to`) or not |
+| 🔑 | `PUT /me/availability-weekdays` | `{ unavailable: [0–6] }`, weekdays you're never free (0 is Sunday) |
+| 🔑 | `GET /me/calendar` · `POST /me/calendar/reset` | Your appointments calendar's private address, or a new one |
+| 🔓 | `GET /calendar/:token.ics` | The calendar itself (iCalendar): accepted appointments at local times |
+| 🔑 | `GET /competitions/umpire-levels` | The lowest umpire level each competition asks for |
+| 🛡️ | `PUT /competitions/:id/umpire-level` | Set it, `{ minLevel }`, or `null` for any |
+
+An hourly job emails each club's admins about fixtures in the next week still short of umpires: on Mondays, and when one is two days away; once a day at most, from 8am.
 
 ### Requests
 

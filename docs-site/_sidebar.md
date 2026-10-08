@@ -8,6 +8,7 @@
   - [Red card reports](guide/red-cards.md)
   - [Workouts and fitness](guide/workouts.md)
   - [The website](guide/website.md)
+  - [Club umpiring](guide/club-umpiring.md)
   - [Troubleshooting](guide/troubleshooting.md)
 
 - **Technical**

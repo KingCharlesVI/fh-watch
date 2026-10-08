@@ -359,10 +359,25 @@ An account holds a set of roles, so one person can be both an umpire and a club 
 | Rename, delete or merge venues and competitions | — | — | — | Yes |
 | Merge duplicate clubs or teams | — | — | — | Yes |
 | Manage users and roles | — | — | — | Yes |
+| Keep a club's umpire list, fixtures and appointments | — | — | Own club's | Yes |
+| Answer appointments, ask for or take cover, mark availability | — | Own | — | Yes |
+| Set the umpire level a competition asks for | — | — | — | Yes |
 
 "Own club's" means the home or away team belongs to the club admin's club. Checks run in one API policy module, `can(user, action, match)`, which allows an action if any of the user's roles allows it. The website and phone app use the same module only to hide buttons, never to enforce access.
 
 Deleting an account keeps its published matches, which become "Umpire: deleted user". Deleting a user's matches too is a separate admin action.
+
+**Club umpiring**
+
+An extra, not a gate: umpires still set up and umpire any match themselves. A club's admins keep a list of its umpires (`club_umpires`, with each one's level, 0 Trainee to 4 National, and the team they play for), its fixtures (`fixtures`: a local date and kick-off in UK time, as the phone keeps them, the teams, venue, competition, an optional format preset, and one or two umpires needed), and appointments (`appointments`). One person can be on several clubs' lists.
+
+- An appointment is the fixture's **watch** umpire, who runs the watch app and gets the match in their phone's Upcoming, set up; or its **second**, named on the match. One watch per fixture avoids two watches keeping different times. Partial unique indexes allow one active (asked or accepted) appointment per role and per umpire on a fixture, and the API allows no more than the fixture needs.
+- Statuses: `offered`, then `accepted` or `declined`. An accepted umpire can ask for cover; another umpire on the club's list takes it over, which marks the first `released` and adds theirs as accepted.
+- Umpires mark days free (with optional hours) or not (`umpire_availability`), and weekdays they're never free (`umpire_unavailable_weekdays`); a marked day overrides its weekday.
+- Suggestions for a fixture rank the club's umpires by availability, then whether anything is against them (playing in the match or that day, umpiring at the same time, little time to travel between grounds, below the competition's level from `competition_umpire_levels`), then by appointments accepted this season (from 1 August).
+- Emails go out for each step: asked, declined, cover wanted and taken, taken off, and the fixture moved or cancelled. An hourly job emails club admins about the next week's fixtures still short of umpires, on Mondays and two days before; `umpiring_gap_notices` keeps it to once a day.
+- Each umpire has a private iCalendar feed of accepted appointments (`calendar_feeds`). Its token is stored as it is, unlike sign-in tokens, so the same address can be shown again; it can be replaced.
+- The phone fetches appointments when it opens and comes to the front. Accepted watch appointments are added to Upcoming once (the phone remembers which, so a deleted one stays deleted) and follow fixture changes until sent. It schedules a local reminder at 6pm the day before each accepted appointment, under the notifications switch.
 
 ## Website & exports
 

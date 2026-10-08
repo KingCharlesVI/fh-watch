@@ -80,6 +80,8 @@ At the ground, open the match and tap **Send to watch**, as above. It's marked *
 
 Upcoming matches are kept on the phone only, and aren't in backups.
 
+If a club appoints you, **Upcoming** also shows its requests to **Accept** or **Decline**, and matches you're second umpire for. A match you accept as the watch umpire joins the list already set up, and you're reminded the day before. See [Club umpiring](guide/club-umpiring.md).
+
 ## Backups and moving phones
 
 Uploaded matches are safe on the website. Anything only on the phone isn't, so back up now and then:
