@@ -4,6 +4,7 @@ import { NetworkError } from "@/core/api";
 import { api, sessionEvents, sync } from "@/services";
 import { type PushStatus, disablePush, enablePush, notificationSetting, turnOffNotifications } from "@/services/push";
 import { syncUploadReminders } from "@/services/upload-reminders";
+import { refreshAppointments } from "./appointments";
 import { cachedUser } from "@/services/storage";
 
 interface Auth {
@@ -89,7 +90,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await notificationSetting.setOn(true);
         const result = await enablePush(true);
         setPush(result);
-        if (result.state === "on") void syncUploadReminders().catch(() => {});
+        if (result.state === "on") {
+          void syncUploadReminders().catch(() => {});
+          void refreshAppointments();
+        }
         return result;
       },
       async disableNotifications() {

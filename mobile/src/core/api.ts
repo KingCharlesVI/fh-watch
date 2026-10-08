@@ -5,6 +5,7 @@ import type {
   Items,
   Match,
   MatchDocument,
+  MyAppointment,
   Page,
   Problem,
   TeamWithClub,
@@ -159,6 +160,10 @@ export class ApiClient {
   /** Public, so it works from the registration screen, before there's an account. */
   searchClubs = (q: string) => this.request<Items<Club>>("/v1/clubs", { query: { q }, auth: false });
   searchUmpires = (q: string) => this.request<Items<{ id: string; displayName: string }>>("/v1/umpires", { query: { q } });
+
+  /** Appointments clubs have asked you to umpire, from today. */
+  myAppointments = () => this.request<Items<MyAppointment>>("/v1/me/appointments");
+  answerAppointment = (id: string, answer: "accept" | "decline") => this.request(`/v1/me/appointments/${id}/${answer}`, { method: "POST" });
 
   registerPushToken = (token: string, platform: "ios" | "android") =>
     this.request("/v1/me/push-tokens", { method: "POST", body: { token, platform } });

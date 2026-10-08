@@ -162,6 +162,8 @@ export function upcomingStore(storage: KeyValueStorage, key = "upcomingMatches")
       };
     },
     save: (match: UpcomingMatch) => update((current) => saveUpcoming(current, match)),
+    /** Any other change to the list as it is now. */
+    apply: update,
     remove: (id: string) => update((current) => removeUpcoming(current, id)),
     async removeAll(ids: readonly string[]) {
       if (ids.length === 0) return;

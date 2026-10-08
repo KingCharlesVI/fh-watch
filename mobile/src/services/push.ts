@@ -66,9 +66,10 @@ export async function turnOffNotifications(status: PushStatus | null) {
   await disablePush(status);
 }
 
-/** Where a tapped notification should open: the match, or its editor when teams need linking. */
+/** Where a tapped notification should open: the match, its editor when teams need linking, or Upcoming for an appointment. */
 export function notificationTarget(response: Notifications.NotificationResponse): string | null {
   const data = response.notification.request.content.data as { matchId?: string; action?: string } | undefined;
+  if (data?.action === "appointments") return "/upcoming";
   if (!data?.matchId) return null;
   return data.action === "link_teams" ? `/match/${data.matchId}/edit` : `/match/${data.matchId}`;
 }

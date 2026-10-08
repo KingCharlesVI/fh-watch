@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { ActivityIndicator, View, useColorScheme } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { notificationTarget } from "@/services/push";
+import { useAppointmentSync } from "@/state/appointments";
 import { AuthProvider, useAuth } from "@/state/auth";
 import { ONLINE } from "@/config";
 import { useSyncTriggers, useUploadReminders, useWatchInbox } from "@/state/sync";
@@ -39,6 +40,7 @@ function Navigator() {
   useWatchInbox(open);
   useSyncTriggers(ONLINE && signedIn);
   useUploadReminders(ONLINE && signedIn);
+  useAppointmentSync(ONLINE && signedIn);
   useUpdateChecks();
 
   // After an update, What's new opens once, with what changed since it last did.
