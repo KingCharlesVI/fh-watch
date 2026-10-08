@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { TextField } from "@/components/TextField";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import type { ReactNode } from "react";
 import { api } from "@/lib/api";
 import type { Items } from "@/lib/types";
 
@@ -19,6 +20,7 @@ export async function NamedListAdmin({
   noun,
   description,
   example,
+  children,
 }: {
   list: ListName;
   title: string;
@@ -26,6 +28,8 @@ export async function NamedListAdmin({
   noun: string;
   description: string;
   example: string;
+  /** More about the list, below it. */
+  children?: ReactNode;
 }) {
   const items = await api<Items<{ id: string; name: string }>>(`/v1/${list}`);
   return (
@@ -78,6 +82,7 @@ export async function NamedListAdmin({
           />
         </div>
       </div>
+      {children}
     </div>
   );
 }
