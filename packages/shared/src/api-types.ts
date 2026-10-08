@@ -123,6 +123,16 @@ export interface AccessRequest {
   reviewedAt: string | null;
 }
 
+/** What a bulk import added (or, as a dry run, would add). Admins only. */
+export interface ImportResult {
+  /** As shown to the admin: a club's name, "Club Team" for a team, or a venue's or competition's name. */
+  added: string[];
+  /** Rows naming something that's already there, or repeated in the import. */
+  existing: number;
+  /** Rows that can't be imported, by their index in the rows sent. */
+  errors: { row: number; message: string }[];
+}
+
 export interface Page<T> {
   items: T[];
   nextCursor: string | null;

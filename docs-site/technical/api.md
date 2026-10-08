@@ -152,6 +152,12 @@ Two lists of names that umpires pick from: the grounds matches are played at (no
 | 🛡️ | `DELETE /venues/:id` · `DELETE /competitions/:id` | Delete it |
 | 🛡️ | `POST /venues/:id/merge` · `POST /competitions/:id/merge` | Merge a duplicate into another, `{ into }`: matches with its name, in any capitals, take the other's, and it's deleted. Answers `{ into, matches }` |
 
+### Bulk import
+
+| | Route | |
+| --- | --- | --- |
+| 🛡️ | `POST /import` | Add many at once from a spreadsheet's rows: `{ kind, rows, dryRun }`. `kind` is `clubs` (each row `[club, team]`, the team optional), `venues` or `competitions` (each row `[name]`); up to 2000 rows, without the heading. Anything already there, by name in any capitals or (for clubs and teams) by slug, is left alone. Answers `{ added, existing, errors }`, with each bad row by its index. `dryRun: true` answers the same without saving anything |
+
 ### Requests
 
 | | Route | |
