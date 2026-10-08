@@ -2,7 +2,8 @@ import type { User } from "@fh/shared";
 import { type ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { NetworkError } from "@/core/api";
 import { api, sessionEvents, sync } from "@/services";
-import { type PushStatus, disablePush, enablePush } from "@/services/push";
+import { type PushStatus, disablePush, enablePush, notificationSetting, turnOffNotifications } from "@/services/push";
+import { syncUploadReminders } from "@/services/upload-reminders";
 import { cachedUser } from "@/services/storage";
 
 interface Auth {
@@ -10,10 +11,13 @@ interface Auth {
   user: User | null;
   /** Set when the session ended on its own (e.g. password changed elsewhere). */
   expired: boolean;
+  /** null while notifications are turned off in Settings, or not yet checked. */
   push: PushStatus | null;
   signIn(email: string, password: string): Promise<void>;
   signOut(): Promise<void>;
+  /** Settings → Notifications on: asks for the phone's permission if it hasn't been given. */
   enableNotifications(): Promise<PushStatus>;
+  disableNotifications(): Promise<void>;
 }
 
 const AuthContext = createContext<Auth | null>(null);
@@ -29,8 +33,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus("signedIn");
     setExpired(false);
     sync.setUser(u.id);
-    // Only asks for permission from Settings; here it just re-registers if already allowed.
-    void enablePush(false).then(setPush);
+    // Only asks for permission from Settings; here it just re-registers if already allowed, and still on.
+    void notificationSetting.load().then(async (on) => setPush(on ? await enablePush(false) : null));
   }, []);
 
   // Start from the remembered user, so the app works offline; then check with the server.
@@ -82,9 +86,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setStatus("signedOut");
       },
       async enableNotifications() {
+        await notificationSetting.setOn(true);
         const result = await enablePush(true);
         setPush(result);
+        if (result.state === "on") void syncUploadReminders().catch(() => {});
         return result;
+      },
+      async disableNotifications() {
+        await turnOffNotifications(push);
+        setPush(null);
       },
     }),
     [status, user, expired, push, becomeSignedIn],

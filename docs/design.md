@@ -250,7 +250,7 @@ Upgrading a phone from the alpha to the beta keeps its matches: signing in clear
 | Set up a match | The watch's setup fields (format, teams, colours, captains, venue, competition), sent to the watch. Team names, the venue and the competition are free text, with the directory's teams (`GET /teams`), venues (`GET /venues`) and competitions (`GET /competitions`) offered as the umpire types (beta, when online). The watch puts the venue and competition in the match it starts. |
 | Upcoming | Setups made ahead of time, with a day and kick-off from the platform's date and time pickers, kept on the phone and sent to the watch at the ground. |
 | Summary | The umpire's matches added up by season. |
-| Settings | Account and sign out, notification permission, watch connection status and Set up a match, Health Connect (Android), backups and "Import from file", and the version with update notices (Android GitHub builds). |
+| Settings | Account and sign out, a notifications switch, watch connection status and Set up a match, Health Connect (Android), backups and "Import from file", and the version with update notices (Android GitHub builds). |
 
 **Data and upload**
 
@@ -271,6 +271,7 @@ Upgrading a phone from the alpha to the beta keeps its matches: signing in clear
 - After sign-in, once notifications are allowed, the app registers its Expo push token with `POST /me/push-tokens`. Sign-out removes it. The token is best effort: an emulator, or an Android build without Firebase (FCM) set up, has none, and Settings still shows notifications as on, since the reminders don't need it.
 - Nothing sends a push yet: the upload reminders are local notifications, scheduled on the phone. The token registration and the API's Expo Push Service sender are kept for messages from the server later, which will need Firebase set up for Android first.
 - Tapping a notification opens its match.
+- Settings → Notifications is one switch for all of them, on by default (once the phone allows notifications). Off cancels every scheduled reminder, removes the push token, and hides anything that still arrives while the app is open. It's kept on the phone (`mobile/src/core/notification-prefs.ts`).
 
 **Share link and QR code**
 

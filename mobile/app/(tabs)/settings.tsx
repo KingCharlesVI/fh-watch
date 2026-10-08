@@ -9,6 +9,7 @@ import { type ServerStatus, checkServer } from "@/core/server-status";
 import { sync } from "@/services";
 import { saveBackup, shareBackup } from "@/services/export";
 import { reportBug, suggestFeature } from "@/services/feedback";
+import { useNotificationsOn } from "@/services/push";
 import { HealthConnect, useHealthConnect } from "@/services/health";
 import { importFromFile, sampleMatch } from "@/services/import";
 import { useConnectedWatches, useWatchProblems, watchSyncAvailable } from "@/services/watch";
@@ -241,7 +242,8 @@ function Updates() {
 
 /** Beta only: the account, notifications and signing out. */
 function AccountCards({ notUploaded }: { notUploaded: number }) {
-  const { user, signOut, push, enableNotifications } = useAuth();
+  const { user, signOut, push, enableNotifications, disableNotifications } = useAuth();
+  const notificationsOn = useNotificationsOn();
 
   function confirmSignOut() {
     Alert.alert(
@@ -272,22 +274,22 @@ function AccountCards({ notUploaded }: { notUploaded: number }) {
       </Card>
 
       <Card title="Notifications">
-        {push?.state === "on" ? (
-          <T variant="muted">On. You'll get a reminder when a match from your watch hasn't been uploaded 2 hours after it arrived.</T>
-        ) : (
-          <>
-            <T variant="muted">Get a reminder when a match from your watch hasn't been uploaded 2 hours after it arrived.</T>
-            {push?.state === "denied" && <T variant="small">Notifications are turned off for this app in your phone's settings.</T>}
-            <Button
-              title="Turn on notifications"
-              variant="outline"
-              icon="notifications-outline"
-              onPress={async () => {
-                const res = await enableNotifications();
-                if (res.state === "denied") void Linking.openSettings();
-              }}
-            />
-          </>
+        <Row style={{ alignItems: "center" }}>
+          <View style={{ flex: 1 }}>
+            <T>Notifications</T>
+            <T variant="small">A reminder when a match from your watch hasn&apos;t been uploaded 2 hours after it arrived.</T>
+          </View>
+          <Switch
+            value={notificationsOn === true && push?.state === "on"}
+            onValueChange={async (on) => {
+              if (!on) return void (await disableNotifications());
+              const res = await enableNotifications();
+              if (res.state === "denied") void Linking.openSettings();
+            }}
+          />
+        </Row>
+        {notificationsOn && push?.state === "denied" && (
+          <T variant="small">Notifications are turned off for this app in your phone&apos;s settings. Turn this on to open them.</T>
         )}
       </Card>
     </>

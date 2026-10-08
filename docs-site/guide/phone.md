@@ -94,7 +94,7 @@ Uploaded matches are safe on the website. Anything only on the phone isn't, so b
 | Setting | |
 | --- | --- |
 | **Account** | Your name, email and roles, **Manage on the website**, and **Sign out**. Signing out removes the matches from this phone; anything not uploaded is lost, so it warns you first. |
-| **Notifications** | **Turn on notifications** for a reminder when a match from your watch hasn't been uploaded 2 hours after it arrived. |
+| **Notifications** | One switch for all the app's notifications: a reminder when a match from your watch hasn't been uploaded 2 hours after it arrived. Turning it on asks for the phone's permission the first time; turning it off cancels any reminders already scheduled. |
 | **Watch** | Whether your watch is connected, and **Set up a match**. A match from the watch that couldn't be read shows here, with a way to export it. |
 | **Health Connect** (Android) | Save workouts to Health Connect, for Samsung Health and other fitness apps. See [Workouts](guide/workouts.md). |
 | **Your matches** | Backups and importing. |
