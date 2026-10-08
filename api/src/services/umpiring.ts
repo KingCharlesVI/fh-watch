@@ -1,9 +1,10 @@
-import type { Appointment, AvailabilityDay } from "@fh/shared";
+import { type Appointment, type AvailabilityDay, fixtureWhen } from "@fh/shared";
 import { and, arrayContains, asc, eq, gte, inArray, lte, ne, sql } from "drizzle-orm";
 import type { FastifyBaseLogger } from "fastify";
 import type { DbOrTx } from "../db/client.js";
 import { appointments, fixtures, umpireAvailability, umpireUnavailableWeekdays, users } from "../db/schema.js";
 import type { AppDeps } from "../deps.js";
+import type { EmailBlock } from "./email.js";
 import type { Mail } from "./mailer.js";
 
 type AppointmentRow = typeof appointments.$inferSelect;
@@ -73,4 +74,20 @@ export async function availabilityOf(db: DbOrTx, userIds: string[], from: string
   for (const d of days) byUser.get(d.userId)!.days.set(d.date, dayDto(d));
   for (const w of weekdays) byUser.get(w.userId)!.weekdays.push(w.weekday);
   return byUser;
+}
+
+/** A fixture as labelled details for an email. */
+export function fixtureDetails(
+  f: { homeName: string; awayName: string; date: string; time: string | null; venue: string | null; competition: string | null },
+  extra: [string, string][] = [],
+): EmailBlock {
+  return {
+    details: [
+      ["Match", `${f.homeName} v ${f.awayName}`],
+      ["When", fixtureWhen(f.date, f.time)],
+      ...(f.venue ? ([["Venue", f.venue]] as [string, string][]) : []),
+      ...(f.competition ? ([["Competition", f.competition]] as [string, string][]) : []),
+      ...extra,
+    ],
+  };
 }

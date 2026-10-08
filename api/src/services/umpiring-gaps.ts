@@ -2,6 +2,7 @@ import { UMPIRING_TIME_ZONE, addDays, fixtureWhen, localDay, weekdayOf } from "@
 import { and, asc, eq, gte, lte, sql } from "drizzle-orm";
 import { clubs, fixtures, umpiringGapNotices } from "../db/schema.js";
 import type { AppDeps } from "../deps.js";
+import { composeEmail } from "./email.js";
 import type { Mail } from "./mailer.js";
 import { appointmentsFor, clubAdminEmails, needsUmpires } from "./umpiring.js";
 
@@ -55,15 +56,22 @@ export async function emailUmpiringGaps(deps: Pick<AppDeps, "db" | "now" | "mail
       const waiting = active.filter((a) => a.status === "offered").map((a) => a.displayName);
       const short = f.umpiresNeeded - accepted;
       return (
-        `- ${fixtureWhen(f.date, f.time)}: ${f.homeName} v ${f.awayName}. Needs ${short} more` +
+        `${fixtureWhen(f.date, f.time)}: ${f.homeName} v ${f.awayName}. Needs ${short} more` +
         (waiting.length ? ` (${waiting.join(" and ")} asked, no answer yet).` : ".")
       );
     });
-    const mails: Mail[] = to.map((email) => ({
-      to: email,
-      subject: `${list.length === 1 ? "A fixture needs" : `${list.length} fixtures need`} umpires`,
-      text: `${list[0]!.clubName}'s fixtures in the next week that are short of umpires:\n\n${lines.join("\n")}\n\nAppoint umpires here:\n\n${deps.config.webUrl}/dashboard/fixtures`,
-    }));
+    const mails: Mail[] = to.map((email) =>
+      composeEmail(
+        {
+          to: email,
+          subject: `${list.length === 1 ? "A fixture needs" : `${list.length} fixtures need`} umpires`,
+          heading: "Fixtures short of umpires",
+          body: [`${list[0]!.clubName}'s fixtures in the next week that are short of umpires:`, { list: lines }],
+          action: { label: "Appoint umpires", url: `${deps.config.webUrl}/dashboard/fixtures?show=needs` },
+        },
+        deps.config.webUrl,
+      ),
+    );
     // Recorded first, so a failed email isn't retried every hour.
     await db
       .insert(umpiringGapNotices)

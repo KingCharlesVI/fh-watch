@@ -5,6 +5,8 @@ export interface Mail {
   to: string;
   subject: string;
   text: string;
+  /** The same email laid out, from services/email.ts; clients that can't show it show the text. */
+  html?: string;
 }
 
 export interface Mailer {

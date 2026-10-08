@@ -291,7 +291,7 @@ The API is a versioned REST service (`/v1`) written in Fastify, and all input is
 - The API takes `Authorization: Bearer <token>` only. The phone app keeps tokens in secure storage; the website's server keeps them in httpOnly, SameSite=Lax cookies and calls the API on the user's behalf.
 - Refresh tokens rotate on every use. Presenting an already-used refresh token revokes every token from that sign-in, since it may have been stolen.
 - Sign-in is refused until the email address is verified. Following a password-reset link also counts as verifying it.
-- Sign-up requires email verification. Password reset uses a single-use link that expires after 1 hour. Mail goes out over SMTP.
+- Sign-up requires email verification. Password reset uses a single-use link that expires after 1 hour. Mail goes out over SMTP. Every email is built by `api/src/services/email.ts`, as branded HTML (a table layout with inline styles, for email clients) with a plain-text version, and one button for its main link.
 - Sign-in and reset requests are rate-limited per IP address and per email, to 10 per 15 minutes. Password changes are limited to 10 per 15 minutes per account.
 - Every other API request is limited to 600 a minute per IP address, and CSV and PDF downloads to 30 a minute. These are generous on purpose: they only stop scripts, not a club with several people on one connection or a phone catching up after a match day. Health checks aren't counted.
 
@@ -375,7 +375,7 @@ An extra, not a gate: umpires still set up and umpire any match themselves. A cl
 - Statuses: `offered`, then `accepted` or `declined`. An accepted umpire can ask for cover; another umpire on the club's list takes it over, which marks the first `released` and adds theirs as accepted.
 - Umpires mark days free (with optional hours) or not (`umpire_availability`), and weekdays they're never free (`umpire_unavailable_weekdays`); a marked day overrides its weekday.
 - Suggestions for a fixture rank the club's umpires by availability, then whether anything is against them (playing in the match or that day, umpiring at the same time, little time to travel between grounds, below the competition's level from `competition_umpire_levels`), then by appointments accepted this season (from 1 August).
-- Emails go out for each step: asked, declined, cover wanted and taken, taken off, and the fixture moved or cancelled. An hourly job emails club admins about the next week's fixtures still short of umpires, on Mondays and two days before; `umpiring_gap_notices` keeps it to once a day.
+- Emails go out for each step: asked, accepted or declined (to the club's admins), cover wanted and taken, taken off, and the fixture moved or cancelled. An hourly job emails club admins about the next week's fixtures still short of umpires, on Mondays and two days before; `umpiring_gap_notices` keeps it to once a day.
 - Each umpire has a private iCalendar feed of accepted appointments (`calendar_feeds`). Its token is stored as it is, unlike sign-in tokens, so the same address can be shown again; it can be replaced.
 - The phone fetches appointments when it opens and comes to the front. Accepted watch appointments are added to Upcoming once (the phone remembers which, so a deleted one stays deleted) and follow fixture changes until sent. It schedules a local reminder at 6pm the day before each accepted appointment, under the notifications switch.
 

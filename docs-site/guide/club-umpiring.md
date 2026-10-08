@@ -10,7 +10,7 @@ Everything is under **Umpiring** on the website.
 
 ### Appointments
 
-When a club asks you to umpire, you get an email. Open **Umpiring → Appointments** (or **Upcoming** in the phone app) and **Accept** or **Decline**. Declining tells the club's admins, so they can ask someone else.
+When a club asks you to umpire, you get an email. Open **Umpiring → Appointments** (or **Upcoming** in the phone app) and **Accept** or **Decline**. Either way the club's admins are told, so if you decline they can ask someone else.
 
 - A match you accept as the **watch umpire** appears in the phone app's **Upcoming**, already set up with the teams, format, venue and competition. Add the colours and captains, and send it to the watch at the ground as usual. If the club changes the fixture before you've sent it, the change follows. If you delete it from Upcoming, it isn't added again.
 - As **second umpire**, it's shown in **Upcoming** above your own matches, with who you're umpiring with.
@@ -59,7 +59,7 @@ Open a fixture. **Who to ask** lists your club's umpires, best first:
 2. Those with nothing against them before those with something, such as playing in the match or that day, umpiring at the same time, umpiring at another ground with little time to get there, or a level below what the competition asks for.
 3. Whoever has done fewest this season.
 
-Choose **watch** or **second umpire**, tick **Mentoring** to pair a newer umpire with an experienced one, and **Ask**. They're emailed, and their answer shows on the fixture. **Take off** removes someone, and tells them.
+Choose **watch** or **second umpire**, tick **Mentoring** to pair a newer umpire with an experienced one, and **Ask**. They're emailed, and their answer shows on the fixture; you're emailed when they accept or decline. **Take off** removes someone, and tells them.
 
 Changing a fixture's date, kick-off or venue emails the umpires on it; deleting it tells them it's off.
 

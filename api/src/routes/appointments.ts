@@ -8,9 +8,10 @@ import { appointments, clubUmpires, clubs, fixtures, users } from "../db/schema.
 import type { AppDeps } from "../deps.js";
 import { badRequest, conflict, forbidden, isUniqueViolation, notFound } from "../lib/errors.js";
 import { audit } from "../services/audit.js";
+import { type EmailContent, composeEmail } from "../services/email.js";
 import type { Mail } from "../services/mailer.js";
 import { suggestUmpires } from "../services/suggestions.js";
-import { appointmentDto, appointmentsFor, clubAdminEmails, sendAll } from "../services/umpiring.js";
+import { appointmentDto, appointmentsFor, clubAdminEmails, fixtureDetails, sendAll } from "../services/umpiring.js";
 import { type FixtureRow, fixtureDto, requireUmpiringClub } from "./fixtures.js";
 
 /**
@@ -27,12 +28,15 @@ const MyParams = z.object({ appointmentId: z.uuid() });
 
 const teamsOf = (f: FixtureRow) => `${f.homeName} v ${f.awayName}`;
 const roleName = (role: "watch" | "second") => (role === "watch" ? "watch umpire" : "second umpire");
+/** For a row of an email's details. */
+const roleTitle = (role: "watch" | "second") => (role === "watch" ? "Watch umpire" : "Second umpire");
 
 export const appointmentRoutes =
   (deps: AppDeps): FastifyPluginAsyncZod =>
   async (app) => {
     const { db, config } = deps;
     const appointmentsUrl = `${config.webUrl}/appointments`;
+    const compose = (content: EmailContent) => composeEmail(content, config.webUrl);
 
     /** The fixture and club, for a club admin's request about one. */
     async function requireClubFixture(tx: DbOrTx, clubId: string, fixtureId: string) {
@@ -117,14 +121,21 @@ export const appointmentRoutes =
           return { appointment: row!, fixture, umpire };
         });
         sendAll(deps, request.log, [
-          {
+          compose({
             to: umpire.email,
             subject: `Can you umpire ${teamsOf(fixture)}?`,
-            text:
+            heading: "You've been asked to umpire",
+            body: [
               `${club.name} has asked you to be the ${roleName(role)}${mentoring ? " (mentoring)" : ""} for ${teamsOf(fixture)}, ` +
-              `${fixtureWhen(fixture.date, fixture.time)}${fixture.venue ? ` at ${fixture.venue}` : ""}.\n\n` +
-              `Accept or decline it here:\n\n${appointmentsUrl}`,
-          },
+                `${fixtureWhen(fixture.date, fixture.time)}${fixture.venue ? ` at ${fixture.venue}` : ""}.`,
+              fixtureDetails(fixture, [["Your role", `${roleTitle(role)}${mentoring ? " (mentoring)" : ""}`]]),
+              ...(fixture.notes ? [fixture.notes] : []),
+              role === "watch"
+                ? "As the watch umpire, you'll run the watch app: once you accept, the match is set up in Upcoming on your phone."
+                : "Please accept or decline it, so the club knows where it stands.",
+            ],
+            action: { label: "Accept or decline", url: appointmentsUrl },
+          }),
         ]);
         return reply.code(201).send(appointmentDto(appointment, umpire.displayName));
       },
@@ -154,11 +165,14 @@ export const appointmentRoutes =
         });
         if (removed.email && (removed.row.status === "offered" || removed.row.status === "accepted") && !isPast(removed.fixture)) {
           sendAll(deps, request.log, [
-            {
+            compose({
               to: removed.email,
               subject: `You're no longer umpiring ${teamsOf(removed.fixture)}`,
-              text: `${club.name} has taken you off ${teamsOf(removed.fixture)}, ${fixtureWhen(removed.fixture.date, removed.fixture.time)}. There's nothing you need to do.`,
-            },
+              body: [
+                `${club.name} has taken you off ${teamsOf(removed.fixture)}, ${fixtureWhen(removed.fixture.date, removed.fixture.time)}. There's nothing you need to do.`,
+                fixtureDetails(removed.fixture),
+              ],
+            }),
           ]);
         }
         return reply.code(204).send();
@@ -227,19 +241,37 @@ export const appointmentRoutes =
             const [me] = await tx.select({ displayName: users.displayName }).from(users).where(eq(users.id, actor.id));
             return { row: updated!, displayName: me!.displayName };
           });
-          if (answer === "decline") {
-            const [f] = await db.select().from(fixtures).where(eq(fixtures.id, row.fixtureId));
-            const to = await clubAdminEmails(db, f!.clubId);
-            sendAll(
-              deps,
-              request.log,
-              to.map((email) => ({
-                to: email,
-                subject: `${displayName} can't umpire ${teamsOf(f!)}`,
-                text: `${displayName} has declined being ${roleName(row.role)} for ${teamsOf(f!)}, ${fixtureWhen(f!.date, f!.time)}. Ask someone else:\n\n${config.webUrl}/dashboard/fixtures`,
-              })),
-            );
-          }
+          // Either way, the club's admins hear.
+          const [f] = await db.select().from(fixtures).where(eq(fixtures.id, row.fixtureId));
+          const to = await clubAdminEmails(db, f!.clubId);
+          const fixtureUrl = `${config.webUrl}/dashboard/fixtures/${f!.id}`;
+          sendAll(
+            deps,
+            request.log,
+            to.map((email) =>
+              answer === "accept"
+                ? compose({
+                    to: email,
+                    subject: `${displayName} will umpire ${teamsOf(f!)}`,
+                    heading: "Appointment accepted",
+                    body: [
+                      `${displayName} has accepted being ${roleName(row.role)}${row.mentoring ? " (mentoring)" : ""} for ${teamsOf(f!)}, ${fixtureWhen(f!.date, f!.time)}.`,
+                      fixtureDetails(f!, [[roleTitle(row.role), displayName]]),
+                    ],
+                    action: { label: "See the fixture", url: fixtureUrl },
+                  })
+                : compose({
+                    to: email,
+                    subject: `${displayName} can't umpire ${teamsOf(f!)}`,
+                    heading: "Appointment declined",
+                    body: [
+                      `${displayName} has declined being ${roleName(row.role)} for ${teamsOf(f!)}, ${fixtureWhen(f!.date, f!.time)}. Ask someone else.`,
+                      fixtureDetails(f!),
+                    ],
+                    action: { label: "Choose someone else", url: fixtureUrl },
+                  }),
+            ),
+          );
           return appointmentDto(row, displayName);
         },
       );
@@ -280,13 +312,18 @@ export const appointmentRoutes =
             .where(and(eq(clubUmpires.clubId, club.id), ne(clubUmpires.userId, actor.id)));
           const admins = await clubAdminEmails(db, club.id);
           const to = [...new Set([...umpires.map((u) => u.email), ...admins])];
-          const mail = (email: string): Mail => ({
-            to: email,
-            subject: `Cover needed: ${teamsOf(f)}, ${fixtureWhen(f.date, f.time)}`,
-            text:
-              `${displayName} can't make ${teamsOf(f)}, ${fixtureWhen(f.date, f.time)}${f.venue ? ` at ${f.venue}` : ""}, ` +
-              `where they're ${club.name}'s ${roleName(row.role)}. If you can cover it, take it here:\n\n${appointmentsUrl}`,
-          });
+          const mail = (email: string): Mail =>
+            compose({
+              to: email,
+              subject: `Cover needed: ${teamsOf(f)}, ${fixtureWhen(f.date, f.time)}`,
+              heading: "Can you cover this match?",
+              body: [
+                `${displayName} can't make ${teamsOf(f)}, ${fixtureWhen(f.date, f.time)}${f.venue ? ` at ${f.venue}` : ""}, ` +
+                  `where they're ${club.name}'s ${roleName(row.role)}. If you can cover it, take it over: the first to do so gets it.`,
+                fixtureDetails(f, [["Role", roleTitle(row.role)]]),
+              ],
+              action: { label: "Take it over", url: appointmentsUrl },
+            });
           sendAll(deps, request.log, to.map(mail));
         }
         return appointmentDto(row, displayName);
@@ -382,12 +419,28 @@ export const appointmentRoutes =
         const what = `${teamsOf(f)}, ${fixtureWhen(f.date, f.time)}`;
         const admins = await clubAdminEmails(db, club.id);
         sendAll(deps, request.log, [
-          ...(them ? [{ to: them.email, subject: `${me.displayName} is covering ${teamsOf(f)}`, text: `${me.displayName} has taken over ${what} from you. There's nothing more you need to do.` }] : []),
-          ...admins.map((email) => ({
-            to: email,
-            subject: `${me.displayName} is covering ${teamsOf(f)}`,
-            text: `${me.displayName} has taken over as ${roleName(taken.role)} for ${what}${them ? `, covering for ${them.displayName}` : ""}.`,
-          })),
+          ...(them
+            ? [
+                compose({
+                  to: them.email,
+                  subject: `${me.displayName} is covering ${teamsOf(f)}`,
+                  heading: "Your match is covered",
+                  body: [`${me.displayName} has taken over ${what} from you. There's nothing more you need to do.`, fixtureDetails(f)],
+                }),
+              ]
+            : []),
+          ...admins.map((email) =>
+            compose({
+              to: email,
+              subject: `${me.displayName} is covering ${teamsOf(f)}`,
+              heading: "A match has been covered",
+              body: [
+                `${me.displayName} has taken over as ${roleName(taken.role)} for ${what}${them ? `, covering for ${them.displayName}` : ""}.`,
+                fixtureDetails(f, [[roleTitle(taken.role), me.displayName]]),
+              ],
+              action: { label: "See the fixture", url: `${config.webUrl}/dashboard/fixtures/${f.id}` },
+            }),
+          ),
         ]);
         return reply.code(201).send(appointmentDto(taken, me.displayName));
       },

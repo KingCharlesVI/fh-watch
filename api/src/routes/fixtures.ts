@@ -10,7 +10,8 @@ import type { AppDeps } from "../deps.js";
 import { maybeDryRun } from "../lib/dry-run.js";
 import { badRequest, forbidden, notFound } from "../lib/errors.js";
 import { audit } from "../services/audit.js";
-import { appointmentsFor, needsUmpires, sendAll } from "../services/umpiring.js";
+import { composeEmail } from "../services/email.js";
+import { appointmentsFor, fixtureDetails, needsUmpires, sendAll } from "../services/umpiring.js";
 
 /**
  * A club's fixtures: the matches it needs umpires for. Its club admins add them, one at a
@@ -241,11 +242,21 @@ export const fixtureRoutes =
           sendAll(
             deps,
             request.log,
-            emails.map((to) => ({
-              to,
-              subject: `${row.homeName} v ${row.awayName} has moved`,
-              text: `${club.name} has changed ${row.homeName} v ${row.awayName}, which you're umpiring. It's now ${fixtureWhen(row.date, row.time)}${row.venue ? ` at ${row.venue}` : ""}.\n\nSee it here:\n\n${deps.config.webUrl}/appointments`,
-            })),
+            emails.map((to) =>
+              composeEmail(
+                {
+                  to,
+                  subject: `${row.homeName} v ${row.awayName} has moved`,
+                  heading: "A match you're umpiring has moved",
+                  body: [
+                    `${club.name} has changed ${row.homeName} v ${row.awayName}, which you're umpiring. It's now ${fixtureWhen(row.date, row.time)}${row.venue ? ` at ${row.venue}` : ""}.`,
+                    fixtureDetails(row),
+                  ],
+                  action: { label: "See your appointments", url: `${deps.config.webUrl}/appointments` },
+                },
+                deps.config.webUrl,
+              ),
+            ),
           );
         }
         return fixtureDto(row, (await appointmentsFor(db, [row.id])).get(row.id));
@@ -265,11 +276,20 @@ export const fixtureRoutes =
         sendAll(
           deps,
           request.log,
-          emails.map((to) => ({
-            to,
-            subject: `${row.homeName} v ${row.awayName} is off`,
-            text: `${club.name} has cancelled ${row.homeName} v ${row.awayName}, ${fixtureWhen(row.date, row.time)}, which you were umpiring. There's nothing you need to do.`,
-          })),
+          emails.map((to) =>
+            composeEmail(
+              {
+                to,
+                subject: `${row.homeName} v ${row.awayName} is off`,
+                heading: "A match you were umpiring is off",
+                body: [
+                  `${club.name} has cancelled ${row.homeName} v ${row.awayName}, ${fixtureWhen(row.date, row.time)}, which you were umpiring. There's nothing you need to do.`,
+                  fixtureDetails(row),
+                ],
+              },
+              deps.config.webUrl,
+            ),
+          ),
         );
       }
       return reply.code(204).send();

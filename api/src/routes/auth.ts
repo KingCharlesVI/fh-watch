@@ -22,6 +22,7 @@ import {
   timingSafeDummyVerify,
   verifyPassword,
 } from "../services/auth-tokens.js";
+import { type EmailContent, composeEmail } from "../services/email.js";
 import type { Mail } from "../services/mailer.js";
 
 export const Email = z.string().trim().toLowerCase().max(254).pipe(z.email());
@@ -51,11 +52,16 @@ export const authRoutes =
     const sendMail = (log: FastifyBaseLogger, mail: Mail) =>
       deps.mailer.send(mail).catch((err: unknown) => log.error({ err, to: mail.to }, "Failed to send email"));
 
-    const verifyMail = (to: string, token: string): Mail => ({
-      to,
-      subject: "Confirm your email address",
-      text: `Confirm your email address to finish setting up your account:\n\n${config.webUrl}/verify-email?token=${token}\n\nThe link expires in 24 hours.`,
-    });
+    const compose = (content: EmailContent) => composeEmail(content, config.webUrl);
+
+    const verifyMail = (to: string, token: string): Mail =>
+      compose({
+        to,
+        subject: "Confirm your email address",
+        body: ["Confirm your email address to finish setting up your FH Match Centre account."],
+        action: { label: "Confirm email address", url: `${config.webUrl}/verify-email?token=${token}` },
+        footnote: "The link expires in 24 hours. If you didn't make an account, ignore this email.",
+      });
 
     async function tokenPair(userId: string, familyId: string) {
       const now = deps.now();
@@ -86,11 +92,19 @@ export const authRoutes =
 
         const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
         if (existing) {
-          void sendMail(request.log, {
-            to: email,
-            subject: "You already have an account",
-            text: `Someone tried to register with this email address, which already has an account.\n\nIf it was you, sign in or reset your password at ${config.webUrl}/forgot-password.`,
-          });
+          void sendMail(
+            request.log,
+            compose({
+              to: email,
+              subject: "You already have an account",
+              body: [
+                "Someone tried to register with this email address, which already has an account.",
+                "If it was you, sign in, or reset your password if you've forgotten it.",
+              ],
+              action: { label: "Reset your password", url: `${config.webUrl}/forgot-password` },
+              footnote: "If it wasn't you, ignore this email: nothing has changed.",
+            }),
+          );
           return reply.code(202).send(AcceptedMessage);
         }
 
@@ -247,11 +261,16 @@ export const authRoutes =
         const [user] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
         if (user) {
           const token = await issueEmailToken(db, user.id, "reset_password", deps.now());
-          void sendMail(request.log, {
-            to: email,
-            subject: "Reset your password",
-            text: `Reset your password here:\n\n${config.webUrl}/reset-password?token=${token}\n\nThe link expires in 1 hour. If you didn't ask for this, ignore this email.`,
-          });
+          void sendMail(
+            request.log,
+            compose({
+              to: email,
+              subject: "Reset your password",
+              body: ["Someone asked to reset the password for your FH Match Centre account. Choose a new one here."],
+              action: { label: "Reset password", url: `${config.webUrl}/reset-password?token=${token}` },
+              footnote: "The link expires in 1 hour. If you didn't ask for this, ignore this email: your password hasn't changed.",
+            }),
+          );
         }
         return reply.code(202).send(AcceptedMessage);
       },

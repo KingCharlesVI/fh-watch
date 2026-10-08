@@ -51,6 +51,11 @@ describe("appointing umpires", () => {
     expect(mine[0]).toMatchObject({ id: appointment.id, status: "offered", fixture: { date: "2026-09-26", time: "14:00" }, club: { name: "Oxford Hawks" }, colleague: null });
 
     expect((await req("POST", `/v1/me/appointments/${appointment.id}/accept`, sam.headers)).json().status).toBe("accepted");
+    // The club's admins are told.
+    const accepted = mailsTo("admin@hawks.test").at(-1)!;
+    expect(accepted.subject).toBe("Sam will umpire M1 v Reading M1");
+    expect(accepted.text).toContain("Sam has accepted being watch umpire for M1 v Reading M1, Sat 26 Sep 2026, 14:00.");
+    expect(accepted.html).toContain("Appointment accepted");
     expect((await req("POST", `/v1/me/appointments/${appointment.id}/decline`, sam.headers)).statusCode).toBe(409);
 
     const fixture = (await req("GET", base, clubAdmin.headers)).json();
