@@ -70,6 +70,18 @@ describe("clubs and teams", () => {
     ]);
   });
 
+  it("lists every club's teams without a search, by club then team", async () => {
+    await t.createClub("Reading", ["M1"]);
+    await t.createClub("Oxford Hawks", ["M2", "L1"]);
+    const res = await t.app.inject({ method: "GET", url: "/v1/teams" });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().items.map((x: { club: { name: string }; name: string }) => `${x.club.name} ${x.name}`)).toEqual([
+      "Oxford Hawks L1",
+      "Oxford Hawks M2",
+      "Reading M1",
+    ]);
+  });
+
   it("strips the club admin role when a club is deleted", async () => {
     const admin = await t.createUser({ roles: ["admin"] });
     const { club } = await t.createClub("Oxford Hawks", ["M1"]);

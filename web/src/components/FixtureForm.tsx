@@ -6,11 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cachedPublic } from "@/lib/api";
 import type { FormState } from "@/lib/forms";
-import type { ClubWithTeams, Competition, Fixture, Items, Venue } from "@/lib/types";
+import type { ClubWithTeams, Competition, Fixture, Items, TeamWithClub, Venue } from "@/lib/types";
 
 const FORMAT_OPTIONS = [{ value: "none", label: "Leave to the umpire" }, ...FORMAT_PRESETS.map((p) => ({ value: p.key, label: p.label }))];
 
-/** A fixture's details, to add one or change it. Team, venue and competition names are offered from the site's lists. */
+/**
+ * A fixture's details, to add one or change it. Team, venue and competition names are offered from the site's lists:
+ * the club's own teams by name ("M1"), and every other club's as club and team ("Reading M1").
+ */
 export async function FixtureForm({
   club,
   fixture,
@@ -22,7 +25,15 @@ export async function FixtureForm({
   action: (state: FormState, fd: FormData) => Promise<FormState>;
   submitLabel: string;
 }) {
-  const [venues, competitions] = await Promise.all([cachedPublic<Items<Venue>>("/v1/venues"), cachedPublic<Items<Competition>>("/v1/competitions")]);
+  const [venues, competitions, allTeams] = await Promise.all([
+    cachedPublic<Items<Venue>>("/v1/venues"),
+    cachedPublic<Items<Competition>>("/v1/competitions"),
+    cachedPublic<Items<TeamWithClub>>("/v1/teams"),
+  ]);
+  const teamNames = [
+    ...club.teams.map((t) => t.name),
+    ...(allTeams?.items ?? []).filter((t) => t.club.id !== club.id).map((t) => `${t.club.name} ${t.name}`),
+  ];
   const preset = fixture ? formatPreset(fixture.format) : undefined;
   return (
     <ActionForm action={action} submitLabel={submitLabel} className="max-w-xl">
@@ -47,8 +58,8 @@ export async function FixtureForm({
         </Field>
       </div>
       <datalist id="fixture-teams">
-        {club.teams.map((t) => (
-          <option key={t.id} value={t.name} />
+        {teamNames.map((name) => (
+          <option key={name} value={name} />
         ))}
       </datalist>
       <FieldDescription>

@@ -409,20 +409,20 @@ export const clubRoutes =
       {
         schema: {
           tags: ["clubs"],
-          summary: "Search teams by club and team name, e.g. 'hawks m1', for linking a match.",
-          querystring: z.object({ q: z.string().trim().min(1).max(100) }),
+          summary: "Search teams by club and team name, e.g. 'hawks m1', for linking a match. Without q, every team, for a list to pick from.",
+          querystring: z.object({ q: z.string().trim().min(1).max(100).optional() }),
         },
       },
       async (request) => {
-        const words = request.query.q.split(/\s+/).slice(0, 5);
+        const words = request.query.q?.split(/\s+/).slice(0, 5) ?? [];
         const label = sql`${clubs.name} || ' ' || ${teams.name}`;
         const rows = await db
           .select({ team: teams, club: clubs })
           .from(teams)
           .innerJoin(clubs, eq(clubs.id, teams.clubId))
-          .where(and(...words.map((w) => ilike(label, containsPattern(w)))))
+          .where(words.length ? and(...words.map((w) => ilike(label, containsPattern(w)))) : undefined)
           .orderBy(asc(clubs.name), asc(teams.name))
-          .limit(50);
+          .limit(words.length ? 50 : 5000);
         return { items: rows.map((r): TeamWithClub => ({ ...teamDto(r.team), club: clubDto(r.club) })) };
       },
     );

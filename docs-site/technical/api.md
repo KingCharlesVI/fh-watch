@@ -127,7 +127,7 @@ The match document itself is described in [The match format](technical/match-for
 | 🔓 | `GET /clubs?q=` | All clubs, by name |
 | 🔓 | `GET /clubs/:idOrSlug` | A club and its teams |
 | 🔓 | `GET /clubs/:id/teams` | A club's teams |
-| 🔓 | `GET /teams?q=` | Search teams by club and team name, e.g. `hawks m1` |
+| 🔓 | `GET /teams?q=` | Search teams by club and team name, e.g. `hawks m1`. Without `q`, every club's teams |
 | 🔓 | `GET /clubs/:id/logo` | The club's logo image. Clubs give its path as `logoUrl`, which changes when the logo does |
 | 🛡️ | `POST /clubs` | Add a club |
 | 🛡️ | `PATCH /clubs/:id` | Rename it or change its web address |
