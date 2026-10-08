@@ -1,3 +1,4 @@
+import type { FixtureFormat } from "./api-types.js";
 import { type Actor, hasRole } from "./policy.js";
 
 /**
@@ -12,6 +13,26 @@ export const UMPIRE_LEVELS = ["Trainee", "Level 1", "Level 2", "Level 3", "Natio
 /** A level's name, or null for none recorded. */
 export function umpireLevelName(level: number | null | undefined): string | null {
   return level === null || level === undefined ? null : (UMPIRE_LEVELS[level] ?? null);
+}
+
+/** The watch's format presets (its Setup.PRESETS, and the phone's), for a fixture to name one. */
+export const FORMAT_PRESETS: { key: string; label: string; format: FixtureFormat }[] = [
+  { key: "4x15", label: "4 × 15 min", format: { periods: 4, periodMinutes: 15, breakMinutes: 2, halfTimeMinutes: 5, shootoutIfDrawn: false } },
+  { key: "2x35", label: "2 × 35 min", format: { periods: 2, periodMinutes: 35, breakMinutes: 10, halfTimeMinutes: 5, shootoutIfDrawn: false } },
+  { key: "2x30", label: "2 × 30 min", format: { periods: 2, periodMinutes: 30, breakMinutes: 5, halfTimeMinutes: 5, shootoutIfDrawn: false } },
+  { key: "2x25", label: "2 × 25 min", format: { periods: 2, periodMinutes: 25, breakMinutes: 5, halfTimeMinutes: 5, shootoutIfDrawn: false } },
+];
+
+/** The preset a format is, if it's one. */
+export function formatPreset(format: FixtureFormat | null | undefined) {
+  if (!format) return undefined;
+  return FORMAT_PRESETS.find(
+    (p) =>
+      p.format.periods === format.periods &&
+      p.format.periodMinutes === format.periodMinutes &&
+      p.format.breakMinutes === format.breakMinutes &&
+      p.format.halfTimeMinutes === format.halfTimeMinutes,
+  );
 }
 
 /** Fixture dates and kick-offs are local times here, as the match reports are. */

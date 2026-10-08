@@ -38,6 +38,7 @@ import {
   searchVenues,
   setSecondUmpire,
 } from "@/app/actions/matches";
+import { SearchPicker } from "@/components/SearchPicker";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -253,7 +254,7 @@ function TeamEditor({ side, doc, update }: { side: TeamSide; doc: MatchDocument;
             </div>
           ) : (
             <>
-              <Search<TeamWithClub>
+              <SearchPicker<TeamWithClub>
                 id={id("team-search")}
                 placeholder="Search, e.g. Hawks M1"
                 search={searchTeams}
@@ -275,62 +276,6 @@ function TeamEditor({ side, doc, update }: { side: TeamSide; doc: MatchDocument;
 }
 
 /** A search box that calls a server action as you type and lists what it finds. */
-function Search<T extends { id: string }>({
-  id,
-  placeholder,
-  search,
-  label,
-  onPick,
-}: {
-  id?: string;
-  placeholder: string;
-  search: (q: string) => Promise<T[]>;
-  label: (item: T) => string;
-  onPick: (item: T) => void;
-}) {
-  const [q, setQ] = useState("");
-  const [results, setResults] = useState<T[]>([]);
-  const latest = useRef(0);
-
-  useEffect(() => {
-    const ticket = ++latest.current;
-    if (q.trim().length < 2) {
-      setResults([]);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      const found = await search(q.trim());
-      if (ticket === latest.current) setResults(found);
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [q, search]);
-
-  return (
-    <div className="relative">
-      <Input id={id} type="search" value={q} placeholder={placeholder} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
-      {results.length > 0 && (
-        <ul className="mt-1 max-h-60 w-full overflow-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-sm">
-          {results.map((r) => (
-            <li key={r.id}>
-              <button
-                type="button"
-                className="w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-                onClick={() => {
-                  onPick(r);
-                  setQ("");
-                  setResults([]);
-                }}
-              >
-                {label(r)}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
 type Named = { id: string; name: string };
 
 /**
@@ -471,7 +416,7 @@ function UmpiresEditor({ matchId, initialUmpires }: { matchId: string; initialUm
           <FieldGroup className="grid gap-4 sm:grid-cols-2">
             <Field>
               <FieldLabel htmlFor="umpire-search">Add a registered umpire</FieldLabel>
-              <Search<{ id: string; displayName: string }>
+              <SearchPicker<{ id: string; displayName: string }>
                 id="umpire-search"
                 placeholder="Search by name"
                 search={searchUmpires}
