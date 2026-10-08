@@ -1,5 +1,8 @@
 import { hasRole } from "@fh/shared";
+import { Search } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { DOCS_URL, GITHUB_URL } from "@/lib/site";
 import type { User } from "@/lib/types";
 import { GitHubIcon } from "./GitHubIcon";
@@ -15,6 +18,19 @@ export function SiteHeader({ user }: { user: User | null }) {
         <Logo className="text-base sm:text-lg" />
         <MainNav user={navUser} />
         <div className="ml-auto flex items-center gap-1">
+          {/* Search everything: a box where there's room, otherwise a button to the search page. */}
+          <form role="search" action="/search" className="relative mr-1 hidden lg:block">
+            <label htmlFor="site-search" className="sr-only">
+              Search clubs, teams, competitions, venues and matches
+            </label>
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input id="site-search" name="q" type="search" placeholder="Search" className="h-9 w-48 pl-8" />
+          </form>
+          <Button variant="ghost" size="icon" asChild className="lg:hidden">
+            <Link href="/search" aria-label="Search" title="Search">
+              <Search />
+            </Link>
+          </Button>
           <Button variant="ghost" asChild className="hidden text-muted-foreground hover:text-foreground md:inline-flex">
             <a href={DOCS_URL}>Docs</a>
           </Button>

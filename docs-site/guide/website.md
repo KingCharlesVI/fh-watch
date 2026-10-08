@@ -6,6 +6,7 @@ The website, at [app.fhmatchcentre.com](https://app.fhmatchcentre.com), is where
 
 - **Matches**: published results, newest first, with the score, timeline, cards and statistics. Filter them by club, team, competition or venue.
 - **Clubs**: each club's teams and their matches.
+- **Search** (the box at the top, or the magnifying glass on a phone): finds clubs, teams, competitions, venues and matches at once. A match is found when each word you type is in a team's name, the venue or the competition.
 - A match can be downloaded as a report (PDF), a spreadsheet (CSV) or data (JSON).
 
 ## For umpires
