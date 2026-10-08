@@ -186,9 +186,16 @@ export const matches = pgTable(
     updatedAt: createdAt(),
   },
   (t) => [
-    index().on(t.playedAt.desc(), t.id.desc()),
+    index().on(t.playedAt.desc().nullsFirst(), t.id.desc().nullsFirst()),
+    // The public results list, newest first.
+    index("matches_published_played_at_id_index")
+      .on(t.playedAt.desc().nullsFirst(), t.id.desc().nullsFirst())
+      .where(sql`${t.status} = 'published' and ${t.deletedAt} is null`),
     index().on(t.homeTeamId),
     index().on(t.awayTeamId),
+    // Competition and venue filters match any part of the name (ILIKE '%…%'), which needs trigrams.
+    index("matches_competition_trgm_index").using("gin", t.competition.op("gin_trgm_ops")),
+    index("matches_venue_trgm_index").using("gin", t.venue.op("gin_trgm_ops")),
   ],
 );
 

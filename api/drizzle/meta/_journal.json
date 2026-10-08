@@ -57,6 +57,13 @@
       "when": 1791392791356,
       "tag": "0007_competitions",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791487445565,
+      "tag": "0008_match_filter_indexes",
+      "breakpoints": true
     }
   ]
 }
