@@ -10,7 +10,7 @@ import type { AppDeps } from "../deps.js";
 import { maybeDryRun } from "../lib/dry-run.js";
 import { badRequest, forbidden, notFound } from "../lib/errors.js";
 import { audit } from "../services/audit.js";
-import { appointmentsFor, sendAll } from "../services/umpiring.js";
+import { appointmentsFor, needsUmpires, sendAll } from "../services/umpiring.js";
 
 /**
  * A club's fixtures: the matches it needs umpires for. Its club admins add them, one at a
@@ -124,7 +124,15 @@ export const fixtureRoutes =
           tags: ["umpiring"],
           summary: "The club's fixtures by date and kick-off, from today unless `from` says otherwise (its club admins).",
           params: ClubParams,
-          querystring: z.object({ from: z.iso.date().optional(), to: z.iso.date().optional() }),
+          querystring: z.object({
+            from: z.iso.date().optional(),
+            to: z.iso.date().optional(),
+            needsUmpires: z
+              .enum(["true", "false"])
+              .transform((v) => v === "true")
+              .optional()
+              .describe("Only fixtures with fewer accepted umpires than they need."),
+          }),
         },
       },
       async (request) => {
@@ -133,7 +141,14 @@ export const fixtureRoutes =
         const rows = await db
           .select()
           .from(fixtures)
-          .where(and(eq(fixtures.clubId, club.id), gte(fixtures.date, from), request.query.to ? lte(fixtures.date, request.query.to) : undefined))
+          .where(
+            and(
+              eq(fixtures.clubId, club.id),
+              gte(fixtures.date, from),
+              request.query.to ? lte(fixtures.date, request.query.to) : undefined,
+              request.query.needsUmpires ? needsUmpires : undefined,
+            ),
+          )
           .orderBy(asc(fixtures.date), sql`${fixtures.time} asc nulls last`, asc(fixtures.homeName))
           .limit(500);
         const appointed = await appointmentsFor(

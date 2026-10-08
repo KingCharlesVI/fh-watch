@@ -1,12 +1,15 @@
 import type { Appointment, AvailabilityDay } from "@fh/shared";
-import { and, arrayContains, asc, eq, gte, inArray, lte, ne } from "drizzle-orm";
+import { and, arrayContains, asc, eq, gte, inArray, lte, ne, sql } from "drizzle-orm";
 import type { FastifyBaseLogger } from "fastify";
 import type { DbOrTx } from "../db/client.js";
-import { appointments, umpireAvailability, umpireUnavailableWeekdays, users } from "../db/schema.js";
+import { appointments, fixtures, umpireAvailability, umpireUnavailableWeekdays, users } from "../db/schema.js";
 import type { AppDeps } from "../deps.js";
 import type { Mail } from "./mailer.js";
 
 type AppointmentRow = typeof appointments.$inferSelect;
+
+/** Fewer umpires have accepted than the fixture needs. */
+export const needsUmpires = sql`${fixtures.umpiresNeeded} > (select count(*) from ${appointments} where ${appointments.fixtureId} = ${fixtures.id} and ${appointments.status} = 'accepted')`;
 
 export const appointmentDto = (a: AppointmentRow, displayName: string): Appointment => ({
   id: a.id,

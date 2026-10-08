@@ -218,6 +218,14 @@ export const calendarFeeds = pgTable("calendar_feeds", {
   createdAt: createdAt(),
 });
 
+/** The last day each club's admins were emailed about fixtures still needing umpires, so it's once a day at most. */
+export const umpiringGapNotices = pgTable("umpiring_gap_notices", {
+  clubId: uuid()
+    .primaryKey()
+    .references(() => clubs.id, { onDelete: "cascade" }),
+  sentOn: date({ mode: "string" }).notNull(),
+});
+
 const TIME_CHECK = "'^([01][0-9]|2[0-3]):[0-5][0-9]$'";
 
 /** A day an umpire has said they can or can't umpire, with the hours when they only can for some. */
