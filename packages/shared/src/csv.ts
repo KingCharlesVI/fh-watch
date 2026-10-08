@@ -21,6 +21,46 @@ function formatCell(cell: CsvCell): string {
   return /[",\r\n]/.test(guarded) ? `"${guarded.replace(/"/g, '""')}"` : guarded;
 }
 
+/**
+ * Reads CSV (RFC 4180, as spreadsheets save it): quoted cells may hold commas, quotes ("")
+ * and line breaks. A byte-order mark is skipped, cells are trimmed, and blank lines are
+ * left out. Semicolons separate cells instead when the first line has those and no commas,
+ * as some spreadsheets in Europe save it.
+ */
+export function parseCsv(text: string): string[][] {
+  const src = text.replace(/^﻿/, "");
+  const firstLine = src.split(/\r?\n/, 1)[0] ?? "";
+  const sep = firstLine.includes(";") && !firstLine.includes(",") ? ";" : ",";
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+  const endCell = () => {
+    row.push(cell.trim());
+    cell = "";
+  };
+  const endRow = () => {
+    endCell();
+    if (row.some((c) => c !== "")) rows.push(row);
+    row = [];
+  };
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i]!;
+    if (quoted) {
+      if (ch === '"' && src[i + 1] === '"') {
+        cell += '"';
+        i++;
+      } else if (ch === '"') quoted = false;
+      else cell += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === sep) endCell();
+    else if (ch === "\n") endRow();
+    else if (ch !== "\r") cell += ch;
+  }
+  endRow();
+  return rows;
+}
+
 export const EVENT_CSV_HEADER = ["seq", "period", "clock", "team", "type", "player", "detail"] as const;
 
 /** One row per event that still counts, in match order. */

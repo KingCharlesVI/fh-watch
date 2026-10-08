@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchEventsToCsv, matchListToCsv, toCsv } from "../src/csv.js";
+import { matchEventsToCsv, matchListToCsv, parseCsv, toCsv } from "../src/csv.js";
 import { leagueMatch, shootoutMatch } from "./fixtures.js";
 
 const lines = (csv: string) => csv.split("\r\n").slice(0, -1);
@@ -81,5 +81,34 @@ describe("matchListToCsv", () => {
       "match_id,started_at,competition,venue,home_team,away_team,home_score,away_score,shootout_home,shootout_away,winner," +
         "home_penalty_corners,away_penalty_corners,home_green,home_yellow,home_red,away_green,away_yellow,away_red",
     ]);
+  });
+});
+
+describe("parseCsv", () => {
+  it("reads cells, quoted ones with commas, quotes and line breaks", () => {
+    expect(parseCsv('club,team\r\n"Hawks, Oxford",M1\r\n"The ""Saints""","Ladies\n1s"\r\n')).toEqual([
+      ["club", "team"],
+      ["Hawks, Oxford", "M1"],
+      ['The "Saints"', "Ladies\n1s"],
+    ]);
+  });
+
+  it("trims cells and skips a byte-order mark and blank lines", () => {
+    expect(parseCsv("﻿ name \n\n Banbury Road \n,\n")).toEqual([["name"], ["Banbury Road"]]);
+  });
+
+  it("reads semicolon-separated files", () => {
+    expect(parseCsv("club;team\nHawks;M1\n")).toEqual([
+      ["club", "team"],
+      ["Hawks", "M1"],
+    ]);
+  });
+
+  it("reads back what toCsv writes", () => {
+    const rows = [
+      ["a", 'b "c"'],
+      ["d, e", "f"],
+    ];
+    expect(parseCsv(toCsv(rows))).toEqual(rows);
   });
 });
