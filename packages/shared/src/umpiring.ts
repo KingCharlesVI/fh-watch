@@ -7,8 +7,11 @@ import { type Actor, hasRole } from "./policy.js";
  * themselves, for any club or none.
  */
 
-/** Qualification levels, lowest first. A club umpire's level and a competition's minimum are stored as an index into this. */
-export const UMPIRE_LEVELS = ["Trainee", "Level 1", "Level 2", "Level 3", "National"] as const;
+/**
+ * Qualification levels, lowest first. A club umpire's level and a competition's minimum are stored as an index into this,
+ * so a new level goes in with a migration that moves the stored ones (as 0016 did for Level 1 (Assessed)).
+ */
+export const UMPIRE_LEVELS = ["Trainee", "Level 1 (Unassessed)", "Level 1 (Assessed)", "Level 2", "Level 3", "National"] as const;
 
 /** A level's name, or null for none recorded. */
 export function umpireLevelName(level: number | null | undefined): string | null {

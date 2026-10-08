@@ -165,7 +165,7 @@ A club's admins (and admins) run its umpiring: 🏷️ below. Dates are local da
 | | Route | |
 | --- | --- | --- |
 | 🏷️ | `GET /clubs/:id/umpires` | The club's umpire list, with each one's level, team and appointments this season |
-| 🏷️ | `PUT /clubs/:id/umpires/:userId` | Add a registered umpire, or change `{ level, playsForTeamId }` (level 0–4: Trainee to National) |
+| 🏷️ | `PUT /clubs/:id/umpires/:userId` | Add a registered umpire, or change `{ level, playsForTeamId }` (level 0–5: Trainee, Level 1 (Unassessed), Level 1 (Assessed), Level 2, Level 3, National) |
 | 🔑 | `DELETE /clubs/:id/umpires/:userId` | Take someone off the list: the club's admins, or the umpire themself |
 | 🔑 | `GET /me/umpiring-clubs` | The clubs whose list you're on |
 | 🏷️ | `GET /clubs/:id/fixtures` | Fixtures from today (or `from`, `to`), with their appointments. `needsUmpires=true`: only those with fewer accepted than needed |

@@ -24,21 +24,21 @@ describe("suggestions for a fixture", () => {
 
     // The fixture: M1 at home at 14:00, in a competition asking for Level 2.
     const competition = (await req("POST", "/v1/competitions", admin.headers, { name: "South Men's Division 2" })).json();
-    await req("PUT", `/v1/competitions/${competition.id}/umpire-level`, admin.headers, { minLevel: 2 });
+    await req("PUT", `/v1/competitions/${competition.id}/umpire-level`, admin.headers, { minLevel: 3 });
     const fixture = await add({ time: "14:00", home: { name: "M1" }, away: { name: "Reading M1" }, venue: "Banbury Road", competition: "south men's division 2" });
 
     // Ash: free, Level 2, done nothing. Bo: free and Level 3, but plays for M1.
-    await req("PUT", `/v1/clubs/${club.id}/umpires/${u.Ash.user.id}`, clubAdmin.headers, { level: 2 });
-    await req("PUT", `/v1/clubs/${club.id}/umpires/${u.Bo.user.id}`, clubAdmin.headers, { level: 3, playsForTeamId: teams[0]!.id });
-    // Cy: free, Level 2, but umpiring elsewhere at 16:00. Di: Level 1, free.
-    await req("PUT", `/v1/clubs/${club.id}/umpires/${u.Cy.user.id}`, clubAdmin.headers, { level: 2 });
-    await req("PUT", `/v1/clubs/${club.id}/umpires/${u.Di.user.id}`, clubAdmin.headers, { level: 1 });
+    await req("PUT", `/v1/clubs/${club.id}/umpires/${u.Ash.user.id}`, clubAdmin.headers, { level: 3 });
+    await req("PUT", `/v1/clubs/${club.id}/umpires/${u.Bo.user.id}`, clubAdmin.headers, { level: 4, playsForTeamId: teams[0]!.id });
+    // Cy: free, Level 2, but umpiring elsewhere at 16:00. Di: Level 1 (Assessed), free.
+    await req("PUT", `/v1/clubs/${club.id}/umpires/${u.Cy.user.id}`, clubAdmin.headers, { level: 3 });
+    await req("PUT", `/v1/clubs/${club.id}/umpires/${u.Di.user.id}`, clubAdmin.headers, { level: 2 });
     const elsewhere = await add({ time: "16:00", home: { name: "M2" }, away: { name: "Bath" }, venue: "Sonning Lane" });
     await req("POST", `${fixtures}/${elsewhere.id}/appointments`, clubAdmin.headers, { userId: u.Cy.user.id, role: "watch" });
     // Ed: Level 2, never free on Saturdays. Flo: Level 2, nothing said, but plays for M2 at 16:00.
-    await req("PUT", `/v1/clubs/${club.id}/umpires/${u.Ed.user.id}`, clubAdmin.headers, { level: 2 });
+    await req("PUT", `/v1/clubs/${club.id}/umpires/${u.Ed.user.id}`, clubAdmin.headers, { level: 3 });
     await req("PUT", "/v1/me/availability-weekdays", u.Ed.headers, { unavailable: [6] });
-    await req("PUT", `/v1/clubs/${club.id}/umpires/${u.Flo.user.id}`, clubAdmin.headers, { level: 2, playsForTeamId: teams[1]!.id });
+    await req("PUT", `/v1/clubs/${club.id}/umpires/${u.Flo.user.id}`, clubAdmin.headers, { level: 3, playsForTeamId: teams[1]!.id });
     for (const n of ["Ash", "Bo", "Cy", "Di"] as const) await req("PUT", "/v1/me/availability/2026-09-26", u[n].headers, { available: true });
 
     // Ash has done one this season already; so has Di.

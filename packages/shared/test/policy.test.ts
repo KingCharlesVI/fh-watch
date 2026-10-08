@@ -86,7 +86,9 @@ describe("canManageUmpiring", () => {
 describe("umpireLevelName", () => {
   it("names a level, or none", () => {
     expect(umpireLevelName(0)).toBe("Trainee");
-    expect(umpireLevelName(2)).toBe("Level 2");
+    expect(umpireLevelName(1)).toBe("Level 1 (Unassessed)");
+    expect(umpireLevelName(2)).toBe("Level 1 (Assessed)");
+    expect(umpireLevelName(3)).toBe("Level 2");
     expect(umpireLevelName(null)).toBeNull();
     expect(umpireLevelName(9)).toBeNull();
   });

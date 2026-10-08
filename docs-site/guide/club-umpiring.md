@@ -41,7 +41,7 @@ The **Dashboard** links to your club's **fixtures** and **umpires**.
 
 ### The umpire list
 
-**Club umpires**: find an umpire by name to add them. They need an account on the site, which anyone can make. For each, set their **level** (Trainee, Level 1, 2 or 3, National) and the **team they play for**: they won't be suggested for that team's matches, or ones at the same time. **This season** counts the appointments they've accepted for your club, so they can be shared out fairly. An umpire can be on several clubs' lists, and can leave one.
+**Club umpires**: find an umpire by name to add them. They need an account on the site, which anyone can make. For each, set their **level** (Trainee, Level 1 (Unassessed), Level 1 (Assessed), Level 2, Level 3 or National) and the **team they play for**: they won't be suggested for that team's matches, or ones at the same time. **This season** counts the appointments they've accepted for your club, so they can be shared out fairly. An umpire can be on several clubs' lists, and can leave one.
 
 ### Fixtures
 

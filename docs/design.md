@@ -369,7 +369,7 @@ Deleting an account keeps its published matches, which become "Umpire: deleted u
 
 **Club umpiring**
 
-An extra, not a gate: umpires still set up and umpire any match themselves. A club's admins keep a list of its umpires (`club_umpires`, with each one's level, 0 Trainee to 4 National, and the team they play for), its fixtures (`fixtures`: a local date and kick-off in UK time, as the phone keeps them, the teams, venue, competition, an optional format preset, and one or two umpires needed), and appointments (`appointments`). One person can be on several clubs' lists.
+An extra, not a gate: umpires still set up and umpire any match themselves. A club's admins keep a list of its umpires (`club_umpires`, with each one's level, 0 Trainee, 1 Level 1 (Unassessed), 2 Level 1 (Assessed), 3 Level 2, 4 Level 3, 5 National, and the team they play for), its fixtures (`fixtures`: a local date and kick-off in UK time, as the phone keeps them, the teams, venue, competition, an optional format preset, and one or two umpires needed), and appointments (`appointments`). One person can be on several clubs' lists.
 
 - An appointment is the fixture's **watch** umpire, who runs the watch app and gets the match in their phone's Upcoming, set up; or its **second**, named on the match. One watch per fixture avoids two watches keeping different times. Partial unique indexes allow one active (asked or accepted) appointment per role and per umpire on a fixture, and the API allows no more than the fixture needs.
 - Statuses: `offered`, then `accepted` or `declined`. An accepted umpire can ask for cover; another umpire on the club's list takes it over, which marks the first `released` and adds theirs as accepted.
