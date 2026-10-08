@@ -38,3 +38,12 @@ The site keeps two lists that umpires pick from, apart from the clubs:
 Umpires add one that's missing as they go: typing a name the list doesn't have offers **Add “…” as a new venue** (or competition), in the phone app and on a match's **Edit** page. Adding one that's already there, in different capitals, just picks that one. Admins tidy the lists under **Admin → Venues** and **Admin → Competitions**: add, rename and delete. A match keeps its venue and competition as text, so renaming or deleting one doesn't change matches already played.
 
 **Merge duplicates**, on the same pages, is for two names for one thing (`Banbury Rd` and `Banbury Road, Oxford`): pick the duplicate and the one to keep. Matches with the duplicate's name, in any capitals, take the kept one's, and the duplicate is deleted. Clubs and teams merge the same way: under **Admin → Clubs**, a duplicate club's teams, club admins and logo move to the club you keep (a team with the same name there is merged into it), and on a club's page, a duplicate team's matches are linked to the team you keep. Each changed match gets a new revision, so its edit history shows the change and phones pick it up.
+
+## Importing from a spreadsheet
+
+To start a league or season, **Admin → Import** adds many at once from a CSV file (save the spreadsheet as CSV), or rows pasted in:
+
+- **Clubs and teams**: columns `club` and `team`, one row per team. A row with only a club adds just the club.
+- **Venues** or **Competitions**: one column, `name`.
+
+A heading row is optional. **Preview** shows what would be added, how many rows are already on the site (matched in any capitals) and any rows that can't be imported, by their line in the file. **Import** then adds them. Nothing already there is changed, so importing the same file twice is safe.

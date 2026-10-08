@@ -1,6 +1,6 @@
 "use server";
 
-import { ROLES, type Role } from "@fh/shared";
+import { type ImportResult, ROLES, type Role, parseCsv } from "@fh/shared";
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { LISTS_TAG, api } from "@/lib/api";
@@ -245,6 +245,54 @@ export async function deleteListItem(_: FormState, fd: FormData): Promise<FormSt
 export async function mergeListItem(_: FormState, fd: FormData): Promise<FormState> {
   const l = list(fd);
   return merge(fd, (from) => `/v1/${l}/${from}/merge`, `/admin/${l}`);
+}
+
+// ---- Bulk import ----
+
+export type ImportKind = "clubs" | "venues" | "competitions";
+
+/** A bulk import's preview or outcome, with the file's text kept so Import can send it again. */
+export type ImportState =
+  | {
+      kind: ImportKind;
+      csv: string;
+      /** False for the preview. */
+      saved: boolean;
+      result: ImportResult;
+      /** What to add to a row's index to get its line in the file (1, or 2 after a heading). */
+      firstLine: number;
+    }
+  | { error: string }
+  | undefined;
+
+const HEADINGS = new Set(["club", "club name", "name", "venue", "competition"]);
+
+/**
+ * Previews a bulk import (the `preview` button) or saves it (`save`), from a CSV file or
+ * pasted text. A heading row, if there is one, is left out.
+ */
+export async function importRows(_: ImportState, fd: FormData): Promise<ImportState> {
+  const kind = text(fd, "kind") as ImportKind;
+  if (!["clubs", "venues", "competitions"].includes(kind)) return { error: "Choose what to import." };
+  const file = fd.get("file");
+  const csv = file instanceof File && file.size > 0 ? await file.text() : String(fd.get("csv") ?? "");
+  const rows = parseCsv(csv);
+  const heading = rows.length > 0 && HEADINGS.has(rows[0]![0]!.toLowerCase());
+  const data = heading ? rows.slice(1) : rows;
+  if (data.length === 0) return { error: "There's nothing to import: choose a CSV file or paste its rows." };
+  if (data.length > 2000) return { error: `That's ${data.length} rows. Import at most 2000 at a time.` };
+  const saved = fd.get("save") !== null;
+  try {
+    const result = await api<ImportResult>("/v1/import", { method: "POST", body: { kind, rows: data, dryRun: !saved } });
+    if (saved && result.added.length > 0) {
+      updateTag(LISTS_TAG);
+      revalidatePath(kind === "clubs" ? "/admin/clubs" : `/admin/${kind}`);
+      if (kind === "clubs") revalidatePath("/clubs", "layout");
+    }
+    return { kind, csv, saved, result, firstLine: heading ? 2 : 1 };
+  } catch (err) {
+    return { error: formError(err)?.error ?? "Couldn't import that." };
+  }
 }
 
 // ---- Testing requests ----
