@@ -53,7 +53,7 @@ export async function setupTestApp(
 
   beforeEach(async () => {
     await db.execute(
-      sql`truncate table audit_log, appointments, umpire_availability, umpire_unavailable_weekdays, fixtures, club_umpires, competition_umpire_levels, push_tokens, email_tokens, refresh_tokens, match_revisions, match_umpires, matches, club_requests, access_requests, users, teams, clubs, venues, competitions restart identity cascade`,
+      sql`truncate table audit_log, calendar_feeds, appointments, umpire_availability, umpire_unavailable_weekdays, fixtures, club_umpires, competition_umpire_levels, push_tokens, email_tokens, refresh_tokens, match_revisions, match_umpires, matches, club_requests, access_requests, users, teams, clubs, venues, competitions restart identity cascade`,
     );
     mailer.sent.length = 0;
     push.sent.length = 0;

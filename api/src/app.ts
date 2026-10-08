@@ -16,6 +16,7 @@ import { accessRequestRoutes } from "./routes/access-requests.js";
 import { authRoutes } from "./routes/auth.js";
 import { appointmentRoutes } from "./routes/appointments.js";
 import { availabilityRoutes } from "./routes/availability.js";
+import { calendarRoutes } from "./routes/calendar.js";
 import { clubUmpireRoutes } from "./routes/club-umpires.js";
 import { clubRoutes } from "./routes/clubs.js";
 import { fixtureRoutes } from "./routes/fixtures.js";
@@ -126,6 +127,7 @@ export async function buildApp(deps: AppDeps, options: { logger?: FastifyBaseLog
       await v1.register(fixtureRoutes(deps));
       await v1.register(availabilityRoutes(deps));
       await v1.register(appointmentRoutes(deps));
+      await v1.register(calendarRoutes(deps));
     },
     { prefix: "/v1" },
   );

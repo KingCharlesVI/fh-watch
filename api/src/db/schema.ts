@@ -206,6 +206,18 @@ export const appointments = pgTable(
   ],
 );
 
+/**
+ * An umpire's private calendar link. The token is kept as it is, not hashed, so the same
+ * address can be shown again: it only reads that umpire's appointments, and can be replaced.
+ */
+export const calendarFeeds = pgTable("calendar_feeds", {
+  userId: uuid()
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  token: text().notNull().unique(),
+  createdAt: createdAt(),
+});
+
 const TIME_CHECK = "'^([01][0-9]|2[0-3]):[0-5][0-9]$'";
 
 /** A day an umpire has said they can or can't umpire, with the hours when they only can for some. */
