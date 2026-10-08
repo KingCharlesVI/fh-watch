@@ -1,8 +1,8 @@
-import type { Appointment } from "@fh/shared";
-import { and, arrayContains, asc, eq, inArray, ne } from "drizzle-orm";
+import type { Appointment, AvailabilityDay } from "@fh/shared";
+import { and, arrayContains, asc, eq, gte, inArray, lte, ne } from "drizzle-orm";
 import type { FastifyBaseLogger } from "fastify";
 import type { DbOrTx } from "../db/client.js";
-import { appointments, users } from "../db/schema.js";
+import { appointments, umpireAvailability, umpireUnavailableWeekdays, users } from "../db/schema.js";
 import type { AppDeps } from "../deps.js";
 import type { Mail } from "./mailer.js";
 
@@ -49,4 +49,25 @@ export function sendAll(deps: AppDeps, log: FastifyBaseLogger, mails: Mail[]) {
   for (const mail of mails) {
     deps.mailer.send(mail).catch((err: unknown) => log.error({ err, to: mail.to }, "Failed to send email"));
   }
+}
+
+type DayRow = typeof umpireAvailability.$inferSelect;
+export const dayDto = (r: DayRow): AvailabilityDay => ({ date: r.date, available: r.available, from: r.fromTime, to: r.toTime });
+
+/** Marked days between two dates and weekdays never free, for each of some umpires. */
+export async function availabilityOf(db: DbOrTx, userIds: string[], from: string, to: string) {
+  const byUser = new Map<string, { days: Map<string, AvailabilityDay>; weekdays: number[] }>(
+    userIds.map((id) => [id, { days: new Map(), weekdays: [] }]),
+  );
+  if (userIds.length === 0) return byUser;
+  const [days, weekdays] = await Promise.all([
+    db
+      .select()
+      .from(umpireAvailability)
+      .where(and(inArray(umpireAvailability.userId, userIds), gte(umpireAvailability.date, from), lte(umpireAvailability.date, to))),
+    db.select().from(umpireUnavailableWeekdays).where(inArray(umpireUnavailableWeekdays.userId, userIds)).orderBy(asc(umpireUnavailableWeekdays.weekday)),
+  ]);
+  for (const d of days) byUser.get(d.userId)!.days.set(d.date, dayDto(d));
+  for (const w of weekdays) byUser.get(w.userId)!.weekdays.push(w.weekday);
+  return byUser;
 }

@@ -111,6 +111,20 @@ export interface ClubUmpire {
   /** The club's team they play for, so they aren't suggested for its matches. */
   playsForTeamId: string | null;
   addedAt: string;
+  /** Appointments for this club they've accepted this season, for spreading them fairly. */
+  seasonAppointments: number;
+}
+
+/** An umpire on the club's list, as a choice for one fixture, best first. */
+export interface UmpireSuggestion {
+  userId: string;
+  displayName: string;
+  level: number | null;
+  availability: "available" | "unavailable" | "unknown";
+  /** Appointments for this club they've accepted this season. */
+  seasonAppointments: number;
+  /** Reasons they may not suit, e.g. "Plays for M1 in this match". Empty when there are none. */
+  clashes: string[];
 }
 
 export interface ClubRequest {

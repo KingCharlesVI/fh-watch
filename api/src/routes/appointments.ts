@@ -9,6 +9,7 @@ import type { AppDeps } from "../deps.js";
 import { badRequest, conflict, forbidden, isUniqueViolation, notFound } from "../lib/errors.js";
 import { audit } from "../services/audit.js";
 import type { Mail } from "../services/mailer.js";
+import { suggestUmpires } from "../services/suggestions.js";
 import { appointmentDto, appointmentsFor, clubAdminEmails, sendAll } from "../services/umpiring.js";
 import { type FixtureRow, fixtureDto, requireUmpiringClub } from "./fixtures.js";
 
@@ -59,6 +60,23 @@ export const appointmentRoutes =
     const isPast = (f: FixtureRow) => f.date < localDay(deps.now());
 
     // ---- Club admins ----
+
+    app.get(
+      "/clubs/:id/fixtures/:fixtureId/suggestions",
+      {
+        schema: {
+          tags: ["umpiring"],
+          summary:
+            "The club's umpires as choices for a fixture, best first, with their availability, this season's count, and anything against them (its club admins).",
+          params: FixtureParams,
+        },
+      },
+      async (request) => {
+        const { club } = await requireUmpiringClub(db, request, request.params.id);
+        const fixture = await requireClubFixture(db, club.id, request.params.fixtureId);
+        return { items: await suggestUmpires(db, fixture, localDay(deps.now())) };
+      },
+    );
 
     app.post(
       "/clubs/:id/fixtures/:fixtureId/appointments",

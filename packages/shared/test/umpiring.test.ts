@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, availabilityFor, fixtureWhen, localDay, readDay, readTime, weekdayOf } from "../src/umpiring.js";
+import { addDays, availabilityFor, fixtureWhen, localDay, minutesBetween, readDay, readTime, seasonStart, weekdayOf } from "../src/umpiring.js";
 
 describe("localDay", () => {
   it("is the day in the UK, not UTC", () => {
@@ -76,5 +76,19 @@ describe("fixtureWhen", () => {
   it("says the day, and the kick-off if there is one", () => {
     expect(fixtureWhen("2026-09-26", "14:00")).toBe("Sat 26 Sep 2026, 14:00");
     expect(fixtureWhen("2027-01-03", null)).toBe("Sun 3 Jan 2027");
+  });
+});
+
+describe("seasonStart", () => {
+  it("starts each season on 1 August", () => {
+    expect(seasonStart("2026-09-19")).toBe("2026-08-01");
+    expect(seasonStart("2027-03-06")).toBe("2026-08-01");
+    expect(seasonStart("2026-08-01")).toBe("2026-08-01");
+    expect(seasonStart("2026-07-31")).toBe("2025-08-01");
+  });
+
+  it("measures the time between kick-offs either way round", () => {
+    expect(minutesBetween("14:00", "15:30")).toBe(90);
+    expect(minutesBetween("15:30", "14:00")).toBe(90);
   });
 });

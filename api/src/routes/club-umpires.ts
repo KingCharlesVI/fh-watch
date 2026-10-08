@@ -1,4 +1,4 @@
-import { type Club, type ClubUmpire, type CompetitionUmpireLevel, UMPIRE_LEVELS, canManageUmpiring } from "@fh/shared";
+import { type Club, type ClubUmpire, type CompetitionUmpireLevel, UMPIRE_LEVELS, canManageUmpiring, localDay } from "@fh/shared";
 import { and, arrayContains, asc, eq, isNotNull } from "drizzle-orm";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
@@ -7,6 +7,7 @@ import { clubUmpires, clubs, competitionUmpireLevels, competitions, teams, users
 import type { AppDeps } from "../deps.js";
 import { badRequest, forbidden, notFound } from "../lib/errors.js";
 import { audit } from "../services/audit.js";
+import { seasonAppointmentCounts } from "../services/suggestions.js";
 
 /**
  * Each club's umpire list, kept by its club admins, with each umpire's qualification level
@@ -23,13 +24,14 @@ const IdParams = z.object({ id: z.uuid() });
 const UmpireParams = z.object({ id: z.uuid(), userId: z.uuid() });
 
 type Row = typeof clubUmpires.$inferSelect;
-const dto = (r: Row, u: { displayName: string; email: string }): ClubUmpire => ({
+const dto = (r: Row, u: { displayName: string; email: string }, seasonAppointments = 0): ClubUmpire => ({
   userId: r.userId,
   displayName: u.displayName,
   email: u.email,
   level: r.level,
   playsForTeamId: r.playsForTeamId,
   addedAt: r.addedAt.toISOString(),
+  seasonAppointments,
 });
 
 export const clubUmpireRoutes =
@@ -53,7 +55,8 @@ export const clubUmpireRoutes =
         .innerJoin(users, eq(users.id, clubUmpires.userId))
         .where(eq(clubUmpires.clubId, club.id))
         .orderBy(asc(users.displayName));
-      return { items: rows.map((r) => dto(r.row, r)) };
+      const counts = await seasonAppointmentCounts(db, club.id, localDay(deps.now()));
+      return { items: rows.map((r) => dto(r.row, r, counts.get(r.row.userId))) };
     });
 
     app.put(

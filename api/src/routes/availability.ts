@@ -1,12 +1,12 @@
 import { type Availability, type AvailabilityDay, TIME_PATTERN, addDays, localDay } from "@fh/shared";
-import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, eq, gte, lte } from "drizzle-orm";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { requireActor } from "../auth.js";
-import type { DbOrTx } from "../db/client.js";
 import { umpireAvailability, umpireUnavailableWeekdays } from "../db/schema.js";
 import type { AppDeps } from "../deps.js";
 import { badRequest } from "../lib/errors.js";
+import { dayDto } from "../services/umpiring.js";
 
 /**
  * Each umpire's own availability: days they can or can't umpire (with hours, if only some),
@@ -16,27 +16,6 @@ import { badRequest } from "../lib/errors.js";
 const Time = z.string().regex(TIME_PATTERN, "Use a 24-hour time, e.g. 14:00.");
 /** How far ahead the calendar shows by default. */
 const DEFAULT_WEEKS = 12;
-
-type DayRow = typeof umpireAvailability.$inferSelect;
-export const dayDto = (r: DayRow): AvailabilityDay => ({ date: r.date, available: r.available, from: r.fromTime, to: r.toTime });
-
-/** Marked days between two dates and weekdays never free, for each of some umpires. */
-export async function availabilityOf(db: DbOrTx, userIds: string[], from: string, to: string) {
-  const byUser = new Map<string, { days: Map<string, AvailabilityDay>; weekdays: number[] }>(
-    userIds.map((id) => [id, { days: new Map(), weekdays: [] }]),
-  );
-  if (userIds.length === 0) return byUser;
-  const [days, weekdays] = await Promise.all([
-    db
-      .select()
-      .from(umpireAvailability)
-      .where(and(inArray(umpireAvailability.userId, userIds), gte(umpireAvailability.date, from), lte(umpireAvailability.date, to))),
-    db.select().from(umpireUnavailableWeekdays).where(inArray(umpireUnavailableWeekdays.userId, userIds)).orderBy(asc(umpireUnavailableWeekdays.weekday)),
-  ]);
-  for (const d of days) byUser.get(d.userId)!.days.set(d.date, dayDto(d));
-  for (const w of weekdays) byUser.get(w.userId)!.weekdays.push(w.weekday);
-  return byUser;
-}
 
 export const availabilityRoutes =
   (deps: AppDeps): FastifyPluginAsyncZod =>

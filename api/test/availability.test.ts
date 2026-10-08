@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { availabilityOf } from "../src/routes/availability.js";
+import { availabilityOf } from "../src/services/umpiring.js";
 import { setupTestApp } from "./helpers.js";
 
 const t = await setupTestApp();

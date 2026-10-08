@@ -69,6 +69,18 @@ export function fixtureWhen(day: string, time: string | null): string {
   return time ? `${label}, ${time}` : label;
 }
 
+/** The hockey season a day is in starts on 1 August: "2026-08-01" for any day from then to the next July. */
+export function seasonStart(day: string): string {
+  const year = Number(day.slice(0, 4));
+  return day.slice(5) >= "08-01" ? `${year}-08-01` : `${year - 1}-08-01`;
+}
+
+/** Minutes between two kick-offs, "14:00" and "15:30". */
+export function minutesBetween(a: string, b: string): number {
+  const mins = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  return Math.abs(mins(a) - mins(b));
+}
+
 /** The weekday of a day, "2026-10-11", 0 for Sunday to 6 for Saturday. */
 export function weekdayOf(day: string): number {
   const [y, m, d] = day.split("-").map(Number);
