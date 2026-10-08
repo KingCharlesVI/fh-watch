@@ -31,6 +31,8 @@ const app = await buildApp({
   pdf: fakePdfRenderer(),
   now: () => new Date(),
   authRateLimit: { max: 1000, windowMs: 1000 },
+  apiRateLimit: { max: 1000, windowMs: 1000 },
+  exportRateLimit: { max: 1000, windowMs: 1000 },
 });
 
 try {

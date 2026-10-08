@@ -21,6 +21,9 @@ const deps: AppDeps = {
   db,
   now: () => new Date(),
   authRateLimit: { max: 10, windowMs: 15 * 60 * 1000 },
+  // A website page makes up to about 6 API calls, so this is roughly 100 page views a minute.
+  apiRateLimit: { max: 600, windowMs: 60 * 1000 },
+  exportRateLimit: { max: 30, windowMs: 60 * 1000 },
   pdf: chromiumPdfRenderer(),
   mailer: config.smtpUrl ? smtpMailer(config.smtpUrl, config.mailFrom) : logMailer(log),
   push:

@@ -291,7 +291,8 @@ The API is a versioned REST service (`/v1`) written in Fastify, and all input is
 - Refresh tokens rotate on every use. Presenting an already-used refresh token revokes every token from that sign-in, since it may have been stolen.
 - Sign-in is refused until the email address is verified. Following a password-reset link also counts as verifying it.
 - Sign-up requires email verification. Password reset uses a single-use link that expires after 1 hour. Mail goes out over SMTP.
-- Sign-in and reset requests are rate-limited per IP address and per email, to 10 per 15 minutes.
+- Sign-in and reset requests are rate-limited per IP address and per email, to 10 per 15 minutes. Password changes are limited to 10 per 15 minutes per account.
+- Every other API request is limited to 600 a minute per IP address, and CSV and PDF downloads to 30 a minute. These are generous on purpose: they only stop scripts, not a club with several people on one connection or a phone catching up after a match day. Health checks aren't counted.
 
 **Endpoints**
 

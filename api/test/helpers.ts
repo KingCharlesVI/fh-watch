@@ -22,7 +22,9 @@ export const PASSWORD = "correct horse battery";
  * One app per test file, on the shared test database, with fake email, push
  * and a clock tests can move. Tables are emptied before each test.
  */
-export async function setupTestApp(options: { authRateLimitMax?: number; env?: Record<string, string> } = {}) {
+export async function setupTestApp(
+  options: { authRateLimitMax?: number; apiRateLimitMax?: number; exportRateLimitMax?: number; env?: Record<string, string> } = {},
+) {
   const config = loadConfig({
     NODE_ENV: "test",
     DATABASE_URL: testDatabaseUrl(),
@@ -44,6 +46,8 @@ export async function setupTestApp(options: { authRateLimitMax?: number; env?: R
     pdf,
     now: () => clock.now,
     authRateLimit: { max: options.authRateLimitMax ?? 1000, windowMs: 15 * 60 * 1000 },
+    apiRateLimit: { max: options.apiRateLimitMax ?? 100_000, windowMs: 60 * 1000 },
+    exportRateLimit: { max: options.exportRateLimitMax ?? 100_000, windowMs: 60 * 1000 },
   };
   const app = await buildApp(deps);
 

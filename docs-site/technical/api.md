@@ -40,7 +40,8 @@ sequenceDiagram
 - **Refresh tokens rotate.** Each refresh spends the old token. Two refreshes that race within 30 seconds are both accepted. Reusing a spent token after that ends the whole sign-in session (`refresh_token_reused`), in case the token was stolen.
 - **Signing in needs a confirmed email address.** Otherwise login returns `403 email_not_verified`.
 - **Changing or resetting a password signs out every device.**
-- **Rate limits:** login, register, email verification and password reset allow 10 attempts per 15 minutes per IP address, and per email address where there is one, then answer `429`.
+- **Rate limits:** login, register, email verification and password reset allow 10 attempts per 15 minutes per IP address, and per email address where there is one, then answer `429`. Changing your password allows 10 attempts per 15 minutes per account.
+- **General limits:** every other request is limited to 600 a minute per IP address, and CSV and PDF downloads to 30 a minute. Over a limit, the API answers `429 rate_limited` with a `Retry-After` header in seconds. `/v1/health` isn't counted.
 - **Register and forgot-password always answer `202`**, whether or not the address has an account, so they can't be used to find out who's registered.
 
 The website keeps the tokens in HTTP-only cookies and refreshes them before each page loads. The phone app keeps them in the device's secure storage.
