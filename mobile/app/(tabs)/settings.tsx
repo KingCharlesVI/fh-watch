@@ -1,10 +1,11 @@
 import Constants from "expo-constants";
 import * as Linking from "expo-linking";
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { Alert, Platform, Share, Switch, View } from "react-native";
 import { API_URL, CHANNEL, ONLINE, WEB_URL } from "@/config";
 import { errorMessage } from "@/core/api";
+import { type ServerStatus, checkServer } from "@/core/server-status";
 import { sync } from "@/services";
 import { saveBackup, shareBackup } from "@/services/export";
 import { reportBug, suggestFeature } from "@/services/feedback";
@@ -127,9 +128,57 @@ export default function SettingsScreen() {
           Version {Constants.expoConfig?.version} ({__DEV__ ? "development" : BUILD}) ·{" "}
           {ONLINE ? API_URL : "Alpha: watch and phone only"}
         </T>
+        {ONLINE && <ServerStatusRow />}
         <Updates />
       </Card>
     </Screen>
+  );
+}
+
+/** Whether the server answers, checked each time Settings opens. */
+function ServerStatusRow() {
+  const [status, setStatus] = useState<ServerStatus | null>(null);
+  const [checking, setChecking] = useState(false);
+  const check = useCallback(async () => {
+    setChecking(true);
+    setStatus(await checkServer(API_URL));
+    setChecking(false);
+  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      void check();
+    }, [check]),
+  );
+
+  const look =
+    checking || !status
+      ? { label: "Checking…", tone: "neutral" as const, icon: "ellipsis-horizontal" as const, detail: "Asking the server." }
+      : status.state === "online"
+        ? { label: "Online", tone: "primary" as const, icon: "checkmark-circle-outline" as const, detail: `Answered in ${status.ms} ms.` }
+        : status.state === "problem"
+          ? {
+              label: "Having problems",
+              tone: "warn" as const,
+              icon: "alert-circle-outline" as const,
+              detail: `The server answered with an error (${status.status}). Your matches are safe on this phone; try again later.`,
+            }
+          : {
+              label: "Can't reach it",
+              tone: "danger" as const,
+              icon: "cloud-offline-outline" as const,
+              detail: "Check this phone's internet connection. If that's fine, the server may be down. Your matches are safe on this phone.",
+            };
+  return (
+    <>
+      <Row style={{ alignItems: "center" }}>
+        <View style={{ flex: 1 }}>
+          <T>Server</T>
+          <T variant="small">{look.detail}</T>
+        </View>
+        <Badge label={look.label} tone={look.tone} icon={look.icon} />
+      </Row>
+      <Button title="Check again" variant="ghost" icon="refresh-outline" loading={checking} onPress={() => void check()} />
+    </>
   );
 }
 
