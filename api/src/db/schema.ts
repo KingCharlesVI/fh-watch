@@ -193,9 +193,11 @@ export const matches = pgTable(
       .where(sql`${t.status} = 'published' and ${t.deletedAt} is null`),
     index().on(t.homeTeamId),
     index().on(t.awayTeamId),
-    // Competition and venue filters match any part of the name (ILIKE '%…%'), which needs trigrams.
+    // Competition, venue and text search filters match any part of a name (ILIKE '%…%'), which needs trigrams.
     index("matches_competition_trgm_index").using("gin", t.competition.op("gin_trgm_ops")),
     index("matches_venue_trgm_index").using("gin", t.venue.op("gin_trgm_ops")),
+    index("matches_home_name_trgm_index").using("gin", t.homeName.op("gin_trgm_ops")),
+    index("matches_away_name_trgm_index").using("gin", t.awayName.op("gin_trgm_ops")),
   ],
 );
 

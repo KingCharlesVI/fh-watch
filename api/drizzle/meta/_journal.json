@@ -64,6 +64,13 @@
       "when": 1791487445565,
       "tag": "0008_match_filter_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791488502023,
+      "tag": "0009_match_text_search",
+      "breakpoints": true
     }
   ]
 }

@@ -300,6 +300,24 @@ describe("filtering", () => {
     expect(await ids(`venue=${encodeURIComponent("banbury road")}`)).toEqual([m1.id]);
     expect(await ids(`clubId=${club.id}&venue=sonning`)).toEqual([m2.id]);
   });
+
+  it("finds matches whose teams, venue or competition contain every word", async () => {
+    const umpire = await t.createUser();
+    const ids = async (q: string) =>
+      (await get(`/v1/matches?q=${encodeURIComponent(q)}`, umpire.headers)).json().items.map((m: { id: string }) => m.id);
+    const cup = { ...matchDoc(), competition: "Hampshire Cup", venue: "Sonning Lane, Reading" };
+    const league = { ...matchDoc({ endedAt: "2026-09-12T11:30:00Z" }), competition: "South Men's Division 2", venue: "Banbury Road" };
+    league.teams = { ...league.teams, home: { ...league.teams.home, name: "Bath Buccaneers M1" } };
+    for (const doc of [cup, league]) await put(doc, umpire.headers);
+
+    expect(await ids("reading")).toEqual([cup.id, league.id]); // the away team, and a venue
+    expect(await ids("bath")).toEqual([league.id]);
+    expect(await ids("HAMPSHIRE sonning")).toEqual([cup.id]);
+    expect(await ids("buccaneers division")).toEqual([league.id]);
+    expect(await ids("hawks")).toEqual([cup.id]);
+    expect(await ids("hampshire banbury")).toEqual([]);
+    expect(await ids("100%")).toEqual([]);
+  });
 });
 
 describe("exports", () => {

@@ -49,7 +49,25 @@ const ListFilters = z.object({
   competition: z.string().trim().min(1).max(120).optional().describe("Competition name containing this, in any capitals."),
   venue: z.string().trim().min(1).max(120).optional().describe("Venue name containing this, in any capitals."),
   status: z.enum(["draft", "published"]).optional(),
+  q: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120)
+    .optional()
+    .describe("Words that must each appear in a team's name, the venue or the competition, in any capitals."),
 });
+
+/** Each word of `q` in a team's name, the venue or the competition. At most 6 words count. */
+function matchesWords(q: string): SQL | undefined {
+  const words = q.split(/\s+/).filter(Boolean).slice(0, 6);
+  return and(
+    ...words.map((w) => {
+      const pattern = containsPattern(w);
+      return or(ilike(matches.homeName, pattern), ilike(matches.awayName, pattern), ilike(matches.venue, pattern), ilike(matches.competition, pattern));
+    }),
+  );
+}
 
 const BULK_EXPORT_MAX = 5000;
 
@@ -96,6 +114,7 @@ function filterConditions(db: DbOrTx, f: z.infer<typeof ListFilters>): (SQL | un
     f.competition ? ilike(matches.competition, containsPattern(f.competition)) : undefined,
     f.venue ? ilike(matches.venue, containsPattern(f.venue)) : undefined,
     f.status ? eq(matches.status, f.status) : undefined,
+    f.q ? matchesWords(f.q) : undefined,
   ];
 }
 
