@@ -1,3 +1,44 @@
+## [1.2.0-beta.20] - 2026-10-08
+
+### 🚀 Features
+
+- *(api)* Generous rate limits on every request, exports and password changes
+- *(mobile)* Show whether the server answers in Settings
+- *(mobile)* One switch in Settings for all notifications
+- *(mobile)* What's new after an update, and from Settings
+- *(api)* Search matches by words in their teams, venue or competition
+- *(web)* Search clubs, teams, competitions, venues and matches at once
+- *(shared)* Read CSV files
+- *(api)* Bulk import clubs and teams, venues or competitions
+- *(web)* Import clubs and teams, venues or competitions from a CSV
+- *(api)* Club umpire lists, with levels and competitions' minimum level
+- *(api)* Club fixtures, added one by one or from a spreadsheet
+- *(api)* Umpires mark the days they can or can't umpire
+- *(api)* Appoint umpires to fixtures, who accept, decline or ask for cover
+- *(api)* Suggest umpires for a fixture, with clashes and a fair spread
+- *(api)* A private calendar of each umpire's appointments
+- *(api)* Find fixtures short of umpires, and email club admins about them
+- *(web)* Club admins keep their umpire list, fixtures and appointments
+- *(web)* Umpires answer appointments, mark availability and see their season
+- *(web)* Admins set the umpire level each competition asks for
+- *(mobile)* Club appointments on the phone, in Upcoming and the day before
+
+### 📚 Documentation
+
+- Club umpiring, and what it means for privacy
+
+### ⚡ Performance
+
+- *(api)* Indexes for the public results list and competition and venue filters
+- *(web)* Cache the public club, team, competition and venue lists for a minute
+
+### 🚜 Refactor
+
+- *(api)* Type responses with the shared API types
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* V1.2.0 build 21
 ## [1.1.3-beta.19] - 2026-10-07
 
 ### 🚀 Features
