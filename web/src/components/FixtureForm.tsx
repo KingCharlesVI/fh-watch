@@ -1,5 +1,6 @@
 import { FORMAT_PRESETS, formatPreset } from "@fh/shared";
 import { ActionForm } from "@/components/ActionForm";
+import { ComboInput } from "@/components/ComboInput";
 import { FilterSelect } from "@/components/FilterSelect";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -50,39 +51,30 @@ export async function FixtureForm({
         </Field>
         <Field>
           <FieldLabel htmlFor="fixture-home">Home</FieldLabel>
-          <Input id="fixture-home" name="home" required maxLength={100} list="fixture-teams" defaultValue={fixture?.home.name} placeholder="e.g. M1" />
+          <ComboInput id="fixture-home" name="home" required maxLength={100} options={teamNames} defaultValue={fixture?.home.name} placeholder="e.g. M1" />
         </Field>
         <Field>
           <FieldLabel htmlFor="fixture-away">Away</FieldLabel>
-          <Input id="fixture-away" name="away" required maxLength={100} list="fixture-teams" defaultValue={fixture?.away.name} placeholder="e.g. Reading M1" />
+          <ComboInput id="fixture-away" name="away" required maxLength={100} options={teamNames} defaultValue={fixture?.away.name} placeholder="e.g. Reading M1" />
         </Field>
       </div>
-      <datalist id="fixture-teams">
-        {teamNames.map((name) => (
-          <option key={name} value={name} />
-        ))}
-      </datalist>
       <FieldDescription>
         Your club&apos;s teams by name (&ldquo;M1&rdquo;), another club&apos;s as club and team (&ldquo;Reading M1&rdquo;), are linked to the site&apos;s
         teams.
       </FieldDescription>
       <Field>
         <FieldLabel htmlFor="fixture-venue">Venue</FieldLabel>
-        <Input id="fixture-venue" name="venue" maxLength={120} list="fixture-venues" defaultValue={fixture?.venue ?? ""} />
-        <datalist id="fixture-venues">
-          {venues?.items.map((v) => (
-            <option key={v.id} value={v.name} />
-          ))}
-        </datalist>
+        <ComboInput id="fixture-venue" name="venue" maxLength={120} options={venues?.items.map((v) => v.name) ?? []} defaultValue={fixture?.venue ?? ""} />
       </Field>
       <Field>
         <FieldLabel htmlFor="fixture-competition">Competition</FieldLabel>
-        <Input id="fixture-competition" name="competition" maxLength={120} list="fixture-competitions" defaultValue={fixture?.competition ?? ""} />
-        <datalist id="fixture-competitions">
-          {competitions?.items.map((c) => (
-            <option key={c.id} value={c.name} />
-          ))}
-        </datalist>
+        <ComboInput
+          id="fixture-competition"
+          name="competition"
+          maxLength={120}
+          options={competitions?.items.map((c) => c.name) ?? []}
+          defaultValue={fixture?.competition ?? ""}
+        />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field>

@@ -1,6 +1,6 @@
 import { FilterSelect } from "@/components/FilterSelect";
 import { Field, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { ComboInput } from "@/components/ComboInput";
 import { cachedPublic } from "@/lib/api";
 import type { Club, ClubWithTeams, Competition, Items, Venue } from "@/lib/types";
 
@@ -83,12 +83,7 @@ function ListField({ name, label, value, options }: { name: string; label: strin
   return (
     <Field className="w-60">
       <FieldLabel htmlFor={`filter-${name}`}>{label}</FieldLabel>
-      <Input id={`filter-${name}`} name={name} type="search" list={`filter-${name}-options`} defaultValue={value} placeholder="Any" autoComplete="off" />
-      <datalist id={`filter-${name}-options`}>
-        {options.map((o) => (
-          <option key={o.id} value={o.name} />
-        ))}
-      </datalist>
+      <ComboInput id={`filter-${name}`} name={name} options={options.map((o) => o.name)} defaultValue={value} placeholder="Any" />
     </Field>
   );
 }
