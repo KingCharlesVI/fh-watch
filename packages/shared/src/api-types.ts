@@ -141,6 +141,42 @@ export interface AccessRequest {
   reviewedAt: string | null;
 }
 
+/** How a fixture is played, sent to the watch with its setup. */
+export interface FixtureFormat {
+  periods: number;
+  periodMinutes: number;
+  breakMinutes: number;
+  /** With an even number of periods over 2, the middle break. */
+  halfTimeMinutes: number;
+  shootoutIfDrawn: boolean;
+}
+
+export interface FixtureSide {
+  name: string;
+  /** Linked to one of the site's teams, when it is one. */
+  teamId: string | null;
+}
+
+/** A match a club needs umpires for. Its club's admins (and admins) see and change it. */
+export interface Fixture {
+  id: string;
+  clubId: string;
+  /** The local day, "2026-10-11". */
+  date: string;
+  /** Local kick-off, "14:00", or null if not known yet. */
+  time: string | null;
+  home: FixtureSide;
+  away: FixtureSide;
+  venue: string | null;
+  competition: string | null;
+  /** Null to leave it to the umpire's setup. */
+  format: FixtureFormat | null;
+  /** 2, or 1 when the other side provides one. */
+  umpiresNeeded: 1 | 2;
+  notes: string | null;
+  createdAt: string;
+}
+
 /** What a bulk import added (or, as a dry run, would add). Admins only. */
 export interface ImportResult {
   /** As shown to the admin: a club's name, "Club Team" for a team, or a venue's or competition's name. */

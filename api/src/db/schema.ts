@@ -1,10 +1,11 @@
-import { ROLES, type MatchDocument, UMPIRE_LEVELS } from "@fh/shared";
+import { type FixtureFormat, ROLES, type MatchDocument, UMPIRE_LEVELS } from "@fh/shared";
 import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
   check,
   customType,
+  date,
   index,
   integer,
   jsonb,
@@ -134,6 +135,40 @@ export const clubUmpires = pgTable(
     primaryKey({ columns: [t.clubId, t.userId] }),
     index().on(t.userId),
     check("club_umpires_level", sql`${t.level} between 0 and ${sql.raw(String(UMPIRE_LEVELS.length - 1))}`),
+  ],
+);
+
+/** A match a club needs umpires for. Its date and kick-off are local (UMPIRING_TIME_ZONE), as on the phone. */
+export const fixtures = pgTable(
+  "fixtures",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    /** The club appointing umpires to it. */
+    clubId: uuid()
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    date: date({ mode: "string" }).notNull(),
+    /** "14:00", or null if not known yet. */
+    time: text(),
+    homeName: text().notNull(),
+    awayName: text().notNull(),
+    homeTeamId: uuid().references(() => teams.id, { onDelete: "set null" }),
+    awayTeamId: uuid().references(() => teams.id, { onDelete: "set null" }),
+    venue: text(),
+    competition: text(),
+    format: jsonb().$type<FixtureFormat>(),
+    /** 2, or 1 when the other side provides one. */
+    umpiresNeeded: integer().notNull().default(2),
+    notes: text(),
+    createdBy: uuid().references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: createdAt(),
+  },
+  (t) => [
+    index().on(t.clubId, t.date),
+    index().on(t.date),
+    check("fixtures_time", sql`${t.time} ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'`),
+    check("fixtures_umpires_needed", sql`${t.umpiresNeeded} in (1, 2)`),
   ],
 );
 

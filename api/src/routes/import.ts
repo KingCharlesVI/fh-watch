@@ -6,14 +6,14 @@ import { requireRole } from "../auth.js";
 import type { DbOrTx } from "../db/client.js";
 import { type NamedListTable, clubs, competitions, teams, venues } from "../db/schema.js";
 import type { AppDeps } from "../deps.js";
+import { maybeDryRun } from "../lib/dry-run.js";
 import { slugify } from "../lib/slug.js";
 import { audit } from "../services/audit.js";
 
 /**
  * Bulk import for admins: clubs with their teams, venues or competitions, from the rows of a
  * spreadsheet. Anything already there (by name in any capitals, or by the same slug) is left
- * as it is, and so are rows repeated within the import. A dry run does the whole import in a
- * transaction and then rolls it back, so its preview can't differ from the real thing.
+ * as it is, and so are rows repeated within the import. A dry run previews it (lib/dry-run.ts).
  */
 
 const MAX_ROWS = 2000;
@@ -25,13 +25,6 @@ const Body = z.strictObject({
   rows: z.array(z.array(Cell).max(10)).min(1).max(MAX_ROWS),
   dryRun: z.boolean().default(false),
 });
-
-/** Thrown to roll a dry run back, carrying its result out. */
-class DryRun extends Error {
-  constructor(readonly result: ImportResult) {
-    super("dry run");
-  }
-}
 
 /** Spaces tidied, as the API stores names. */
 const tidy = (s: string | undefined) => (s ?? "").replace(/\s+/g, " ").trim();
@@ -151,19 +144,11 @@ export const importRoutes =
       async (request) => {
         const actor = requireRole(request, "admin");
         const { kind, rows, dryRun } = request.body;
-        try {
-          return await db.transaction(async (tx) => {
-            const result =
-              kind === "clubs"
-                ? await importClubs(tx, actor.id, rows)
-                : await importList(tx, actor.id, kind === "venues" ? venues : competitions, kind === "venues" ? "venue" : "competition", rows);
-            if (dryRun) throw new DryRun(result);
-            return result;
-          });
-        } catch (err) {
-          if (err instanceof DryRun) return err.result;
-          throw err;
-        }
+        return maybeDryRun(db, dryRun, (tx) =>
+          kind === "clubs"
+            ? importClubs(tx, actor.id, rows)
+            : importList(tx, actor.id, kind === "venues" ? venues : competitions, kind === "venues" ? "venue" : "competition", rows),
+        );
       },
     );
   };
