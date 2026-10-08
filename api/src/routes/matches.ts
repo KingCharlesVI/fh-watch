@@ -1,4 +1,5 @@
 import {
+  type FullMatch,
   type MatchDocument as MatchDoc,
   MatchDocument,
   canOnMatch,
@@ -7,6 +8,7 @@ import {
   hasRole,
   matchEventsToCsv,
   matchListToCsv,
+  type Revision,
   renderMatchReport,
   summarizeMatch,
 } from "@fh/shared";
@@ -176,7 +178,7 @@ export const matchRoutes =
       return pdf;
     }
 
-    async function fullMatch(match: MatchRow, umpires: UmpireRow[], reply: FastifyReply) {
+    async function fullMatch(match: MatchRow, umpires: UmpireRow[], reply: FastifyReply): Promise<FullMatch> {
       const document = await currentDocument(match);
       reply.header("etag", revisionEtag(match.currentRevision));
       return { match: matchDto(match, umpires, config.webUrl), document, summary: summarizeMatch(document) };
@@ -507,7 +509,7 @@ export const matchRoutes =
           .where(eq(matchRevisions.matchId, match.id))
           .orderBy(desc(matchRevisions.revision));
         return {
-          items: rows.map((r) => ({
+          items: rows.map((r): Revision => ({
             revision: r.revision,
             source: r.source,
             createdAt: r.createdAt.toISOString(),

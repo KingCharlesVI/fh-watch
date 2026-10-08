@@ -1,3 +1,4 @@
+import type { TokenPair } from "@fh/shared";
 import { randomUUID } from "node:crypto";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import type { FastifyBaseLogger, FastifyRequest } from "fastify";
@@ -175,7 +176,7 @@ export const authRoutes =
         if (!user.emailVerifiedAt) {
           throw new HttpError(403, "email_not_verified", "Confirm your email address before signing in.");
         }
-        return { ...(await tokenPair(user.id, randomUUID())), user: toUserDto(user) };
+        return { ...(await tokenPair(user.id, randomUUID())), user: toUserDto(user) } satisfies TokenPair;
       },
     );
 
@@ -215,7 +216,7 @@ export const authRoutes =
 
         const [user] = await db.select().from(users).where(eq(users.id, row.userId));
         if (!user) throw unauthorized("Account no longer exists.");
-        return { ...(await tokenPair(user.id, row.familyId)), user: toUserDto(user) };
+        return { ...(await tokenPair(user.id, row.familyId)), user: toUserDto(user) } satisfies TokenPair;
       },
     );
 

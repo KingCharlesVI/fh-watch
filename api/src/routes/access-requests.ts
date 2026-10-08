@@ -1,3 +1,4 @@
+import type { AccessRequest } from "@fh/shared";
 import { and, desc, eq } from "drizzle-orm";
 import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from "fastify";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
@@ -26,7 +27,7 @@ const AccessRequestInput = z.strictObject({
 
 /** Nothing here is anyone's account, so a request is only ever shown to an admin. */
 type Row = typeof accessRequests.$inferSelect;
-const dto = (r: Row) => ({
+const dto = (r: Row): AccessRequest => ({
   id: r.id,
   kind: r.kind,
   name: r.name,

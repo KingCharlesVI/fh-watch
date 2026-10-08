@@ -1,4 +1,4 @@
-import { canEditTeams } from "@fh/shared";
+import { type Club, type ClubRequest, type ClubTeam, type TeamWithClub, canEditTeams } from "@fh/shared";
 import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
@@ -40,16 +40,16 @@ async function unique<T>(slug: string, message: string, write: () => Promise<T>)
 
 type ClubRow = typeof clubs.$inferSelect;
 type TeamRow = typeof teams.$inferSelect;
-const clubDto = (c: ClubRow) => ({
+const clubDto = (c: ClubRow): Club => ({
   id: c.id,
   name: c.name,
   slug: c.slug,
   logoUrl: c.logoUpdatedAt ? `/v1/clubs/${c.id}/logo?v=${c.logoUpdatedAt.getTime()}` : null,
 });
-const teamDto = (t: TeamRow) => ({ id: t.id, clubId: t.clubId, name: t.name, slug: t.slug });
+const teamDto = (t: TeamRow): ClubTeam => ({ id: t.id, clubId: t.clubId, name: t.name, slug: t.slug });
 
 type RequestRow = typeof clubRequests.$inferSelect;
-const requestDto = (r: RequestRow, user?: { displayName: string; email: string }) => ({
+const requestDto = (r: RequestRow, user?: { displayName: string; email: string }): ClubRequest => ({
   id: r.id,
   userId: r.userId,
   ...(user ? { user } : {}),
@@ -423,7 +423,7 @@ export const clubRoutes =
           .where(and(...words.map((w) => ilike(label, containsPattern(w)))))
           .orderBy(asc(clubs.name), asc(teams.name))
           .limit(50);
-        return { items: rows.map((r) => ({ ...teamDto(r.team), club: clubDto(r.club) })) };
+        return { items: rows.map((r): TeamWithClub => ({ ...teamDto(r.team), club: clubDto(r.club) })) };
       },
     );
 

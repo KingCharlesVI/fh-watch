@@ -1,4 +1,4 @@
-import { type MatchAccess, type MatchDocument, summarizeMatch } from "@fh/shared";
+import { type Match, type MatchAccess, type MatchDocument, summarizeMatch } from "@fh/shared";
 import { type SQL, and, asc, eq, inArray, isNotNull, lt, or } from "drizzle-orm";
 import type { DbOrTx } from "../db/client.js";
 import { emailTokens, matchRevisions, matchUmpires, matches, refreshTokens, teams } from "../db/schema.js";
@@ -92,7 +92,7 @@ export async function accessFor(db: DbOrTx, match: MatchRow, umpires?: UmpireRow
   };
 }
 
-export function matchDto(m: MatchRow, umpires: UmpireRow[], webUrl: string) {
+export function matchDto(m: MatchRow, umpires: UmpireRow[], webUrl: string): Match {
   return {
     id: m.id,
     status: m.status,

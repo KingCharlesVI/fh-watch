@@ -1,4 +1,4 @@
-import { type Actor, type Role, hasRole } from "@fh/shared";
+import { type Actor, type Role, type User, hasRole } from "@fh/shared";
 import { eq } from "drizzle-orm";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { users } from "./db/schema.js";
@@ -54,7 +54,7 @@ export function requireRole(request: FastifyRequest, role: Role): AuthUser {
 
 type UserRow = typeof users.$inferSelect;
 
-export function toUserDto(user: UserRow) {
+export function toUserDto(user: UserRow): User {
   return {
     id: user.id,
     email: user.email,

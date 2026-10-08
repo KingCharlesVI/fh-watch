@@ -1,4 +1,4 @@
-import { canAddToLists } from "@fh/shared";
+import { type Venue, canAddToLists } from "@fh/shared";
 import { and, asc, eq, ilike, sql } from "drizzle-orm";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
@@ -41,7 +41,8 @@ const LISTS: ListSpec[] = [
 ];
 
 type Row = NamedListTable["$inferSelect"];
-const dto = (r: Row) => ({ id: r.id, name: r.name });
+// Venues and competitions have the same shape.
+const dto = (r: Row): Venue => ({ id: r.id, name: r.name });
 
 export const listRoutes =
   (deps: AppDeps): FastifyPluginAsyncZod =>
