@@ -172,6 +172,40 @@ export const fixtures = pgTable(
   ],
 );
 
+/** Still in play: not declined or given up. One per role and per umpire on a fixture. */
+const ACTIVE_APPOINTMENT = sql`status in ('offered', 'accepted')`;
+
+/** An umpire asked to umpire a fixture, and what they said. */
+export const appointments = pgTable(
+  "appointments",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    fixtureId: uuid()
+      .notNull()
+      .references(() => fixtures.id, { onDelete: "cascade" }),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** The watch umpire runs the watch app; the second is named on the match. */
+    role: text({ enum: ["watch", "second"] }).notNull(),
+    mentoring: boolean().notNull().default(false),
+    status: text({ enum: ["offered", "accepted", "declined", "released"] })
+      .notNull()
+      .default("offered"),
+    /** Accepted, and asking for someone to cover it. */
+    coverRequestedAt: tstz(),
+    createdBy: uuid().references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    respondedAt: tstz(),
+  },
+  (t) => [
+    index().on(t.fixtureId),
+    index().on(t.userId),
+    uniqueIndex("appointments_active_role").on(t.fixtureId, t.role).where(ACTIVE_APPOINTMENT),
+    uniqueIndex("appointments_active_user").on(t.fixtureId, t.userId).where(ACTIVE_APPOINTMENT),
+  ],
+);
+
 const TIME_CHECK = "'^([01][0-9]|2[0-3]):[0-5][0-9]$'";
 
 /** A day an umpire has said they can or can't umpire, with the hours when they only can for some. */

@@ -59,6 +59,16 @@ export function readTime(value: string): string | null {
   return TIME_PATTERN.test(time) ? time : null;
 }
 
+const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "Sat 26 Sep 2026, 14:00", or without the time when there's none. */
+export function fixtureWhen(day: string, time: string | null): string {
+  const [y, m, d] = day.split("-").map(Number);
+  const label = `${WEEKDAY_NAMES[weekdayOf(day)]} ${d} ${MONTH_NAMES[m! - 1]} ${y}`;
+  return time ? `${label}, ${time}` : label;
+}
+
 /** The weekday of a day, "2026-10-11", 0 for Sunday to 6 for Saturday. */
 export function weekdayOf(day: string): number {
   const [y, m, d] = day.split("-").map(Number);

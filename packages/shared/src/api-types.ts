@@ -175,6 +175,39 @@ export interface Fixture {
   umpiresNeeded: 1 | 2;
   notes: string | null;
   createdAt: string;
+  /** Who's been asked, and what they said. Given up appointments (taken over as cover) are left out. */
+  appointments: Appointment[];
+}
+
+/**
+ * offered: waiting for the umpire to say. accepted. declined. released: given up, and
+ * someone else took it over as cover.
+ */
+export type AppointmentStatus = "offered" | "accepted" | "declined" | "released";
+
+/** An umpire asked to umpire a fixture. */
+export interface Appointment {
+  id: string;
+  fixtureId: string;
+  userId: string;
+  displayName: string;
+  /** "watch" runs the watch app and gets the match set up on their phone; "second" is named on the match. */
+  role: "watch" | "second";
+  /** A newer umpire alongside an experienced one. */
+  mentoring: boolean;
+  status: AppointmentStatus;
+  /** Accepted, but asking for someone to cover it. */
+  coverRequested: boolean;
+  createdAt: string;
+  respondedAt: string | null;
+}
+
+/** One of your appointments, with its fixture and the club that asked. */
+export interface MyAppointment extends Appointment {
+  fixture: Omit<Fixture, "appointments">;
+  club: { id: string; name: string; slug: string };
+  /** The other umpire on it, when there is one: offered or accepted. */
+  colleague: { displayName: string; role: "watch" | "second"; status: AppointmentStatus } | null;
 }
 
 /** A day an umpire has said they can, or can't, umpire. */

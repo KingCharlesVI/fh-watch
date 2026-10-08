@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, availabilityFor, localDay, readDay, readTime, weekdayOf } from "../src/umpiring.js";
+import { addDays, availabilityFor, fixtureWhen, localDay, readDay, readTime, weekdayOf } from "../src/umpiring.js";
 
 describe("localDay", () => {
   it("is the day in the UK, not UTC", () => {
@@ -69,5 +69,12 @@ describe("days", () => {
     expect(weekdayOf("2026-10-11")).toBe(0);
     expect(addDays("2026-10-30", 3)).toBe("2026-11-02");
     expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
+  });
+});
+
+describe("fixtureWhen", () => {
+  it("says the day, and the kick-off if there is one", () => {
+    expect(fixtureWhen("2026-09-26", "14:00")).toBe("Sat 26 Sep 2026, 14:00");
+    expect(fixtureWhen("2027-01-03", null)).toBe("Sun 3 Jan 2027");
   });
 });

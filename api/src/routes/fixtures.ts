@@ -1,15 +1,16 @@
-import { type Fixture, type ImportResult, TIME_PATTERN, canManageUmpiring, localDay, readDay, readTime } from "@fh/shared";
-import { and, asc, eq, gte, lte, sql } from "drizzle-orm";
+import { type Appointment, type Fixture, type ImportResult, TIME_PATTERN, canManageUmpiring, fixtureWhen, localDay, readDay, readTime } from "@fh/shared";
+import { and, asc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import type { FastifyRequest } from "fastify";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { requireActor } from "../auth.js";
 import type { DbOrTx } from "../db/client.js";
-import { clubs, fixtures, teams } from "../db/schema.js";
+import { appointments, clubs, fixtures, teams, users } from "../db/schema.js";
 import type { AppDeps } from "../deps.js";
 import { maybeDryRun } from "../lib/dry-run.js";
 import { badRequest, forbidden, notFound } from "../lib/errors.js";
 import { audit } from "../services/audit.js";
+import { appointmentsFor, sendAll } from "../services/umpiring.js";
 
 /**
  * A club's fixtures: the matches it needs umpires for. Its club admins add them, one at a
@@ -42,7 +43,7 @@ const FixtureParams = z.object({ id: z.uuid(), fixtureId: z.uuid() });
 
 export type FixtureRow = typeof fixtures.$inferSelect;
 
-export const fixtureDto = (f: FixtureRow): Fixture => ({
+export const fixtureDto = (f: FixtureRow, appointments: Appointment[] = []): Fixture => ({
   id: f.id,
   clubId: f.clubId,
   date: f.date,
@@ -55,6 +56,7 @@ export const fixtureDto = (f: FixtureRow): Fixture => ({
   umpiresNeeded: f.umpiresNeeded === 1 ? 1 : 2,
   notes: f.notes,
   createdAt: f.createdAt.toISOString(),
+  appointments,
 });
 
 /** The club the request is about, if the caller runs its umpiring. */
@@ -83,6 +85,16 @@ async function findTeam(tx: DbOrTx, clubId: string, name: string): Promise<strin
     .innerJoin(clubs, eq(clubs.id, teams.clubId))
     .where(sql`lower(${clubs.name} || ' ' || ${teams.name}) = ${key}`);
   return any?.id ?? null;
+}
+
+/** The email addresses of the umpires asked to umpire a fixture, or who've accepted. */
+async function appointedEmails(tx: DbOrTx, fixtureId: string): Promise<string[]> {
+  const rows = await tx
+    .select({ email: users.email })
+    .from(appointments)
+    .innerJoin(users, eq(users.id, appointments.userId))
+    .where(and(eq(appointments.fixtureId, fixtureId), inArray(appointments.status, ["offered", "accepted"])));
+  return rows.map((r) => r.email);
 }
 
 async function requireTeam(tx: DbOrTx, teamId: string | null | undefined) {
@@ -124,13 +136,18 @@ export const fixtureRoutes =
           .where(and(eq(fixtures.clubId, club.id), gte(fixtures.date, from), request.query.to ? lte(fixtures.date, request.query.to) : undefined))
           .orderBy(asc(fixtures.date), sql`${fixtures.time} asc nulls last`, asc(fixtures.homeName))
           .limit(500);
-        return { items: rows.map(fixtureDto) };
+        const appointed = await appointmentsFor(
+          db,
+          rows.map((r) => r.id),
+        );
+        return { items: rows.map((r) => fixtureDto(r, appointed.get(r.id))) };
       },
     );
 
     app.get("/clubs/:id/fixtures/:fixtureId", { schema: { tags: ["umpiring"], params: FixtureParams } }, async (request) => {
       const { club } = await requireUmpiringClub(db, request, request.params.id);
-      return fixtureDto(await requireFixture(db, club.id, request.params.fixtureId));
+      const row = await requireFixture(db, club.id, request.params.fixtureId);
+      return fixtureDto(row, (await appointmentsFor(db, [row.id])).get(row.id));
     });
 
     app.post(
@@ -180,8 +197,8 @@ export const fixtureRoutes =
       async (request) => {
         const { actor, club } = await requireUmpiringClub(db, request, request.params.id);
         const b = request.body;
-        const row = await db.transaction(async (tx) => {
-          await requireFixture(tx, club.id, request.params.fixtureId);
+        const { row, before, emails } = await db.transaction(async (tx) => {
+          const before = await requireFixture(tx, club.id, request.params.fixtureId);
           await requireTeam(tx, b.home?.teamId);
           await requireTeam(tx, b.away?.teamId);
           const [updated] = await tx
@@ -201,19 +218,45 @@ export const fixtureRoutes =
             .where(eq(fixtures.id, request.params.fixtureId))
             .returning();
           await audit(tx, actor.id, "update", "fixture", updated!.id, b);
-          return updated!;
+          return { row: updated!, before, emails: await appointedEmails(tx, updated!.id) };
         });
-        return fixtureDto(row);
+        // The umpires need to know when or where it's moved to.
+        const moved = row.date !== before.date || row.time !== before.time || row.venue !== before.venue;
+        if (moved && row.date >= localDay(deps.now())) {
+          sendAll(
+            deps,
+            request.log,
+            emails.map((to) => ({
+              to,
+              subject: `${row.homeName} v ${row.awayName} has moved`,
+              text: `${club.name} has changed ${row.homeName} v ${row.awayName}, which you're umpiring. It's now ${fixtureWhen(row.date, row.time)}${row.venue ? ` at ${row.venue}` : ""}.\n\nSee it here:\n\n${deps.config.webUrl}/appointments`,
+            })),
+          );
+        }
+        return fixtureDto(row, (await appointmentsFor(db, [row.id])).get(row.id));
       },
     );
 
     app.delete("/clubs/:id/fixtures/:fixtureId", { schema: { tags: ["umpiring"], params: FixtureParams } }, async (request, reply) => {
       const { actor, club } = await requireUmpiringClub(db, request, request.params.id);
-      await db.transaction(async (tx) => {
+      const { row, emails } = await db.transaction(async (tx) => {
         const row = await requireFixture(tx, club.id, request.params.fixtureId);
+        const emails = await appointedEmails(tx, row.id);
         await tx.delete(fixtures).where(eq(fixtures.id, row.id));
         await audit(tx, actor.id, "delete", "fixture", row.id, { date: row.date, home: row.homeName, away: row.awayName });
+        return { row, emails };
       });
+      if (row.date >= localDay(deps.now())) {
+        sendAll(
+          deps,
+          request.log,
+          emails.map((to) => ({
+            to,
+            subject: `${row.homeName} v ${row.awayName} is off`,
+            text: `${club.name} has cancelled ${row.homeName} v ${row.awayName}, ${fixtureWhen(row.date, row.time)}, which you were umpiring. There's nothing you need to do.`,
+          })),
+        );
+      }
       return reply.code(204).send();
     });
 
