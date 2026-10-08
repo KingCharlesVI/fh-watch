@@ -1,9 +1,9 @@
 "use server";
 
 import type { MatchDocument, ValidationIssue } from "@fh/shared";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
-import { ApiError, api } from "@/lib/api";
+import { ApiError, LISTS_TAG, api } from "@/lib/api";
 import { type FormState, formError, text } from "@/lib/forms";
 import type { Items, Match, TeamWithClub, Umpire } from "@/lib/types";
 
@@ -90,6 +90,7 @@ export type AddResult = { ok: true; name: string } | { ok: false; error: string 
 async function addToList(list: "venues" | "competitions", name: string): Promise<AddResult> {
   try {
     const item = await api<{ id: string; name: string }>(`/v1/${list}`, { method: "POST", body: { name } });
+    updateTag(LISTS_TAG);
     revalidatePath(`/admin/${list}`);
     return { ok: true, name: item.name };
   } catch (err) {

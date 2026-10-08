@@ -373,6 +373,7 @@ The website is a Next.js app. Public pages are rendered on the server, so shared
 - A Next.js proxy (middleware) runs before each page. When the access token is missing or within 60 seconds of expiring, it swaps the refresh token for a new pair first. Parallel requests share one refresh, and the API gives a just-used refresh token 30 seconds' grace, so a page with several requests can't sign the user out.
 - Forms are server actions. The API's problem responses become the error shown under the form.
 - The website passes the visitor's `X-Forwarded-For` on to the API, so sign-in rate limits apply per visitor rather than to the web server.
+- The public lists behind the match filters and sign-up (clubs, a club's teams, competitions, venues) are cached on the website's server for a minute and shared by every visitor. Changes made on the website show straight away; changes from the phone, such as a new venue, within the minute.
 - Downloads go through the website (`/matches/{id}/export/{format}`, `/dashboard/export`), which adds the visitor's token, so signed-in users can download drafts too.
 - The match editor checks the document with the shared validator as you type and saves with `If-Match`; a conflicting save asks the umpire to reload.
 

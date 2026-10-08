@@ -1,15 +1,21 @@
 "use server";
 
 import { ROLES, type Role } from "@fh/shared";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
-import { api } from "@/lib/api";
+import { LISTS_TAG, api } from "@/lib/api";
 import { type FormState, formError, optionalText, text } from "@/lib/forms";
 import type { Club, ClubRequest, Team, Venue as NamedItem } from "@/lib/types";
 
 const done = (ok: string, ...paths: string[]): FormState => {
   for (const p of paths) revalidatePath(p);
   return { ok };
+};
+
+/** For a change to clubs, teams, logos, venues or competitions: the public lists show it straight away. */
+const listsChanged = (ok: string, ...paths: string[]): FormState => {
+  updateTag(LISTS_TAG);
+  return done(ok, ...paths);
 };
 
 /** Merges `from` into `into`, both picked on a Merge duplicates form, at the API's merge path for `from`. */
@@ -21,7 +27,7 @@ async function merge(fd: FormData, path: (from: string) => string, ...paths: str
   try {
     const res = await api<{ matches: number }>(path(from), { method: "POST", body: { into } });
     const updated = res.matches === 0 ? "No matches needed changing." : `${res.matches} ${res.matches === 1 ? "match" : "matches"} updated.`;
-    return done(`Merged. ${updated}`, ...paths);
+    return listsChanged(`Merged. ${updated}`, ...paths);
   } catch (err) {
     return formError(err);
   }
@@ -79,6 +85,7 @@ function logoFailed(saved: string, err: unknown): FormState {
 
 /** Logos show on the public club pages as well as in admin. */
 function revalidateClubPages(id: string) {
+  updateTag(LISTS_TAG);
   revalidatePath(`/admin/clubs/${id}`);
   revalidatePath("/admin/clubs");
   revalidatePath("/clubs", "layout");
@@ -120,6 +127,7 @@ export async function createClub(_: FormState, fd: FormData): Promise<FormState>
   } catch (err) {
     return formError(err);
   }
+  updateTag(LISTS_TAG);
   revalidatePath("/admin/clubs");
   if (logo) {
     try {
@@ -138,7 +146,7 @@ export async function renameClub(_: FormState, fd: FormData): Promise<FormState>
   } catch (err) {
     return formError(err);
   }
-  return done("Saved.", `/admin/clubs/${id}`, "/admin/clubs");
+  return listsChanged("Saved.", `/admin/clubs/${id}`, "/admin/clubs");
 }
 
 export async function deleteClub(_: FormState, fd: FormData): Promise<FormState> {
@@ -147,6 +155,7 @@ export async function deleteClub(_: FormState, fd: FormData): Promise<FormState>
   } catch (err) {
     return formError(err);
   }
+  updateTag(LISTS_TAG);
   revalidatePath("/admin/clubs");
   redirect("/admin/clubs?deleted=1");
 }
@@ -162,7 +171,7 @@ export async function createTeam(_: FormState, fd: FormData): Promise<FormState>
   } catch (err) {
     return formError(err);
   }
-  return done("Team added.", `/admin/clubs/${clubId}`);
+  return listsChanged("Team added.", `/admin/clubs/${clubId}`);
 }
 
 export async function renameTeam(_: FormState, fd: FormData): Promise<FormState> {
@@ -172,7 +181,7 @@ export async function renameTeam(_: FormState, fd: FormData): Promise<FormState>
   } catch (err) {
     return formError(err);
   }
-  return done("Saved.", `/admin/clubs/${clubId}`);
+  return listsChanged("Saved.", `/admin/clubs/${clubId}`);
 }
 
 export async function deleteTeam(_: FormState, fd: FormData): Promise<FormState> {
@@ -182,7 +191,7 @@ export async function deleteTeam(_: FormState, fd: FormData): Promise<FormState>
   } catch (err) {
     return formError(err);
   }
-  return done("Team deleted.", `/admin/clubs/${clubId}`);
+  return listsChanged("Team deleted.", `/admin/clubs/${clubId}`);
 }
 
 export async function mergeTeam(_: FormState, fd: FormData): Promise<FormState> {
@@ -210,7 +219,7 @@ export async function createListItem(_: FormState, fd: FormData): Promise<FormSt
   } catch (err) {
     return formError(err);
   }
-  return done(`${LISTS[l]} added.`, `/admin/${l}`);
+  return listsChanged(`${LISTS[l]} added.`, `/admin/${l}`);
 }
 
 export async function renameListItem(_: FormState, fd: FormData): Promise<FormState> {
@@ -220,7 +229,7 @@ export async function renameListItem(_: FormState, fd: FormData): Promise<FormSt
   } catch (err) {
     return formError(err);
   }
-  return done("Saved.", `/admin/${l}`);
+  return listsChanged("Saved.", `/admin/${l}`);
 }
 
 export async function deleteListItem(_: FormState, fd: FormData): Promise<FormState> {
@@ -230,7 +239,7 @@ export async function deleteListItem(_: FormState, fd: FormData): Promise<FormSt
   } catch (err) {
     return formError(err);
   }
-  return done(`${LISTS[l]} deleted.`, `/admin/${l}`);
+  return listsChanged(`${LISTS[l]} deleted.`, `/admin/${l}`);
 }
 
 export async function mergeListItem(_: FormState, fd: FormData): Promise<FormState> {
@@ -273,5 +282,5 @@ export async function reviewRequest(_: FormState, fd: FormData): Promise<FormSta
       return logoFailed("Approved", err);
     }
   }
-  return done(decision === "approve" ? "Approved." : "Rejected.", "/admin/requests", "/admin");
+  return listsChanged(decision === "approve" ? "Approved." : "Rejected.", "/admin/requests", "/admin");
 }

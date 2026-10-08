@@ -1,7 +1,7 @@
 import { FilterSelect } from "@/components/FilterSelect";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { api, apiOrNull } from "@/lib/api";
+import { cachedPublic } from "@/lib/api";
 import type { Club, ClubWithTeams, Competition, Items, Venue } from "@/lib/types";
 
 export type MatchFilterParams = { clubId?: string; teamId?: string; competition?: string; venue?: string };
@@ -26,10 +26,10 @@ const given = (v: string | undefined) => (v && v !== "any" ? v.trim() || undefin
 export async function loadMatchFilters(sp: MatchFilterParams, fixed?: { clubId?: string }): Promise<MatchFilters> {
   const clubId = fixed?.clubId ?? given(sp.clubId);
   const [clubs, club, competitions, venues] = await Promise.all([
-    fixed?.clubId ? null : api<Items<Club>>("/v1/clubs", { auth: false }),
-    clubId ? apiOrNull<ClubWithTeams>(`/v1/clubs/${clubId}`, { auth: false }) : null,
-    api<Items<Competition>>("/v1/competitions", { auth: false }),
-    api<Items<Venue>>("/v1/venues", { auth: false }),
+    fixed?.clubId ? null : cachedPublic<Items<Club>>("/v1/clubs"),
+    clubId ? cachedPublic<ClubWithTeams>(`/v1/clubs/${clubId}`) : null,
+    cachedPublic<Items<Competition>>("/v1/competitions"),
+    cachedPublic<Items<Venue>>("/v1/venues"),
   ]);
   const teams = club?.teams ?? [];
   const teamId = given(sp.teamId);
@@ -42,8 +42,8 @@ export async function loadMatchFilters(sp: MatchFilterParams, fixed?: { clubId?:
     },
     clubs: clubs?.items ?? null,
     teams,
-    competitions: competitions.items,
-    venues: venues.items,
+    competitions: competitions?.items ?? [],
+    venues: venues?.items ?? [],
   };
 }
 
