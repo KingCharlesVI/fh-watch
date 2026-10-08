@@ -48,14 +48,14 @@ The website keeps the tokens in HTTP-only cookies and refreshes them before each
 
 ## Roles
 
-An account has one or more roles. What each role can do is defined in [`packages/shared/src/policy.ts`](https://github.com/KingCharlesVI/fh-watch/blob/main/packages/shared/src/policy.ts), which the API, website and phone app all use.
+An account has one or more roles. What each role can do is defined in [`packages/shared/src/policy.ts`](https://github.com/KingCharlesVI/fh-watch/blob/main/packages/shared/src/policy.ts), which the API, website and phone app all use (club umpiring's in [`umpiring.ts`](https://github.com/KingCharlesVI/fh-watch/blob/main/packages/shared/src/umpiring.ts), next to it).
 
 | Role | Can |
 | --- | --- |
 | *Public* (no token) | See published matches, clubs, teams, venues and competitions |
-| `umpire` | Upload matches; edit, publish and see the history of matches they umpired |
-| `club_admin` | See their club's matches, including drafts; add and rename their club's teams |
-| `admin` | Everything: users, clubs, club logos, venues, competitions, requests, deleting matches |
+| `umpire` | Upload matches; edit, publish and see the history of matches they umpired; answer clubs' appointments, ask for or take cover, mark availability; add a missing venue or competition |
+| `club_admin` | See their club's matches, including drafts; add and rename their club's teams; keep their club's umpire list and fixtures, and appoint umpires |
+| `admin` | Everything: users, clubs, club logos, venues, competitions and their umpire levels, merging, imports, requests, deleting matches |
 
 A match the caller isn't allowed to see answers `404`, not `403`, so draft matches can't be found by guessing IDs.
 

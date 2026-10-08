@@ -15,13 +15,13 @@ flowchart LR
 
 | Path | What | Tech |
 | --- | --- | --- |
-| `packages/shared` | The match schema (Zod), validation, scores, descriptions, CSV and the match report, used by the phone app, API and website | TypeScript |
+| `packages/shared` | The match schema (Zod), validation, scores, descriptions, CSV and the match report, the API's response types, permissions and club umpiring rules, used by the phone app, API and website | TypeScript |
 | `schema/match.schema.json` | The same schema as JSON Schema, generated, for the watch apps' tests | JSON Schema |
 | `watch-wear` | The Wear OS umpire app | Kotlin, Jetpack Compose for Wear OS, Room |
 | `mobile/targets/watch` | The Apple Watch umpire app, built into the iPhone app | Swift, SwiftUI, HealthKit |
 | `mobile` | The phone app for Android and iPhone, with native modules for watch sync, file sharing and Health Connect | Expo (React Native) |
-| `api` | The REST API: accounts, matches with revisions, clubs, publishing | Node, Fastify, Drizzle, PostgreSQL |
-| `web` | The website: results, clubs, dashboards, admin (app.fhmatchcentre.com) | Next.js, shadcn/ui, Tailwind |
+| `api` | The REST API: accounts, matches with revisions, clubs, publishing, imports, club umpiring, emails | Node, Fastify, Drizzle, PostgreSQL |
+| `web` | The website: results, search, clubs, dashboards, club umpiring, admin (app.fhmatchcentre.com) | Next.js, shadcn/ui, Tailwind |
 | `landing` | The landing page and privacy policy (fhmatchcentre.com), on Vercel | Next.js (static) |
 | `docs-site` | These docs (docs.fhmatchcentre.com), on Vercel | docsify |
 | `deploy` | Running the API and website on a server behind a Cloudflare Tunnel | Node, shell, PowerShell |

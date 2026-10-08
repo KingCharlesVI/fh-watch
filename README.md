@@ -7,9 +7,9 @@ Field hockey match system: umpire watch apps, a phone app, an API and a public w
 | Path | Contents |
 | --- | --- |
 | `schema/match.schema.json` | Match document contract for the watch apps (generated — don't edit) |
-| `packages/shared` | Zod match schema, validation, score calculation, CSV export, permission rules |
+| `packages/shared` | Zod match schema, validation, score calculation, CSV export and import, permission rules, the API's response types, club umpiring rules |
 | `api` | REST API (Fastify + PostgreSQL). OpenAPI docs at `/v1/docs` |
-| `web` | Public website, dashboards and admin (Next.js, shadcn/ui) |
+| `web` | Public website, search, dashboards, club umpiring and admin (Next.js, shadcn/ui) |
 | `mobile` | Phone app for umpires (Expo / React Native), with the watch-sync native module in `mobile/modules/watch-sync` |
 | `watch-wear` | Wear OS umpire app (Kotlin, Compose for Wear OS). See [watch-wear/README.md](watch-wear/README.md) |
 | `docs-site` | The documentation site, user guide and technical (docsify, for Vercel at docs.fhmatchcentre.com). See [docs-site/README.md](docs-site/README.md) |

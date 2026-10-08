@@ -80,7 +80,7 @@ At the ground, open the match and tap **Send to watch**, as above. It's marked *
 
 Upcoming matches are kept on the phone only, and aren't in backups.
 
-If a club appoints you, **Upcoming** also shows its requests to **Accept** or **Decline**, and matches you're second umpire for. A match you accept as the watch umpire joins the list already set up, and you're reminded the day before. See [Club umpiring](guide/club-umpiring.md).
+If a club appoints you, **Upcoming** also shows its requests to **Accept** or **Decline**, and matches you're second umpire for. A match you accept as the watch umpire joins the list already set up, marked **Appointed**: add the colours and captains, and send it to the watch as usual. Until you send it, it follows any change the club makes; if you delete it, it isn't added again. You're reminded the day before. Appointments are fetched when the app opens and when you come back to it; pull down on **Upcoming** to fetch them now. Asking for cover, and taking someone else's over, are on the website. See [Club umpiring](guide/club-umpiring.md).
 
 ## Backups and moving phones
 
@@ -96,7 +96,7 @@ Uploaded matches are safe on the website. Anything only on the phone isn't, so b
 | Setting | |
 | --- | --- |
 | **Account** | Your name, email and roles, **Manage on the website**, and **Sign out**. Signing out removes the matches from this phone; anything not uploaded is lost, so it warns you first. |
-| **Notifications** | One switch for all the app's notifications: a reminder when a match from your watch hasn't been uploaded 2 hours after it arrived. Turning it on asks for the phone's permission the first time; turning it off cancels any reminders already scheduled. |
+| **Notifications** | One switch for all the app's notifications: a reminder when a match from your watch hasn't been uploaded 2 hours after it arrived, and at 6pm the day before a match a club has appointed you to. Turning it on asks for the phone's permission the first time; turning it off cancels any reminders already scheduled. |
 | **Watch** | Whether your watch is connected, and **Set up a match**. A match from the watch that couldn't be read shows here, with a way to export it. |
 | **Health Connect** (Android) | Save workouts to Health Connect, for Samsung Health and other fitness apps. See [Workouts](guide/workouts.md). |
 | **Your matches** | Backups and importing. |

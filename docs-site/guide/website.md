@@ -32,6 +32,16 @@ Club admins can also organise their club's umpiring from the **Dashboard**: a li
 
 Anyone can ask for a new club, or to be a club's admin, from their account page; an admin approves it.
 
+## For admins
+
+**Admin** (in the account menu) has:
+
+- **Club requests** and **Testing requests**: approve or turn them down. Both email the person who asked.
+- **Users**: roles, a club admin's club, and accounts that have asked to be deleted.
+- **Clubs and teams**, **Venues** and **Competitions**: add, rename, delete and merge duplicates (below), and each competition's umpire level.
+- **Import**: many clubs and teams, venues or competitions at once (below).
+- **All matches**: every match on the dashboard, drafts included.
+
 ## Venues and competitions
 
 The site keeps two lists that umpires pick from, apart from the clubs:
@@ -39,7 +49,9 @@ The site keeps two lists that umpires pick from, apart from the clubs:
 - **Venues**, the grounds matches are played at (e.g. `Banbury Road, Oxford`): offered when setting up a match in the phone app, and when editing one in the app or here. They aren't tied to a club, since clubs often share a ground.
 - **Competitions**, the leagues and cups (e.g. `South League Premier`): offered when setting up a match in the phone app, and when editing one in the app or here.
 
-Umpires add one that's missing as they go: typing a name the list doesn't have offers **Add “…” as a new venue** (or competition), in the phone app and on a match's **Edit** page. Adding one that's already there, in different capitals, just picks that one. Admins tidy the lists under **Admin → Venues** and **Admin → Competitions**: add, rename and delete. A match keeps its venue and competition as text, so renaming or deleting one doesn't change matches already played.
+The site's lists of clubs, teams, venues and competitions are refreshed every minute, so one added from the phone app shows on the website within a minute; changes made on the website show straight away.
+
+Umpires add one that's missing as they go: typing a name the list doesn't have offers **Add “…” as a new venue** (or competition), in the phone app and on a match's **Edit** page. Adding one that's already there, in different capitals, just picks that one. Admins tidy the lists under **Admin → Venues** and **Admin → Competitions**: add, rename and delete. **Admin → Competitions** also sets the umpire level each competition asks for, which clubs see when they appoint (see [Club umpiring](guide/club-umpiring.md?id=for-admins)). A match keeps its venue and competition as text, so renaming or deleting one doesn't change matches already played.
 
 **Merge duplicates**, on the same pages, is for two names for one thing (`Banbury Rd` and `Banbury Road, Oxford`): pick the duplicate and the one to keep. Matches with the duplicate's name, in any capitals, take the kept one's, and the duplicate is deleted. Clubs and teams merge the same way: under **Admin → Clubs**, a duplicate club's teams, club admins and logo move to the club you keep (a team with the same name there is merged into it), and on a club's page, a duplicate team's matches are linked to the team you keep. Each changed match gets a new revision, so its edit history shows the change and phones pick it up.
 
