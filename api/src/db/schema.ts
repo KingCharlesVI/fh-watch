@@ -1,4 +1,4 @@
-import { ROLES, type MatchDocument } from "@fh/shared";
+import { ROLES, type MatchDocument, UMPIRE_LEVELS } from "@fh/shared";
 import { sql } from "drizzle-orm";
 import {
   bigint,
@@ -76,6 +76,19 @@ export const venues = namedList("venues");
 /** What a match is played in, e.g. "South Men's Division 2" or "Hampshire Cup". */
 export const competitions = namedList("competitions");
 
+/** The lowest umpire level suggested for a competition's fixtures. None for a competition means any level. */
+export const competitionUmpireLevels = pgTable(
+  "competition_umpire_levels",
+  {
+    competitionId: uuid()
+      .primaryKey()
+      .references(() => competitions.id, { onDelete: "cascade" }),
+    /** An index into UMPIRE_LEVELS. */
+    minLevel: integer().notNull(),
+  },
+  (t) => [check("competition_umpire_levels_level", sql`${t.minLevel} between 0 and ${sql.raw(String(UMPIRE_LEVELS.length - 1))}`)],
+);
+
 export const users = pgTable(
   "users",
   {
@@ -98,6 +111,29 @@ export const users = pgTable(
   (t) => [
     check("users_roles_valid", sql`${t.roles} <@ array['admin','umpire','club_admin']::text[]`),
     check("users_club_admin_club", sql`('club_admin' = any(${t.roles})) = (${t.clubId} is not null)`),
+  ],
+);
+
+/** A club's umpire list. One person can umpire for several clubs. */
+export const clubUmpires = pgTable(
+  "club_umpires",
+  {
+    clubId: uuid()
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** An index into UMPIRE_LEVELS, or null if not recorded. */
+    level: integer(),
+    /** The club's team they play for, so they aren't suggested for its matches. */
+    playsForTeamId: uuid().references(() => teams.id, { onDelete: "set null" }),
+    addedAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.clubId, t.userId] }),
+    index().on(t.userId),
+    check("club_umpires_level", sql`${t.level} between 0 and ${sql.raw(String(UMPIRE_LEVELS.length - 1))}`),
   ],
 );
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type Actor, type MatchAccess, canEditTeams, canOnMatch, canUploadMatch } from "../src/policy.js";
+import { canManageUmpiring, umpireLevelName } from "../src/umpiring.js";
 
 const umpire: Actor = { id: "u1", roles: ["umpire"], clubId: null };
 const otherUmpire: Actor = { id: "u2", roles: ["umpire"], clubId: null };
@@ -70,5 +71,23 @@ describe("global permissions", () => {
     expect(canEditTeams(clubAdmin, "club-b")).toBe(false);
     expect(canEditTeams(umpire, "club-a")).toBe(false);
     expect(canEditTeams(admin, "club-z")).toBe(true);
+  });
+});
+
+describe("canManageUmpiring", () => {
+  it("lets club admins run only their own club's umpiring, and admins any", () => {
+    expect(canManageUmpiring(clubAdmin, "club-a")).toBe(true);
+    expect(canManageUmpiring(clubAdmin, "club-b")).toBe(false);
+    expect(canManageUmpiring(umpire, "club-a")).toBe(false);
+    expect(canManageUmpiring(admin, "club-z")).toBe(true);
+  });
+});
+
+describe("umpireLevelName", () => {
+  it("names a level, or none", () => {
+    expect(umpireLevelName(0)).toBe("Trainee");
+    expect(umpireLevelName(2)).toBe("Level 2");
+    expect(umpireLevelName(null)).toBeNull();
+    expect(umpireLevelName(9)).toBeNull();
   });
 });

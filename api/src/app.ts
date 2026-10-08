@@ -14,6 +14,7 @@ import { HttpError, isUniqueViolation } from "./lib/errors.js";
 import { RateLimiter } from "./lib/rate-limit.js";
 import { accessRequestRoutes } from "./routes/access-requests.js";
 import { authRoutes } from "./routes/auth.js";
+import { clubUmpireRoutes } from "./routes/club-umpires.js";
 import { clubRoutes } from "./routes/clubs.js";
 import { importRoutes } from "./routes/import.js";
 import { listRoutes } from "./routes/lists.js";
@@ -118,6 +119,7 @@ export async function buildApp(deps: AppDeps, options: { logger?: FastifyBaseLog
       await v1.register(matchRoutes(deps));
       await v1.register(accessRequestRoutes(deps));
       await v1.register(importRoutes(deps));
+      await v1.register(clubUmpireRoutes(deps));
     },
     { prefix: "/v1" },
   );

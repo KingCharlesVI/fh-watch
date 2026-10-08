@@ -95,6 +95,24 @@ export interface Competition {
   name: string;
 }
 
+/** The lowest umpire level (an index into UMPIRE_LEVELS) suggested for a competition's fixtures. */
+export interface CompetitionUmpireLevel {
+  competitionId: string;
+  minLevel: number;
+}
+
+/** Someone on a club's umpire list. Only the club's admins (and admins) see the list. */
+export interface ClubUmpire {
+  userId: string;
+  displayName: string;
+  email: string;
+  /** An index into UMPIRE_LEVELS, or null if not recorded. */
+  level: number | null;
+  /** The club's team they play for, so they aren't suggested for its matches. */
+  playsForTeamId: string | null;
+  addedAt: string;
+}
+
 export interface ClubRequest {
   id: string;
   userId: string;

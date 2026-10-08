@@ -53,7 +53,7 @@ export async function setupTestApp(
 
   beforeEach(async () => {
     await db.execute(
-      sql`truncate table audit_log, push_tokens, email_tokens, refresh_tokens, match_revisions, match_umpires, matches, club_requests, access_requests, users, teams, clubs, venues, competitions restart identity cascade`,
+      sql`truncate table audit_log, club_umpires, competition_umpire_levels, push_tokens, email_tokens, refresh_tokens, match_revisions, match_umpires, matches, club_requests, access_requests, users, teams, clubs, venues, competitions restart identity cascade`,
     );
     mailer.sent.length = 0;
     push.sent.length = 0;

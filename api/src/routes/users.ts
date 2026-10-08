@@ -118,14 +118,15 @@ export const userRoutes =
       },
     );
 
-    // ---- Umpire lookup, for adding umpire 2 to a match ----
+    // ---- Umpire lookup, for adding umpire 2 to a match, or an umpire to a club's list ----
 
     app.get(
       "/umpires",
       { schema: { tags: ["users"], querystring: z.object({ q: z.string().trim().min(1).max(80) }) } },
       async (request) => {
         const actor = requireActor(request);
-        if (!actor.roles.includes("umpire") && !actor.roles.includes("admin")) throw forbidden();
+        // Club admins too, to add umpires to their club's list.
+        if (!actor.roles.some((r) => r === "umpire" || r === "admin" || r === "club_admin")) throw forbidden();
         const rows = await db
           .select({ id: users.id, displayName: users.displayName })
           .from(users)
