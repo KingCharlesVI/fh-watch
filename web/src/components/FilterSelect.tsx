@@ -1,10 +1,10 @@
-"use client";
-
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChevronDownIcon } from "lucide-react";
 
 /**
- * A shadcn Select for plain GET/POST forms. Radix submits the chosen value under
- * `name`; the value "any" means no filter, since Radix items can't be empty strings.
+ * A select for plain GET/POST forms, styled like the site's other fields. A native select,
+ * so it submits under `name`, and when a form action resets the form afterwards (as React
+ * does), it goes back to the saved value rather than to blank. The value "any" means no
+ * filter, by convention.
  */
 export function FilterSelect({
   name,
@@ -20,17 +20,29 @@ export function FilterSelect({
   id?: string;
 }) {
   return (
-    <Select name={name} defaultValue={defaultValue}>
-      <SelectTrigger id={id} className="w-full">
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
+    <div className="relative w-full">
+      <select
+        // React doesn't update a select's default once mounted; a new one takes a newly saved value,
+        // which is what the form goes back to when it's reset.
+        key={defaultValue}
+        id={id}
+        name={name}
+        defaultValue={defaultValue ?? (placeholder ? "" : undefined)}
+        required={placeholder !== undefined}
+        className="h-8 w-full appearance-none rounded-lg border border-input bg-transparent py-1 pr-8 pl-2.5 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 invalid:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50"
+      >
+        {placeholder !== undefined && (
+          <option value="" disabled>
+            {placeholder}
+          </option>
+        )}
         {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
+          <option key={o.value} value={o.value} className="text-foreground">
             {o.label}
-          </SelectItem>
+          </option>
         ))}
-      </SelectContent>
-    </Select>
+      </select>
+      <ChevronDownIcon className="pointer-events-none absolute top-1/2 right-2 size-4 -translate-y-1/2 text-muted-foreground" />
+    </div>
   );
 }
