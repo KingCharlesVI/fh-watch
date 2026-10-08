@@ -130,6 +130,7 @@ export default function SettingsScreen() {
           {ONLINE ? API_URL : "Alpha: watch and phone only"}
         </T>
         {ONLINE && <ServerStatusRow />}
+        <Button title="What's new" variant="outline" icon="sparkles-outline" onPress={() => router.push("/whats-new")} />
         <Updates />
       </Card>
     </Screen>

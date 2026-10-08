@@ -39,6 +39,8 @@ git-cliff --unreleased --tag v1.1.2-beta.18 --prepend CHANGELOG.md -o -
 
 Always keep the `-o -`. `cliff.toml` names `CHANGELOG.md` as git-cliff's output, so without it git-cliff rewrites the whole file (and with `--unreleased`, down to just the new entry). If that happens, `git checkout -- CHANGELOG.md` puts it back.
 
+The phone app's **What's new** screen is built from this file when the app is built, so add the entry before building. Without it, the update shows the previous version's notes, or nothing. Only features, fixes and performance changes appear there, labelled Phone, Watch, Website or Server by their scope.
+
 **3. Commit and push:**
 
 ```powershell
