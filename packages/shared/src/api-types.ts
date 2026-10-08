@@ -177,6 +177,23 @@ export interface Fixture {
   createdAt: string;
 }
 
+/** A day an umpire has said they can, or can't, umpire. */
+export interface AvailabilityDay {
+  /** "2026-10-11". */
+  date: string;
+  available: boolean;
+  /** When available, the hours they can do, "10:00" to "16:00"; null for all day. */
+  from: string | null;
+  to: string | null;
+}
+
+/** An umpire's availability: days they've marked, and weekdays they're never free. */
+export interface Availability {
+  days: AvailabilityDay[];
+  /** 0 for Sunday to 6 for Saturday. */
+  unavailableWeekdays: number[];
+}
+
 /** What a bulk import added (or, as a dry run, would add). Admins only. */
 export interface ImportResult {
   /** As shown to the admin: a club's name, "Club Team" for a team, or a venue's or competition's name. */

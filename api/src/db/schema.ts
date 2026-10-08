@@ -172,6 +172,38 @@ export const fixtures = pgTable(
   ],
 );
 
+const TIME_CHECK = "'^([01][0-9]|2[0-3]):[0-5][0-9]$'";
+
+/** A day an umpire has said they can or can't umpire, with the hours when they only can for some. */
+export const umpireAvailability = pgTable(
+  "umpire_availability",
+  {
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    date: date({ mode: "string" }).notNull(),
+    available: boolean().notNull(),
+    fromTime: text(),
+    toTime: text(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.date] }),
+    check("umpire_availability_times", sql`(${t.fromTime} is null or ${t.fromTime} ~ ${sql.raw(TIME_CHECK)}) and (${t.toTime} is null or ${t.toTime} ~ ${sql.raw(TIME_CHECK)})`),
+  ],
+);
+
+/** Weekdays an umpire is never free (0 Sunday to 6 Saturday), unless they mark a day otherwise. */
+export const umpireUnavailableWeekdays = pgTable(
+  "umpire_unavailable_weekdays",
+  {
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    weekday: integer().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.weekday] }), check("umpire_unavailable_weekdays_weekday", sql`${t.weekday} between 0 and 6`)],
+);
+
 export const clubRequests = pgTable(
   "club_requests",
   {

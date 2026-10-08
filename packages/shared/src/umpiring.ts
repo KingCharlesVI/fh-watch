@@ -59,6 +59,38 @@ export function readTime(value: string): string | null {
   return TIME_PATTERN.test(time) ? time : null;
 }
 
+/** The weekday of a day, "2026-10-11", 0 for Sunday to 6 for Saturday. */
+export function weekdayOf(day: string): number {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(Date.UTC(y!, m! - 1, d!)).getUTCDay();
+}
+
+/** "2026-10-11" plus some days. */
+export function addDays(day: string, days: number): string {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(Date.UTC(y!, m! - 1, d! + days)).toISOString().slice(0, 10);
+}
+
+/**
+ * Whether an umpire can do a kick-off: a day they've marked says so (and, with hours, whether
+ * the kick-off is within them); otherwise a weekday they're never free says no; otherwise
+ * nobody knows.
+ */
+export function availabilityFor(
+  day: string,
+  time: string | null,
+  marked: { available: boolean; from: string | null; to: string | null } | undefined,
+  unavailableWeekdays: readonly number[],
+): "available" | "unavailable" | "unknown" {
+  if (marked) {
+    if (!marked.available) return "unavailable";
+    if (time && marked.from && time < marked.from) return "unavailable";
+    if (time && marked.to && time > marked.to) return "unavailable";
+    return "available";
+  }
+  return unavailableWeekdays.includes(weekdayOf(day)) ? "unavailable" : "unknown";
+}
+
 /** Run a club's umpiring (its umpire list, fixtures and appointments): its club admins, and admins. */
 export function canManageUmpiring(actor: Actor | null | undefined, clubId: string): boolean {
   return hasRole(actor, "admin") || (hasRole(actor, "club_admin") && actor!.clubId === clubId);
