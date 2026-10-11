@@ -1,3 +1,17 @@
+## [1.3.0-beta.23] - 2026-10-11
+
+### 🚀 Features
+
+- *(shared)* Change the shirt number on a goal or card after the match
+- *(mobile)* Change a goal's or card's shirt number after the match
+- *(mobile)* Appointed matches in Upcoming show who you're umpiring with
+- *(web)* Change a goal's or card's shirt number when editing a match
+- *(mobile)* Mark when you can umpire, from Upcoming
+- *(mobile)* Availability a month at a time, like the phone's date pickers
+
+### ⚡ Performance
+
+- *(watch)* The ambient screen wakes only when its minute changes
 ## [1.2.0-beta.20] - 2026-10-08
 
 ### 🚀 Features
