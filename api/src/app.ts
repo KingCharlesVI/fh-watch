@@ -13,6 +13,7 @@ import type { AppDeps } from "./deps.js";
 import { HttpError, isUniqueViolation } from "./lib/errors.js";
 import { RateLimiter } from "./lib/rate-limit.js";
 import { accessRequestRoutes } from "./routes/access-requests.js";
+import { auditRoutes } from "./routes/audit.js";
 import { authRoutes } from "./routes/auth.js";
 import { appointmentRoutes } from "./routes/appointments.js";
 import { availabilityRoutes } from "./routes/availability.js";
@@ -128,6 +129,7 @@ export async function buildApp(deps: AppDeps, options: { logger?: FastifyBaseLog
       await v1.register(availabilityRoutes(deps));
       await v1.register(appointmentRoutes(deps));
       await v1.register(calendarRoutes(deps));
+      await v1.register(auditRoutes(deps));
     },
     { prefix: "/v1" },
   );
