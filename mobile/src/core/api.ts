@@ -167,8 +167,8 @@ export class ApiClient {
   myAppointments = () => this.request<Items<MyAppointment>>("/v1/me/appointments");
   answerAppointment = (id: string, answer: "accept" | "decline") => this.request(`/v1/me/appointments/${id}/${answer}`, { method: "POST" });
 
-  /** The days you've marked for the next 12 weeks, and weekdays you're never free. */
-  myAvailability = () => this.request<Availability>("/v1/me/availability");
+  /** The days you've marked from one day to another, and weekdays you're never free. */
+  myAvailability = (from: string, to: string) => this.request<Availability>("/v1/me/availability", { query: { from, to } });
   /** Marks a day you can (with hours, if only some) or can't umpire. */
   markDay = (date: string, available: boolean, hours: { from: string | null; to: string | null } = { from: null, to: null }) =>
     this.request<AvailabilityDay>(`/v1/me/availability/${date}`, { method: "PUT", body: { available, ...hours } });

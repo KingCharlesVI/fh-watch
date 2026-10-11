@@ -1,11 +1,13 @@
 import { type AvailabilityDay, TIME_PATTERN, addDays, weekdayOf } from "@fh/shared";
 
 /**
- * Your availability, as the phone shows it: the next 12 weeks, Monday first, as on the
- * website. Tapping a day moves it on from not said, to free, to not free, and back.
+ * Your availability, as the phone shows it: a month at a time, Monday first, up to a year
+ * ahead. Tapping a day moves it on from not said, to free, to not free, and back.
  */
 
-export const WEEKS = 12;
+/** How many months the calendar goes to, this one included. */
+export const MONTHS_AHEAD = 12;
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 export type Mark = "available" | "unavailable" | "clear";
 const NEXT: Record<Mark, Mark> = { clear: "available", available: "unavailable", unavailable: "clear" };
@@ -13,10 +15,29 @@ const NEXT: Record<Mark, Mark> = { clear: "available", available: "unavailable",
 export const markOf = (day: AvailabilityDay | undefined): Mark => (day ? (day.available ? "available" : "unavailable") : "clear");
 export const nextMark = (day: AvailabilityDay | undefined): Mark => NEXT[markOf(day)];
 
-/** The calendar's days, a week to a row, from the Monday of this week. */
-export function calendarWeeks(today: string, weeks = WEEKS): string[][] {
-  const monday = addDays(today, -((weekdayOf(today) + 6) % 7));
-  return Array.from({ length: weeks }, (_, w) => Array.from({ length: 7 }, (_, d) => addDays(monday, w * 7 + d)));
+/** "2026-10" plus some months. */
+export function addMonths(month: string, months: number): string {
+  const [y, m] = month.split("-").map(Number);
+  const d = new Date(Date.UTC(y!, m! - 1 + months, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/** "October 2026". */
+export function monthLabel(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  return `${MONTH_NAMES[m! - 1]} ${y}`;
+}
+
+/** The last day of a month, "2026-10-31". */
+export const lastDay = (month: string) => addDays(`${addMonths(month, 1)}-01`, -1);
+
+/** A month's days, a week to a row, Monday first; null pads the first and last weeks. */
+export function monthGrid(month: string): (string | null)[][] {
+  const first = `${month}-01`;
+  const days = Number(lastDay(month).slice(8));
+  const cells: (string | null)[] = [...Array<null>((weekdayOf(first) + 6) % 7).fill(null), ...Array.from({ length: days }, (_, i) => addDays(first, i))];
+  while (cells.length % 7) cells.push(null);
+  return Array.from({ length: cells.length / 7 }, (_, w) => cells.slice(w * 7, w * 7 + 7));
 }
 
 export type Tone = "free" | "busy" | "usually-busy" | "unknown";

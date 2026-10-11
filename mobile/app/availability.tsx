@@ -2,16 +2,15 @@ import { type Availability, type AvailabilityDay, weekdayOf } from "@fh/shared";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { errorMessage } from "@/core/api";
-import { type Mark, calendarWeeks, dayStatus, nextMark, readHours, withMark } from "@/core/availability";
+import { MONTHS_AHEAD, type Mark, addMonths, dayStatus, lastDay, monthGrid, monthLabel, nextMark, readHours, withMark } from "@/core/availability";
 import { dayLabel, isoDay } from "@/core/upcoming";
 import { api } from "@/services";
-import { Banner, Button, Card, Chip, Field, Row, Screen, T, Text } from "@/ui/kit";
+import { Banner, Button, Card, Chip, Field, Ionicons, Row, Screen, T, Text } from "@/ui/kit";
 import { radius, space, useColors } from "@/ui/theme";
 
 const WEEKDAY_HEADINGS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 /** Monday first, as the calendar is; 0 is Sunday, as the server counts. */
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0].map((day, i) => ({ day, label: WEEKDAY_HEADINGS[i]! }));
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /**
  * When you can umpire, for your clubs' admins to see when they appoint: the same as the
@@ -25,17 +24,19 @@ export default function AvailabilityScreen() {
   // The day whose hours are being given, if any.
   const [hoursFor, setHoursFor] = useState<string | null>(null);
   const today = isoDay(new Date());
+  const thisMonth = today.slice(0, 7);
+  const [month, setMonth] = useState(thisMonth);
 
   const load = useCallback(async () => {
     try {
-      const a: Availability = await api.myAvailability();
+      const a: Availability = await api.myAvailability(today, lastDay(addMonths(today.slice(0, 7), MONTHS_AHEAD - 1)));
       setDays(new Map(a.days.map((d) => [d.date, d])));
       setNeverFree(a.unavailableWeekdays);
       setError(null);
     } catch (err) {
       setError(errorMessage(err));
     }
-  }, []);
+  }, [today]);
 
   useEffect(() => void load(), [load]);
 
@@ -85,15 +86,19 @@ export default function AvailabilityScreen() {
       )}
       {days && (
         <>
-          <Card title="The next 12 weeks">
-            <T variant="small">Tap a day once if you&apos;re free, twice if you&apos;re not, and again to unmark it. Press and hold a day if you&apos;re free for only some of it.</T>
+          <Card>
             <Calendar
+              month={month}
+              onMonth={setMonth}
+              first={thisMonth}
+              last={addMonths(thisMonth, MONTHS_AHEAD - 1)}
               today={today}
               days={days}
               neverFree={neverFree}
               onTap={(date) => void mark(date, nextMark(days.get(date)))}
               onHold={(date) => setHoursFor(date)}
             />
+            <T variant="small">Tap a day once if you&apos;re free, twice if you&apos;re not, and again to unmark it. Press and hold a day if you&apos;re free for only some of it.</T>
           </Card>
           {hoursFor && (
             <Hours
@@ -121,13 +126,22 @@ export default function AvailabilityScreen() {
   );
 }
 
+/** A month at a time, like the phone's own date pickers, with each day coloured by what you've said. */
 function Calendar({
+  month,
+  onMonth,
+  first,
+  last,
   today,
   days,
   neverFree,
   onTap,
   onHold,
 }: {
+  month: string;
+  onMonth: (month: string) => void;
+  first: string;
+  last: string;
   today: string;
   days: ReadonlyMap<string, AvailabilityDay>;
   neverFree: readonly number[];
@@ -135,52 +149,88 @@ function Calendar({
   onHold: (date: string) => void;
 }) {
   const c = useColors();
+  const turn = (by: number, enabled: boolean, icon: "chevron-back" | "chevron-forward", label: string) => (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      disabled={!enabled}
+      hitSlop={8}
+      onPress={() => onMonth(addMonths(month, by))}
+      style={({ pressed }) => [styles.turn, pressed && { backgroundColor: c.subtle }, !enabled && { opacity: 0.3 }]}
+    >
+      <Ionicons name={icon} size={20} color={c.text} />
+    </Pressable>
+  );
+
   return (
-    <View style={{ gap: space.xs }}>
+    <View style={{ gap: space.sm }}>
+      <View style={styles.header}>
+        {turn(-1, month > first, "chevron-back", "Previous month")}
+        <Text style={{ color: c.text, fontSize: 16, fontWeight: "600" }} accessibilityRole="header">
+          {monthLabel(month)}
+        </Text>
+        {turn(1, month < last, "chevron-forward", "Next month")}
+      </View>
       <View style={styles.week}>
         {WEEKDAY_HEADINGS.map((d) => (
           <Text key={d} style={[styles.heading, { color: c.muted }]}>
-            {d}
+            {d.slice(0, 1)}
           </Text>
         ))}
       </View>
-      {calendarWeeks(today).map((week) => (
-        <View key={week[0]} style={styles.week}>
-          {week.map((date) => {
+      {monthGrid(month).map((week, w) => (
+        <View key={w} style={styles.week}>
+          {week.map((date, i) => {
+            if (!date) return <View key={i} style={styles.cell} />;
             const past = date < today;
-            const [, m, d] = date.split("-").map(Number);
-            const { tone, label } = dayStatus(days.get(date), neverFree.includes(weekdayOf(date)));
-            const colour = tone === "free" ? c.primary : tone === "busy" ? c.danger : c.muted;
+            const day = days.get(date);
+            const { tone, label } = dayStatus(day, neverFree.includes(weekdayOf(date)));
+            const hours = !!day?.available && !!(day.from || day.to);
+            const fill = tone === "free" ? c.primary : tone === "busy" ? c.danger : tone === "usually-busy" ? c.subtle : "transparent";
+            const ink = tone === "free" || tone === "busy" ? c.primaryText : tone === "usually-busy" ? c.muted : c.text;
             return (
-              <Pressable
-                key={date}
-                disabled={past}
-                accessibilityRole="button"
-                accessibilityLabel={`${date}: ${label || "not said"}`}
-                onPress={() => onTap(date)}
-                onLongPress={() => onHold(date)}
-                style={({ pressed }) => [
-                  styles.day,
-                  { borderColor: c.border },
-                  tone === "free" && { borderColor: c.primary, backgroundColor: c.primarySoft },
-                  tone === "busy" && { borderColor: c.danger, backgroundColor: c.dangerSoft },
-                  tone === "usually-busy" && { borderStyle: "dashed", backgroundColor: c.subtle },
-                  pressed && { opacity: 0.6 },
-                  past && { opacity: 0.4 },
-                ]}
-              >
-                <Text style={{ color: c.muted, fontSize: 11 }}>
-                  {d}
-                  {d === 1 ? ` ${MONTHS[m! - 1]}` : ""}
-                </Text>
-                <Text style={{ color: colour, fontSize: 10, fontWeight: "500" }} numberOfLines={2}>
-                  {label}
-                </Text>
-              </Pressable>
+              <View key={date} style={styles.cell}>
+                <Pressable
+                  disabled={past}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${date}: ${label || "not said"}`}
+                  onPress={() => onTap(date)}
+                  onLongPress={() => onHold(date)}
+                  style={({ pressed }) => [
+                    styles.day,
+                    { backgroundColor: fill },
+                    date === today && { borderWidth: 2, borderColor: tone === "unknown" || tone === "usually-busy" ? c.primary : c.text },
+                    pressed && { opacity: 0.6 },
+                    past && { opacity: 0.35 },
+                  ]}
+                >
+                  <Text style={{ color: ink, fontSize: 15, fontWeight: date === today ? "700" : "400" }}>{Number(date.slice(8))}</Text>
+                  {hours && <View style={[styles.dot, { backgroundColor: ink }]} />}
+                </Pressable>
+              </View>
             );
           })}
         </View>
       ))}
+      <View style={styles.legend}>
+        <Key colour={c.primary} label="Free" />
+        <Key colour={c.danger} label="Not free" />
+        <Key colour={c.subtle} label="Never free that day" />
+        <View style={styles.key}>
+          <View style={[styles.dot, { backgroundColor: c.muted }]} />
+          <Text style={{ color: c.muted, fontSize: 12 }}>Some hours</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function Key({ colour, label }: { colour: string; label: string }) {
+  const c = useColors();
+  return (
+    <View style={styles.key}>
+      <View style={[styles.swatch, { backgroundColor: colour, borderColor: c.border }]} />
+      <Text style={{ color: c.muted, fontSize: 12 }}>{label}</Text>
     </View>
   );
 }
@@ -233,8 +283,15 @@ function Hours({
 }
 
 const styles = StyleSheet.create({
-  week: { flexDirection: "row", gap: space.xs },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  turn: { padding: space.sm, borderRadius: radius.lg },
+  week: { flexDirection: "row" },
   heading: { flex: 1, textAlign: "center", fontSize: 12, fontWeight: "500" },
-  day: { flex: 1, height: 52, justifyContent: "space-between", borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 4, paddingVertical: 3 },
+  cell: { flex: 1, aspectRatio: 1, padding: 2 },
+  day: { flex: 1, alignItems: "center", justifyContent: "center", borderRadius: 999 },
+  dot: { width: 4, height: 4, borderRadius: 2, position: "absolute", bottom: 6 },
+  legend: { flexDirection: "row", flexWrap: "wrap", columnGap: space.md, rowGap: space.xs, paddingTop: space.xs },
+  key: { flexDirection: "row", alignItems: "center", gap: 6 },
+  swatch: { width: 12, height: 12, borderRadius: 6, borderWidth: StyleSheet.hairlineWidth },
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
 });

@@ -1,17 +1,25 @@
 import type { AvailabilityDay } from "@fh/shared";
 import { describe, expect, it } from "vitest";
-import { calendarWeeks, dayStatus, nextMark, readHours, withMark } from "../src/core/availability";
+import { addMonths, dayStatus, lastDay, monthGrid, monthLabel, nextMark, readHours, withMark } from "../src/core/availability";
 
 const free: AvailabilityDay = { date: "2026-10-17", available: true, from: null, to: null };
 const busy: AvailabilityDay = { date: "2026-10-17", available: false, from: null, to: null };
 
 describe("availability", () => {
-  it("shows 12 weeks, Monday first, from this week", () => {
-    const weeks = calendarWeeks("2026-10-11"); // a Sunday
-    expect(weeks).toHaveLength(12);
-    expect(weeks[0]![0]).toBe("2026-10-05");
-    expect(weeks[0]![6]).toBe("2026-10-11");
-    expect(weeks[11]![6]).toBe("2026-12-27");
+  it("lays a month out a week to a row, Monday first", () => {
+    const october = monthGrid("2026-10"); // starts on a Thursday, ends on a Saturday
+    expect(october).toHaveLength(5);
+    expect(october[0]).toEqual([null, null, null, "2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04"]);
+    expect(october[4]).toEqual(["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31", null]);
+    expect(monthGrid("2026-06")[0]![0]).toBe("2026-06-01"); // starts on a Monday
+    expect(monthGrid("2027-02").flat().filter(Boolean)).toHaveLength(28);
+  });
+
+  it("moves between months, across years", () => {
+    expect(addMonths("2026-12", 1)).toBe("2027-01");
+    expect(addMonths("2026-01", -1)).toBe("2025-12");
+    expect(monthLabel("2026-10")).toBe("October 2026");
+    expect(lastDay("2028-02")).toBe("2028-02-29");
   });
 
   it("moves a day from not said, to free, to not free, and back", () => {
