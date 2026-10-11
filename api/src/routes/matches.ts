@@ -29,6 +29,7 @@ import { HttpError, badRequest, forbidden, notFound } from "../lib/errors.js";
 import { parseIfMatch, revisionEtag } from "../lib/etag.js";
 import { Limit, containsPattern } from "../lib/sql.js";
 import { audit } from "../services/audit.js";
+import { queueMatchEvent } from "../services/webhooks.js";
 
 import {
   type MatchRow,
@@ -294,6 +295,7 @@ export const matchRoutes =
             .where(eq(matches.id, id));
           await tx.insert(matchRevisions).values({ matchId: id, revision, document, createdBy: actor.id, source, createdAt: now });
           await audit(tx, actor.id, "update", "match", id, { revision, source });
+          if (existing.status === "published") await queueMatchEvent(tx, config.webUrl, id, "match.updated", now);
           return { status: 200 as const, revision };
         });
 
@@ -336,6 +338,7 @@ export const matchRoutes =
             .onConflictDoUpdate({ target: [matchUmpires.matchId, matchUmpires.slot], set: value });
           await tx.update(matches).set({ updatedAt: deps.now() }).where(eq(matches.id, match.id));
           await audit(tx, actor.id, "set_umpire_2", "match", match.id, value);
+          if (match.status === "published") await queueMatchEvent(tx, config.webUrl, match.id, "match.updated", deps.now());
         });
         return { match: await dtoFor(match.id) };
       },
@@ -345,8 +348,12 @@ export const matchRoutes =
       const actor = requireActor(request);
       const { match } = await loadForAction(eq(matches.id, request.params.id), actor, "edit");
       await db.transaction(async (tx) => {
-        await tx.delete(matchUmpires).where(and(eq(matchUmpires.matchId, match.id), eq(matchUmpires.slot, 2)));
+        const removed = await tx
+          .delete(matchUmpires)
+          .where(and(eq(matchUmpires.matchId, match.id), eq(matchUmpires.slot, 2)))
+          .returning({ slot: matchUmpires.slot });
         await audit(tx, actor.id, "remove_umpire_2", "match", match.id);
+        if (removed.length && match.status === "published") await queueMatchEvent(tx, config.webUrl, match.id, "match.updated", deps.now());
       });
       return { match: await dtoFor(match.id) };
     });
@@ -358,6 +365,7 @@ export const matchRoutes =
         await db.transaction(async (tx) => {
           await publishMatch(tx, match, deps.now());
           await audit(tx, actor.id, "publish", "match", match.id);
+          await queueMatchEvent(tx, config.webUrl, match.id, "match.published", deps.now());
         });
       }
       return { match: await dtoFor(match.id) };
@@ -381,6 +389,7 @@ export const matchRoutes =
             .set({ status: "draft", publishedAt: null, updatedAt: deps.now() })
             .where(eq(matches.id, match.id));
           await audit(tx, actor.id, "unpublish", "match", match.id);
+          if (match.status === "published") await queueMatchEvent(tx, config.webUrl, match.id, "match.unpublished", deps.now());
         });
         return { match: await dtoFor(match.id) };
       },
@@ -395,6 +404,7 @@ export const matchRoutes =
         await db.transaction(async (tx) => {
           await tx.update(matches).set({ deletedAt: deps.now() }).where(eq(matches.id, match.id));
           await audit(tx, actor.id, "delete", "match", match.id);
+          if (match.status === "published") await queueMatchEvent(tx, config.webUrl, match.id, "match.deleted", deps.now());
         });
         return reply.code(204).send();
       },

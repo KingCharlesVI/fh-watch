@@ -152,6 +152,7 @@ export const listRoutes =
               (doc) => ({ ...doc, [field]: into.name }),
               deps.now(),
               `${entity}_merge`,
+              deps.config.webUrl,
             );
             await tx.delete(table).where(eq(table.id, from.id));
             await audit(tx, actor.id, "merge", entity, from.id, { from: dto(from), into: dto(into), matches: n });

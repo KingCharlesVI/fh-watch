@@ -8,6 +8,7 @@ import { startJobs } from "./jobs.js";
 import { logMailer, smtpMailer } from "./services/mailer.js";
 import { chromiumPdfRenderer } from "./services/pdf.js";
 import { expoPushSender, logPushSender } from "./services/push.js";
+import { httpsWebhookSender } from "./services/webhooks.js";
 
 // Development convenience; in production the service manager supplies the environment from api.env.
 if (existsSync(".env")) process.loadEnvFile(".env");
@@ -25,6 +26,7 @@ const deps: AppDeps = {
   apiRateLimit: { max: 600, windowMs: 60 * 1000 },
   exportRateLimit: { max: 30, windowMs: 60 * 1000 },
   pdf: chromiumPdfRenderer(),
+  webhooks: httpsWebhookSender(),
   mailer: config.smtpUrl ? smtpMailer(config.smtpUrl, config.mailFrom) : logMailer(log),
   push:
     config.expoAccessToken || config.env === "production" ? expoPushSender(config.expoAccessToken, log) : logPushSender(log),

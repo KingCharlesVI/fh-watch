@@ -14,6 +14,7 @@ import { hashPassword, signAccessToken } from "../src/services/auth-tokens.js";
 import { memoryMailer } from "../src/services/mailer.js";
 import { fakePdfRenderer } from "../src/services/pdf.js";
 import { memoryPushSender } from "../src/services/push.js";
+import { memoryWebhookSender } from "../src/services/webhooks.js";
 import { testDatabaseUrl } from "./env.js";
 
 export const PASSWORD = "correct horse battery";
@@ -38,12 +39,14 @@ export async function setupTestApp(
   const mailer = memoryMailer();
   const push = memoryPushSender();
   const pdf = fakePdfRenderer();
+  const webhooks = memoryWebhookSender();
   const deps: AppDeps = {
     config,
     db,
     mailer,
     push,
     pdf,
+    webhooks,
     now: () => clock.now,
     authRateLimit: { max: options.authRateLimitMax ?? 1000, windowMs: 15 * 60 * 1000 },
     apiRateLimit: { max: options.apiRateLimitMax ?? 100_000, windowMs: 60 * 1000 },
@@ -53,12 +56,14 @@ export async function setupTestApp(
 
   beforeEach(async () => {
     await db.execute(
-      sql`truncate table audit_log, umpiring_gap_notices, calendar_feeds, appointments, umpire_availability, umpire_unavailable_weekdays, fixtures, club_umpires, competition_umpire_levels, push_tokens, email_tokens, refresh_tokens, match_revisions, match_umpires, matches, club_requests, access_requests, users, teams, clubs, venues, competitions restart identity cascade`,
+      sql`truncate table webhook_deliveries, webhooks, audit_log, umpiring_gap_notices, calendar_feeds, appointments, umpire_availability, umpire_unavailable_weekdays, fixtures, club_umpires, competition_umpire_levels, push_tokens, email_tokens, refresh_tokens, match_revisions, match_umpires, matches, club_requests, access_requests, users, teams, clubs, venues, competitions restart identity cascade`,
     );
     mailer.sent.length = 0;
     push.sent.length = 0;
     push.invalid.clear();
     pdf.rendered.length = 0;
+    webhooks.sent.length = 0;
+    webhooks.respond = () => 200;
     clock.now = new Date("2026-09-19T12:00:00Z");
   });
 
@@ -103,7 +108,7 @@ export async function setupTestApp(
     return { club: club!, teams: clubTeams };
   }
 
-  return { app, deps, db, mailer, push, pdf, clock, advance, createUser, createClub };
+  return { app, deps, db, mailer, push, pdf, webhooks, clock, advance, createUser, createClub };
 }
 
 /** Pulls the token out of the link in the last email sent to `to`. */

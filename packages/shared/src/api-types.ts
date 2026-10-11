@@ -304,3 +304,55 @@ export interface Problem {
   warnings?: ValidationIssue[];
   currentRevision?: number;
 }
+
+/** What a webhook is told about. `ping` is only sent when someone presses Send test. */
+export type WebhookEvent = "match.published" | "match.updated" | "match.unpublished" | "match.deleted" | "ping";
+
+/** An address told about a club's or a competition's published matches. */
+export interface Webhook {
+  id: string;
+  /** Exactly one of these: the club whose teams' matches it hears about, or the competition. */
+  clubId: string | null;
+  competitionId: string | null;
+  url: string;
+  description: string | null;
+  /** Off when someone turns it off, or after 5 deliveries in a row fail for good. */
+  enabled: boolean;
+  /** Deliveries in a row that failed for good. */
+  failures: number;
+  createdAt: string;
+}
+
+/** A webhook just made, or with a new secret: the only time the secret is shown. */
+export interface WebhookWithSecret {
+  webhook: Webhook;
+  secret: string;
+}
+
+export interface WebhookDelivery {
+  id: string;
+  event: WebhookEvent;
+  matchId: string | null;
+  status: "pending" | "delivered" | "failed";
+  attempts: number;
+  /** The receiver's HTTP status from the last attempt, or null if it couldn't be reached. */
+  responseStatus: number | null;
+  error: string | null;
+  nextAttemptAt: string | null;
+  createdAt: string;
+  deliveredAt: string | null;
+}
+
+/** The JSON body of every delivery. Match events carry the match as its public page shows it. */
+export interface WebhookPayload {
+  id: string;
+  event: WebhookEvent;
+  createdAt: string;
+  data: {
+    /** match.published and match.updated: the match and its summary. */
+    match?: Match;
+    summary?: MatchSummary;
+    /** match.unpublished and match.deleted: only which match, as it's no longer public. */
+    matchId?: string;
+  };
+}
