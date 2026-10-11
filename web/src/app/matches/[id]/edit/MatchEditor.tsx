@@ -15,9 +15,11 @@ import {
   describeEvent,
   eventTime,
   parseMatch,
+  parseShirtNumber,
   periodLabel,
   restoreEvent,
   setCardReason,
+  setEventPlayer,
   sortChronologically,
   summarizeMatch,
   voidedSeqs,
@@ -487,7 +489,15 @@ function EventsEditor({ doc, saved, update }: { doc: MatchDocument; saved: Match
                     )}
                   </TableCell>
                   <TableCell className={struck}>{"team" in e ? doc.teams[e.team].name : ""}</TableCell>
-                  <TableCell className={struck}>{"player" in e && e.player !== undefined ? `#${e.player}` : ""}</TableCell>
+                  <TableCell className={struck}>
+                    {(e.type === "goal" || e.type === "card") && !isVoided ? (
+                      <ShirtNumber event={e} onChange={(player) => apply(setEventPlayer(doc, e.seq, player))} />
+                    ) : "player" in e && e.player !== undefined ? (
+                      `#${e.player}`
+                    ) : (
+                      ""
+                    )}
+                  </TableCell>
                   <TableCell className="text-right">
                     {isVoided ? (
                       <Button variant="ghost" size="sm" onClick={() => restore(e)}>
@@ -507,6 +517,34 @@ function EventsEditor({ doc, saved, update }: { doc: MatchDocument; saved: Match
         <AddEvent doc={doc} onAdd={(event) => apply(addEvent(doc, event))} />
       </div>
     </Section>
+  );
+}
+
+/** A goal's or card's shirt number, changed as it's typed. Cards need one. */
+function ShirtNumber({ event, onChange }: { event: Extract<MatchEvent, { type: "goal" | "card" }>; onChange: (player: number | null) => void }) {
+  const [value, setValue] = useState(event.player?.toString() ?? "");
+  const [error, setError] = useState<string | null>(null);
+
+  function change(next: string) {
+    setValue(next);
+    const parsed = parseShirtNumber(next, event.type === "card");
+    setError("error" in parsed ? parsed.error : null);
+    if (!("error" in parsed)) onChange(parsed.player ?? null);
+  }
+
+  return (
+    <div className="w-24">
+      <Input
+        aria-label="Shirt number"
+        aria-invalid={error !== null}
+        type="number"
+        min={0}
+        max={999}
+        value={value}
+        onChange={(e) => change(e.target.value)}
+      />
+      {error && <p className="mt-1 text-xs whitespace-normal text-destructive">{error}</p>}
+    </div>
   );
 }
 
