@@ -23,7 +23,7 @@ On **Appointments**, **Ask for cover**. The club's other umpires and its admins 
 
 ### Availability
 
-**Umpiring → Availability** shows the next 12 weeks. Tap a day once if you're free, twice if you're not, and again to unmark it. For a day you're only free for part of, set the hours below the calendar. **Never free on** marks weekdays you're never available, unless you mark a particular day otherwise.
+**Umpiring → Availability** (or **Availability** on the phone app's **Upcoming**) shows the next 12 weeks. Tap a day once if you're free, twice if you're not, and again to unmark it. For a day you're only free for part of, set the hours below the calendar. **Never free on** marks weekdays you're never available, unless you mark a particular day otherwise.
 
 Clubs see this only as "free", "not free" or "not said" for each fixture, when they choose who to ask.
 

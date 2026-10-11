@@ -1,4 +1,6 @@
 import type {
+  Availability,
+  AvailabilityDay,
   Club,
   Competition,
   FullMatch,
@@ -164,6 +166,14 @@ export class ApiClient {
   /** Appointments clubs have asked you to umpire, from today. */
   myAppointments = () => this.request<Items<MyAppointment>>("/v1/me/appointments");
   answerAppointment = (id: string, answer: "accept" | "decline") => this.request(`/v1/me/appointments/${id}/${answer}`, { method: "POST" });
+
+  /** The days you've marked for the next 12 weeks, and weekdays you're never free. */
+  myAvailability = () => this.request<Availability>("/v1/me/availability");
+  /** Marks a day you can (with hours, if only some) or can't umpire. */
+  markDay = (date: string, available: boolean, hours: { from: string | null; to: string | null } = { from: null, to: null }) =>
+    this.request<AvailabilityDay>(`/v1/me/availability/${date}`, { method: "PUT", body: { available, ...hours } });
+  unmarkDay = (date: string) => this.request(`/v1/me/availability/${date}`, { method: "DELETE" });
+  setUnavailableWeekdays = (unavailable: number[]) => this.request("/v1/me/availability-weekdays", { method: "PUT", body: { unavailable } });
 
   registerPushToken = (token: string, platform: "ios" | "android") =>
     this.request("/v1/me/push-tokens", { method: "POST", body: { token, platform } });

@@ -52,7 +52,18 @@ export default function UpcomingScreen() {
         ) : undefined
       }
     >
-      <Button title="New match" icon="add" onPress={() => router.push("/upcoming/new")} />
+      {ONLINE ? (
+        <Row>
+          <View style={{ flex: 1 }}>
+            <Button title="New match" icon="add" onPress={() => router.push("/upcoming/new")} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button title="Availability" icon="calendar-outline" variant="outline" onPress={() => router.push("/availability")} />
+          </View>
+        </Row>
+      ) : (
+        <Button title="New match" icon="add" onPress={() => router.push("/upcoming/new")} />
+      )}
       {appointments && <Appointments items={appointments} today={today} />}
       {list && shown.length === 0 && (
         <Empty icon="calendar-outline" title="No upcoming matches">
