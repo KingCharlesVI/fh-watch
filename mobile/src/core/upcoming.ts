@@ -1,4 +1,4 @@
-import type { MatchDocument } from "@fh/shared";
+import type { MatchDocument, MyAppointment } from "@fh/shared";
 import { DEFAULT_SETUP, type WatchSetup } from "./setup";
 
 /**
@@ -16,6 +16,8 @@ export interface UpcomingMatch {
   createdAt: string;
   /** When it was last sent to the watch. */
   sentAt: string | null;
+  /** For a club appointment, the other umpire on it, if there is one. */
+  colleague?: MyAppointment["colleague"];
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

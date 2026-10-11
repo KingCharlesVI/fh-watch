@@ -82,6 +82,17 @@ describe("appointments in Upcoming", () => {
     expect(applyAppointments(first.list, first.added, [], "2026-09-30", NOW).list).toHaveLength(2);
   });
 
+  it("keeps who's umpiring with you, up to date even once it's sent", () => {
+    const alex = { displayName: "Alex", role: "second" as const, status: "offered" as const };
+    const first = applyAppointments([], new Set(), [appointment({ colleague: alex })], TODAY, NOW);
+    expect(first.list[0]!.colleague).toEqual(alex);
+
+    const sent = first.list.map((u) => ({ ...u, sentAt: NOW }));
+    const accepted = { ...alex, status: "accepted" as const };
+    expect(applyAppointments(sent, first.added, [appointment({ colleague: accepted })], TODAY, NOW).list[0]!.colleague).toEqual(accepted);
+    expect(applyAppointments(sent, first.added, [appointment()], TODAY, NOW).list[0]!.colleague).toBeNull();
+  });
+
   it("keeps a fixture's format out when it has none", () => {
     expect(setupFrom(appointment({}, { format: null }))).toMatchObject({ periods: DEFAULT_SETUP.periods, homeName: "M1" });
   });

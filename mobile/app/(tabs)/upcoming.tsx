@@ -101,6 +101,12 @@ function UpcomingItem({ match: u, today, first }: { match: UpcomingMatch; today:
       <Text style={{ color: c.muted, fontSize: 14 }} numberOfLines={1}>
         {[format, s.competition?.trim(), s.venue?.trim()].filter(Boolean).join(" · ")}
       </Text>
+      {u.colleague && (
+        <Text style={{ color: c.muted, fontSize: 14 }} numberOfLines={1}>
+          With {u.colleague.displayName}
+          {u.colleague.status === "offered" ? " (asked)" : ""}
+        </Text>
+      )}
     </Pressable>
   );
 }
