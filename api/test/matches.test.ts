@@ -1,4 +1,4 @@
-import type { MatchDocument } from "@fh/shared";
+import type { GoalEvent, MatchDocument } from "@fh/shared";
 import { describe, expect, it } from "vitest";
 import { purgeExpired } from "../src/services/matches.js";
 import { matchDoc, setupTestApp } from "./helpers.js";
@@ -397,5 +397,46 @@ describe("exports", () => {
     const umpireCsv = await get("/v1/matches/export.csv", umpire.headers);
     expect(umpireCsv.body.trim().split("\r\n")).toHaveLength(3);
     expect((await get("/v1/matches/export.csv")).statusCode).toBe(401);
+  });
+});
+
+describe("history", () => {
+  it("lists each revision with what it changed, and publishing and umpire 2, newest first", async () => {
+    const { headers } = await t.createUser({ name: "Sam" });
+    const doc = matchDoc();
+    await put(doc, headers);
+    t.advance(60_000);
+    const edited = structuredClone(doc);
+    edited.events.find((e): e is GoalEvent => e.seq === 2 && e.type === "goal")!.player = 10;
+    edited.venue = "Pitch 2";
+    await put(edited, headers, 1, "mobile");
+    t.advance(60_000);
+    await t.app.inject({ method: "PUT", url: `/v1/matches/${doc.id}/umpires/2`, headers, payload: { name: "Pat" } });
+    t.advance(60_000);
+    await post(`/v1/matches/${doc.id}/publish`, headers);
+
+    const res = await get(`/v1/matches/${doc.id}/history`, headers);
+    expect(res.statusCode).toBe(200);
+    const items = res.json().items;
+    expect(items.map((e: { action: string }) => e.action)).toEqual(["publish", "set_umpire_2", "update", "create"]);
+    expect(items[0]).toMatchObject({ actor: { displayName: "Sam" }, revision: null, changes: [] });
+    expect(items[1].changes).toEqual(["Umpire 2: Pat"]);
+    expect(items[2]).toMatchObject({
+      revision: 2,
+      source: "mobile",
+      changes: ["Venue: none → “Pitch 2”", "Changed: H1 10:00 Goal, Oxford Hawks M1 #9 → H1 10:00 Goal, Oxford Hawks M1 #10"],
+      reason: null,
+    });
+    expect(items[3]).toMatchObject({ revision: 1, source: "watch", changes: [] });
+  });
+
+  it("is for the match's umpires and admins, not the public", async () => {
+    const { headers } = await t.createUser();
+    const other = await t.createUser();
+    const doc = matchDoc();
+    await put(doc, headers);
+    await post(`/v1/matches/${doc.id}/publish`, headers);
+    expect((await get(`/v1/matches/${doc.id}/history`)).statusCode).toBe(403);
+    expect((await get(`/v1/matches/${doc.id}/history`, other.headers)).statusCode).toBe(403);
   });
 });
