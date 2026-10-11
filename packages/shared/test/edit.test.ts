@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addEvent, buildEvent, cancelEvent, nextSeq, parseClock, restoreEvent, setCardReason, voidedSeqs } from "../src/edit.js";
+import { addEvent, buildEvent, cancelEvent, nextSeq, parseClock, parseShirtNumber, restoreEvent, setCardReason, setEventPlayer, voidedSeqs } from "../src/edit.js";
 import { summarizeMatch } from "../src/summary.js";
 import { parseMatch } from "../src/validate.js";
 import { leagueMatch } from "./fixtures.js";
@@ -118,5 +118,38 @@ describe("setCardReason", () => {
   it("builds a card with a reason from the form", () => {
     const result = buildEvent({ type: "card", team: "home", period: 1, clock: "5:00", player: "7", color: "yellow", reason: "danger" }, leagueMatch().settings);
     expect(result).toMatchObject({ event: { type: "card", color: "yellow", reason: "danger", durationSec: 300 } });
+  });
+});
+
+describe("setEventPlayer", () => {
+  it("changes and clears the shirt number on goals and cards, and the match stays valid", () => {
+    const doc = leagueMatch();
+    for (const type of ["goal", "card"] as const) {
+      const event = doc.events.find((e) => e.type === type)!;
+      const changed = setEventPlayer(doc, event.seq, 23);
+      expect(changed.events.find((e) => e.seq === event.seq)).toMatchObject({ type, player: 23 });
+      expect(parseMatch(changed).ok).toBe(true);
+
+      const cleared = setEventPlayer(changed, event.seq, null);
+      expect(cleared.events.find((e) => e.seq === event.seq)).not.toHaveProperty("player");
+      expect(parseMatch(cleared).ok).toBe(true);
+    }
+    // The input is left alone.
+    expect(doc).toEqual(leagueMatch());
+  });
+
+  it("leaves other events alone", () => {
+    const doc = leagueMatch();
+    const corner = doc.events.find((e) => e.type === "penalty_corner")!;
+    expect(setEventPlayer(doc, corner.seq, 23)).toEqual(doc);
+  });
+});
+
+describe("parseShirtNumber", () => {
+  it("reads whole numbers from 0 to 999, and blank only when it's optional", () => {
+    expect(parseShirtNumber(" 7 ", true)).toEqual({ player: 7 });
+    expect(parseShirtNumber("", false)).toEqual({ player: undefined });
+    expect(parseShirtNumber("", true)).toEqual({ error: "Cards need the player's shirt number." });
+    for (const bad of ["1000", "-1", "4.5", "x"]) expect(parseShirtNumber(bad, false)).toHaveProperty("error");
   });
 });
