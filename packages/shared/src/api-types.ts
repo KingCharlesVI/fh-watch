@@ -60,6 +60,34 @@ export interface Revision {
   createdBy: { id: string; displayName: string | null } | null;
 }
 
+/** One thing that happened to a match, for its history: a revision saved, publishing, an umpire change. */
+export interface MatchHistoryEntry {
+  at: string;
+  action: "create" | "update" | "publish" | "unpublish" | "set_umpire_2" | "remove_umpire_2";
+  /** Null when the account was deleted. */
+  actor: { id: string; displayName: string } | null;
+  /** For create and update: the revision saved and where from. */
+  revision: number | null;
+  source: "watch" | "mobile" | "web" | null;
+  /** For update: what changed from the revision before, in plain English. For set_umpire_2: who. */
+  changes: string[];
+  /** Why, when it wasn't an umpire's own edit (e.g. an admin merging duplicate teams). */
+  reason: string | null;
+}
+
+/** A row of the audit log: who did what to which record. */
+export interface AuditEntry {
+  id: number;
+  at: string;
+  /** Null for the system (e.g. the command line), or when the account was deleted. */
+  actor: { id: string; displayName: string } | null;
+  action: string;
+  entity: string;
+  entityId: string;
+  /** Whatever the write recorded: the new values, or before and after. */
+  diff: unknown;
+}
+
 export interface Club {
   id: string;
   name: string;
