@@ -1,5 +1,6 @@
 import { ROLES } from "@fh/shared";
-import { TriangleAlert } from "lucide-react";
+import { History, TriangleAlert } from "lucide-react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { deleteUser, updateUser } from "@/app/actions/admin";
 import { ActionForm } from "@/components/ActionForm";
@@ -7,6 +8,7 @@ import { FilterSelect } from "@/components/FilterSelect";
 import { PageHeader } from "@/components/PageHeader";
 import { TextField } from "@/components/TextField";
 import { Alert, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldContent, FieldDescription, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
@@ -35,6 +37,13 @@ export default async function EditUserPage({ params }: { params: Promise<{ id: s
         title={user.displayName}
         back={{ href: "/admin/users", label: "Users" }}
         description={`${user.email} · ${user.emailVerified ? "email confirmed" : "email not confirmed"}`}
+        actions={
+          <Button variant="outline" asChild>
+            <Link href={`/admin/audit?actorId=${user.id}`}>
+              <History /> Their changes
+            </Link>
+          </Button>
+        }
       />
       {user.deletionRequested && (
         <Alert variant="destructive">
