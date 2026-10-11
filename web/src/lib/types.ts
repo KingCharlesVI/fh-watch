@@ -29,4 +29,7 @@ export type {
   Umpire,
   User,
   Venue,
+  Webhook,
+  WebhookDelivery,
+  WebhookWithSecret,
 } from "@fh/shared";
