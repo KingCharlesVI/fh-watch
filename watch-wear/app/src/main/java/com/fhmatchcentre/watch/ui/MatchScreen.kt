@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -65,6 +66,7 @@ import com.fhmatchcentre.watch.engine.startShootout
 import com.fhmatchcentre.watch.engine.suspensions
 import com.fhmatchcentre.watch.engine.toggleClock
 import com.fhmatchcentre.watch.match.MatchController
+import com.fhmatchcentre.watch.match.moment
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -92,7 +94,6 @@ fun MatchScreen(
     val controller = services.controller
     val record by controller.active.collectAsStateWithLifecycle()
     val m = record ?: return
-    val now = rememberNow()
     // Held here so the Settings page's switch changes the Timing page straight away.
     var countDown by remember { mutableStateOf(services.prefs.clockCountsDown) }
     var clockButton by remember { mutableStateOf(services.prefs.clockButtonOnScreen) }
@@ -100,9 +101,10 @@ fun MatchScreen(
     var confirm by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
 
     if (ambient) {
-        AmbientMatch(m, now, countDown)
+        AmbientMatch(m, countDown)
         return
     }
+    val now = rememberNow()
 
     val pager = rememberPagerState(pageCount = { Page.entries.size })
     HorizontalPagerScaffold(pagerState = pager) {
@@ -510,14 +512,48 @@ private fun ScalingLazyListScope.undoItem(offer: com.fhmatchcentre.watch.match.U
 
 /** Low-power display: updated about once a minute, so whole minutes only. */
 @Composable
-private fun AmbientMatch(m: MatchRecord, now: Moment, countDown: Boolean) {
-    val (label, clock, _) = clockDisplay(m, now, countDown)
-    val s = m.score()
+private fun AmbientMatch(m: MatchRecord, countDown: Boolean) {
+    val context = LocalContext.current
+    var now by remember { mutableStateOf(moment(context)) }
+    // Ambient shows whole minutes, so it wakes only when what it shows next changes,
+    // not several times a second. A change to the match (a goal, the clock) starts it again.
+    LaunchedEffect(m, countDown) {
+        while (true) {
+            now = moment(context)
+            delay(untilAmbientChange(m, now, countDown))
+        }
+    }
+    val (label, minutes, score) = ambientLines(m, now, countDown)
     Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(label, color = Color.Gray, fontSize = 13.sp)
-            Text(clock.substringBefore(":") + "′", color = Color.White, fontSize = 40.sp)
-            Text("${s.home} – ${s.away}", color = Color.White, fontSize = 22.sp)
+            Text(minutes, color = Color.White, fontSize = 40.sp)
+            Text(score, color = Color.White, fontSize = 22.sp)
         }
     }
+}
+
+/** What the ambient screen shows: the clock's label, its minutes and the score. */
+internal fun ambientLines(m: MatchRecord, now: Moment, countDown: Boolean): Triple<String, String, String> {
+    val (label, clock, _) = clockDisplay(m, now, countDown)
+    val s = m.score()
+    return Triple(label, clock.substringBefore(":") + "′", "${s.home} – ${s.away}")
+}
+
+/**
+ * Milliseconds until the ambient screen would show something different, or a minute if
+ * nothing changes before then. Looks ahead a second at a time for the second it changes
+ * in, then narrows that down to the millisecond.
+ */
+internal fun untilAmbientChange(m: MatchRecord, now: Moment, countDown: Boolean): Long {
+    val shown = ambientLines(m, now, countDown)
+    fun changedAfter(ms: Long) =
+        ambientLines(m, now.copy(elapsedMs = now.elapsedMs + ms, wallMs = now.wallMs + ms), countDown) != shown
+    var changed = (1..60).map { it * 1000L }.firstOrNull(::changedAfter) ?: return 60_000
+    var same = changed - 1000
+    while (changed - same > 1) {
+        val mid = (same + changed) / 2
+        if (changedAfter(mid)) changed = mid else same = mid
+    }
+    return changed
 }
