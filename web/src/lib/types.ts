@@ -2,6 +2,7 @@
 export type {
   Club,
   AccessRequest,
+  AuditEntry,
   Appointment,
   Availability,
   AvailabilityDay,
@@ -17,6 +18,7 @@ export type {
   FullMatch,
   Items,
   Match,
+  MatchHistoryEntry,
   MatchSide,
   Page,
   Problem,
