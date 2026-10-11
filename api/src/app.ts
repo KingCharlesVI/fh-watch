@@ -11,10 +11,17 @@ import {
 import { registerAuth } from "./auth.js";
 import type { AppDeps } from "./deps.js";
 import { HttpError, isUniqueViolation } from "./lib/errors.js";
+import { RateLimiter } from "./lib/rate-limit.js";
 import { accessRequestRoutes } from "./routes/access-requests.js";
 import { authRoutes } from "./routes/auth.js";
+import { appointmentRoutes } from "./routes/appointments.js";
+import { availabilityRoutes } from "./routes/availability.js";
+import { calendarRoutes } from "./routes/calendar.js";
+import { clubUmpireRoutes } from "./routes/club-umpires.js";
 import { clubRoutes } from "./routes/clubs.js";
-import { venueRoutes } from "./routes/venues.js";
+import { fixtureRoutes } from "./routes/fixtures.js";
+import { importRoutes } from "./routes/import.js";
+import { listRoutes } from "./routes/lists.js";
 import { matchRoutes } from "./routes/matches.js";
 import { userRoutes } from "./routes/users.js";
 
@@ -91,15 +98,36 @@ export async function buildApp(deps: AppDeps, options: { logger?: FastifyBaseLog
 
   registerAuth(app, deps);
 
+  const general = new RateLimiter(deps.apiRateLimit.max, deps.apiRateLimit.windowMs, deps.now);
+  const exports = new RateLimiter(deps.exportRateLimit.max, deps.exportRateLimit.windowMs, deps.now);
+  const isExport = (url: string | undefined) => url === "/v1/matches/export.csv" || url === "/v1/matches/:id/export.:format";
+
   await app.register(
     async (v1) => {
+      // Per visitor IP (the website passes its visitors' on). Health checks are left out, for the status page.
+      v1.addHook("onRequest", async (request, reply) => {
+        const url = request.routeOptions.url;
+        if (url === "/v1/health") return;
+        const tooMany = (windowMs: number) => {
+          reply.header("retry-after", String(Math.ceil(windowMs / 1000)));
+          return new HttpError(429, "rate_limited", "Too many requests. Try again in a minute.");
+        };
+        if (!general.hit(request.ip)) throw tooMany(deps.apiRateLimit.windowMs);
+        if (isExport(url) && !exports.hit(request.ip)) throw tooMany(deps.exportRateLimit.windowMs);
+      });
       v1.get("/health", { schema: { hide: true } }, async () => ({ ok: true }));
       await v1.register(authRoutes(deps));
       await v1.register(userRoutes(deps));
       await v1.register(clubRoutes(deps));
-      await v1.register(venueRoutes(deps));
+      await v1.register(listRoutes(deps));
       await v1.register(matchRoutes(deps));
       await v1.register(accessRequestRoutes(deps));
+      await v1.register(importRoutes(deps));
+      await v1.register(clubUmpireRoutes(deps));
+      await v1.register(fixtureRoutes(deps));
+      await v1.register(availabilityRoutes(deps));
+      await v1.register(appointmentRoutes(deps));
+      await v1.register(calendarRoutes(deps));
     },
     { prefix: "/v1" },
   );

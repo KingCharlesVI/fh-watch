@@ -32,6 +32,8 @@ The iPhone app comes through **TestFlight**. Install TestFlight from the App Sto
 
 Open the phone app and tap **Create an account** (or sign in, if you made one on the [website](https://app.fhmatchcentre.com)). Confirm your email address from the email you're sent, then sign in. See [Signing in](guide/phone.md?id=signing-in).
 
+If your club organises its umpires on the website, ask its admin to add you to the club's list: you'll then be asked to umpire its fixtures, by email and in the app. See [Club umpiring](guide/club-umpiring.md).
+
 ## Your first match
 
 1. **Open the app on the watch** and tap **New match**. It starts from your last match's choices.

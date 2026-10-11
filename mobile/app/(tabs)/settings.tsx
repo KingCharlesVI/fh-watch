@@ -1,13 +1,15 @@
 import Constants from "expo-constants";
 import * as Linking from "expo-linking";
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { Alert, Platform, Share, Switch, View } from "react-native";
 import { API_URL, CHANNEL, ONLINE, WEB_URL } from "@/config";
 import { errorMessage } from "@/core/api";
+import { type ServerStatus, checkServer } from "@/core/server-status";
 import { sync } from "@/services";
 import { saveBackup, shareBackup } from "@/services/export";
 import { reportBug, suggestFeature } from "@/services/feedback";
+import { useNotificationsOn } from "@/services/push";
 import { HealthConnect, useHealthConnect } from "@/services/health";
 import { importFromFile, sampleMatch } from "@/services/import";
 import { useConnectedWatches, useWatchProblems, watchSyncAvailable } from "@/services/watch";
@@ -127,9 +129,58 @@ export default function SettingsScreen() {
           Version {Constants.expoConfig?.version} ({__DEV__ ? "development" : BUILD}) ·{" "}
           {ONLINE ? API_URL : "Alpha: watch and phone only"}
         </T>
+        {ONLINE && <ServerStatusRow />}
+        <Button title="What's new" variant="outline" icon="sparkles-outline" onPress={() => router.push("/whats-new")} />
         <Updates />
       </Card>
     </Screen>
+  );
+}
+
+/** Whether the server answers, checked each time Settings opens. */
+function ServerStatusRow() {
+  const [status, setStatus] = useState<ServerStatus | null>(null);
+  const [checking, setChecking] = useState(false);
+  const check = useCallback(async () => {
+    setChecking(true);
+    setStatus(await checkServer(API_URL));
+    setChecking(false);
+  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      void check();
+    }, [check]),
+  );
+
+  const look =
+    checking || !status
+      ? { label: "Checking…", tone: "neutral" as const, icon: "ellipsis-horizontal" as const, detail: "Asking the server." }
+      : status.state === "online"
+        ? { label: "Online", tone: "primary" as const, icon: "checkmark-circle-outline" as const, detail: `Answered in ${status.ms} ms.` }
+        : status.state === "problem"
+          ? {
+              label: "Having problems",
+              tone: "warn" as const,
+              icon: "alert-circle-outline" as const,
+              detail: `The server answered with an error (${status.status}). Your matches are safe on this phone; try again later.`,
+            }
+          : {
+              label: "Can't reach it",
+              tone: "danger" as const,
+              icon: "cloud-offline-outline" as const,
+              detail: "Check this phone's internet connection. If that's fine, the server may be down. Your matches are safe on this phone.",
+            };
+  return (
+    <>
+      <Row style={{ alignItems: "center" }}>
+        <View style={{ flex: 1 }}>
+          <T>Server</T>
+          <T variant="small">{look.detail}</T>
+        </View>
+        <Badge label={look.label} tone={look.tone} icon={look.icon} />
+      </Row>
+      <Button title="Check again" variant="ghost" icon="refresh-outline" loading={checking} onPress={() => void check()} />
+    </>
   );
 }
 
@@ -192,7 +243,8 @@ function Updates() {
 
 /** Beta only: the account, notifications and signing out. */
 function AccountCards({ notUploaded }: { notUploaded: number }) {
-  const { user, signOut, push, enableNotifications } = useAuth();
+  const { user, signOut, push, enableNotifications, disableNotifications } = useAuth();
+  const notificationsOn = useNotificationsOn();
 
   function confirmSignOut() {
     Alert.alert(
@@ -223,22 +275,22 @@ function AccountCards({ notUploaded }: { notUploaded: number }) {
       </Card>
 
       <Card title="Notifications">
-        {push?.state === "on" ? (
-          <T variant="muted">On. You'll get a reminder when a match from your watch hasn't been uploaded 2 hours after it arrived.</T>
-        ) : (
-          <>
-            <T variant="muted">Get a reminder when a match from your watch hasn't been uploaded 2 hours after it arrived.</T>
-            {push?.state === "denied" && <T variant="small">Notifications are turned off for this app in your phone's settings.</T>}
-            <Button
-              title="Turn on notifications"
-              variant="outline"
-              icon="notifications-outline"
-              onPress={async () => {
-                const res = await enableNotifications();
-                if (res.state === "denied") void Linking.openSettings();
-              }}
-            />
-          </>
+        <Row style={{ alignItems: "center" }}>
+          <View style={{ flex: 1 }}>
+            <T>Notifications</T>
+            <T variant="small">A reminder when a match from your watch hasn&apos;t been uploaded 2 hours after it arrived.</T>
+          </View>
+          <Switch
+            value={notificationsOn === true && push?.state === "on"}
+            onValueChange={async (on) => {
+              if (!on) return void (await disableNotifications());
+              const res = await enableNotifications();
+              if (res.state === "denied") void Linking.openSettings();
+            }}
+          />
+        </Row>
+        {notificationsOn && push?.state === "denied" && (
+          <T variant="small">Notifications are turned off for this app in your phone&apos;s settings. Turn this on to open them.</T>
         )}
       </Card>
     </>

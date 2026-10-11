@@ -14,4 +14,8 @@ export interface AppDeps {
   now: () => Date;
   /** Sign-in, reset and verification requests per IP and per email. */
   authRateLimit: { max: number; windowMs: number };
+  /** Every other API request per IP: generous, only to stop scripts. */
+  apiRateLimit: { max: number; windowMs: number };
+  /** CSV and PDF downloads per IP, on top of the general limit: a PDF is the heaviest thing the API does. */
+  exportRateLimit: { max: number; windowMs: number };
 }

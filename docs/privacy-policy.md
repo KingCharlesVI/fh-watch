@@ -1,6 +1,6 @@
 # FH Match Centre privacy policy
 
-Last updated: 7 October 2026
+Last updated: 8 October 2026
 
 FH Match Centre is a field hockey umpiring system: a watch app and a phone app that umpires use to time and record matches, and a website at app.fhmatchcentre.com where umpires publish results and clubs keep their teams up to date. This policy covers all of them, and the project's other sites: fhmatchcentre.com, docs.fhmatchcentre.com and status.fhmatchcentre.com.
 
@@ -32,9 +32,22 @@ Nothing leaves your phone until you tap **Upload**. An uploaded match holds what
 
 *Why we're allowed to:* uploading and publishing are what you use the service for, and publishing results is in the legitimate interest of the clubs, players and umpires who follow them.
 
+### Club umpiring
+
+Only if a club uses the site to organise its umpires, and adds you to its list:
+
+- **The club's umpire list** holds your name and email address, which the club's admins can see, and the **qualification level** and **team you play for** that they record, so they can choose suitable umpires.
+- **Appointments**: the fixtures a club asks you to umpire, and your answers (accepted, declined, or asking for cover). The club's admins and the other umpire on a fixture see them. If you ask for cover, the club's other umpires see that fixture so one can take it over. We email you when you're asked, and when a fixture you're on changes or is cancelled.
+- **Availability** you choose to give: days you're free or not, the hours, and weekdays you're never free. A club's admins see only whether you're free for each of their fixtures.
+- **Your calendar address**: a private link to a calendar of your accepted appointments. Anyone you give it to can see them; you can replace it at any time.
+
+You can leave a club's list yourself, unmark your availability, or ask a club's admins to take you off.
+
+*Why we're allowed to:* it's in the legitimate interest of the clubs you umpire for, and yours, to arrange who umpires which match, and it's only used for that.
+
 ### Notifications
 
-If you turn on notifications in the phone app, your phone gets a **push token** from Apple or Google (through Expo, the service the app is built with), which we store with your account so we could send you a message about your matches later. We don't send any yet: the reminders to upload a match are made on your phone. Signing out removes the token.
+If you turn on notifications in the phone app, the reminders to upload a match and about the next day's appointments are made on your phone. Your phone also gets a **push token** from Apple or Google (through Expo, the service the app is built with), which we store with your account so we could send you a message about your matches later. We don't send any yet. Turning notifications off in the app's Settings, or signing out, removes the token.
 
 ### Asking to join the test
 
@@ -82,12 +95,13 @@ We don't sell your data or share it with anyone else, unless the law requires us
 - **Your account:** until it's deleted (below).
 - **Matches:** until they're deleted. A match an admin deletes is kept for 30 days in case of mistakes, then removed for good.
 - **Requests to join the test and club requests:** 12 months after we answer them. Requests still waiting for an answer are kept until we do.
+- **Club umpiring:** a club's fixtures, and the appointments to them, until the club's admins delete them or the club is deleted. Your place on a club's list until you or its admins take you off. Your availability and calendar address until you remove them or your account is deleted.
 - **Sign-in sessions:** up to 30 days. Email links expire after 24 hours (confirming your email address) or 1 hour (resetting your password).
 - **Backups:** we back up the database regularly and keep each backup for 14 days. Something deleted from the service disappears from the backups as they're replaced.
 
 ## Deleting your account
 
-Ask for it from your account page on the website (**Delete account**), or email us. An admin then deletes your account, your sign-in sessions, any push tokens and your club requests. The matches you uploaded stay on the service, because they're also the other umpire's and the clubs' record of the match, but your name on them is replaced with "Deleted user". If you'd also like particular matches removed, tell us.
+Ask for it from your account page on the website (**Delete account**), or email us. An admin then deletes your account, your sign-in sessions, any push tokens, your club requests, your place on clubs' umpire lists, your appointments, your availability and your calendar address. The matches you uploaded stay on the service, because they're also the other umpire's and the clubs' record of the match, but your name on them is replaced with "Deleted user". If you'd also like particular matches removed, tell us.
 
 Our log of changes keeps a note that the account was deleted, with its email address, so we can show it was done.
 

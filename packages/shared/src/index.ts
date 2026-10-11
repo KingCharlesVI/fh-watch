@@ -7,4 +7,5 @@ export * from "./policy.js";
 export * from "./describe.js";
 export * from "./edit.js";
 export * from "./report.js";
+export * from "./umpiring.js";
 export type * from "./api-types.js";

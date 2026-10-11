@@ -30,6 +30,13 @@ export async function requireAdmin(returnTo: string): Promise<User> {
   return user;
 }
 
+/** For pages that run a club's umpiring: a club admin, with their club. Anyone else goes to the dashboard. */
+export async function requireClubAdmin(returnTo: string): Promise<User & { clubId: string }> {
+  const user = await requireUser(returnTo);
+  if (!hasRole(user, "club_admin") || !user.clubId) redirect("/dashboard");
+  return user as User & { clubId: string };
+}
+
 /** Only in server actions and route handlers, where cookies can be written. */
 export async function startSession(tokens: TokenPair) {
   const jar = await cookies();

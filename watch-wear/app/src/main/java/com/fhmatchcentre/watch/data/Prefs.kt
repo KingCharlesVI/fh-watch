@@ -24,6 +24,8 @@ data class Setup(
     val awayColor: String = "#DC2626",
     val awayCaptain: Int? = null,
     val venue: String? = null,
+    /** Usually from the phone, which has the competitions list. */
+    val competition: String? = null,
 ) {
     fun settings(): MatchSettings = MatchSettings(
         periods = periods,
@@ -58,6 +60,7 @@ data class Setup(
             awayColor = colour(awayColor, defaults.awayColor),
             awayCaptain = awayCaptain?.takeIf { it in SHIRT_NUMBERS },
             venue = venue?.trim()?.take(120)?.ifEmpty { null },
+            competition = competition?.trim()?.take(120)?.ifEmpty { null },
         )
     }
 

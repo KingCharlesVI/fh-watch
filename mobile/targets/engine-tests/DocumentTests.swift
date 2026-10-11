@@ -12,7 +12,7 @@ final class DocumentTests: XCTestCase {
 
     /// A match that uses every kind of event the watch writes, as the Wear OS app's DocumentSchemaTest plays it.
     func everything() throws -> MatchRecord {
-        var m = try Engine.newMatch(settings: quarters, teams: teams, venue: "Oxford Hawks, Pitch 1", now: t.now)
+        var m = try Engine.newMatch(settings: quarters, teams: teams, venue: "Oxford Hawks, Pitch 1", now: t.now, competition: "South Men's Division 2")
         m = try m.startPeriod(t.now)
         t.advance(3 * MIN)
         m = try m.goal(team: .home, player: 9, method: .field, now: t.now)
@@ -76,6 +76,7 @@ final class DocumentTests: XCTestCase {
         m = try m.goal(team: .away, player: nil, method: nil, now: t.now)
         let text = try json(m.document)
         XCTAssertFalse(text.contains("venue"))
+        XCTAssertFalse(text.contains("competition"))
         XCTAssertFalse(text.contains("\"player\""))
         XCTAssertFalse(text.contains("endedAt"))
         XCTAssertFalse(text.contains("competition"))

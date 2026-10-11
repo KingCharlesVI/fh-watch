@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { clientIpHeaders } from "./client-ip";
 import { ACCESS_COOKIE } from "./session-cookies";
@@ -74,6 +75,26 @@ async function toProblem(res: Response): Promise<Problem> {
     return { type: "/problems/unknown", title: `The server answered ${res.status}.`, status: res.status };
   }
 }
+
+/** On the cached public lists: website changes to clubs, teams, logos, venues or competitions clear it with `updateTag`. */
+export const LISTS_TAG = "lists";
+
+/**
+ * A public list that rarely changes (clubs, a club and its teams, competitions, venues), shared by every
+ * visitor for up to a minute, so a page of filters doesn't ask the API for them each time. A 404 is null.
+ * Changes made outside the website, such as a venue added on a phone, show within the minute. It's
+ * fetched as nobody in particular: a cached function can't read the visitor's cookies or IP.
+ */
+export const cachedPublic = unstable_cache(
+  async <T>(path: string): Promise<T | null> => {
+    const res = await fetch(apiUrl(path), { cache: "no-store" });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new ApiError(await toProblem(res));
+    return (await res.json()) as T;
+  },
+  ["public-api"],
+  { revalidate: 60, tags: [LISTS_TAG] },
+);
 
 /** Like `api`, but a 404 becomes null. */
 export async function apiOrNull<T>(path: string, options: ApiOptions = {}): Promise<T | null> {

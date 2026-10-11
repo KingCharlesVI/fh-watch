@@ -17,7 +17,7 @@ visitor ──HTTPS──> Cloudflare <══tunnel══ fh-tunnel (cloudflared
 | A Cloudflare account | The free plan is enough. |
 | The domain on Cloudflare | See step 1. The domain stays registered where it is; only its DNS moves to Cloudflare. |
 | The repository on GitHub | The machine clones releases from it. |
-| An email provider (can wait) | Without one, sign-up confirmations and password resets are only written to the API log, so nobody else can register. See [Email](#email). |
+| An email provider (can wait) | Without one, emails (sign-up confirmations, password resets, appointments) are only written to the API log, so nobody else can register. See [Email](#email). |
 
 ## 1. Put the domain on Cloudflare (once)
 
@@ -156,7 +156,7 @@ A branch name works in place of a tag (e.g. `fh deploy main`), but tags make it 
 
 ## Email
 
-FH Match Centre sends its emails (sign-up confirmations, password resets) through **Amazon SES**, over SMTP. Another provider with SMTP works the same way from step 5.
+FH Match Centre sends its emails (sign-up confirmations, password resets, test requests, and club umpiring: appointments, cover, fixture changes and gap reminders) through **Amazon SES**, over SMTP. Each is sent as HTML with a plain-text version. Another provider with SMTP works the same way from step 5.
 
 1. **In the AWS console, open Amazon SES** in **Europe (Stockholm), eu-north-1**, the region this deployment uses. Keep to one region: an identity, its DKIM records and the SMTP credentials all belong to the region they were made in, and the SMTP host names it.
 2. **Verify the domain:** *Configuration → Identities → Create identity → Domain*, `fhmatchcentre.com`, with **Easy DKIM** (RSA 2048). SES shows three CNAME records: add them in **Cloudflare's DNS**, set to **DNS only** (grey cloud). Also in Cloudflare:
@@ -168,7 +168,7 @@ FH Match Centre sends its emails (sign-up confirmations, password resets) throug
    Of the three, **DKIM is the one that matters** for getting mail delivered and for DMARC to pass: it signs as `fhmatchcentre.com`, which is what alignment needs. The SPF record is worth having but doesn't align on its own, because SES's envelope sender is `amazonses.com` unless you set up a custom MAIL FROM (optional, below). SES shows the identity as verified once it sees the DKIM records, usually within an hour.
 
    **Optional, for SPF alignment as well:** *Identities → fhmatchcentre.com → Custom MAIL FROM*, with a subdomain such as `mail.fhmatchcentre.com`. SES then asks for an MX record on it, `feedback-smtp.eu-north-1.amazonses.com` at priority 10, and a TXT record on it, `v=spf1 include:amazonses.com ~all`. Both **DNS only**.
-3. **Leave the sandbox.** A new SES account only sends to addresses you've verified. *Account dashboard → Request production access*: say it's transactional mail only (account confirmations and password resets) for a sports results site, sent to people who register. AWS usually answers within a day.
+3. **Leave the sandbox.** A new SES account only sends to addresses you've verified. *Account dashboard → Request production access*: say it's transactional mail only (account confirmations, password resets, and notices about matches people are appointed to umpire) for a sports results site, sent to people who register. AWS usually answers within a day.
 4. **Make SMTP credentials:** *SMTP settings → Create SMTP credentials*. It creates an IAM user and shows an **SMTP user name and password**, once: save them. They aren't your AWS access keys.
 5. **Add the SMTP URL** to `api.env` (`/etc/fh/api.env` or `C:\ProgramData\fh\config\api.env`). SES passwords usually contain `/` or `+`, which must be URL-encoded (`%2F`, `%2B`); this prints the encoded form:
 

@@ -14,6 +14,8 @@ Matches from the watch arrive by themselves, even when the app is closed, and ap
 
 Pull down on the list to check for anything waiting.
 
+To find a match, type in the box above the list: a team, club, competition or venue (e.g. `hawks cup`). Every word has to be in one of them, and the tabs count only what's found.
+
 ## A match
 
 Opening a match shows:
@@ -55,7 +57,7 @@ Each can be saved to a folder you pick (**Save to phone**) or shared:
 
 **Edit match** fixes anything the watch got wrong, or adds what it didn't record:
 
-- **Details**: competition and venue.
+- **Details**: competition and venue. Type them, or pick from the website's lists as you type (e.g. `south` for **South League Premier**). One that isn't on the list can be added there, as for a venue when setting up a match.
 - **Teams**: names, colours and captains, and the **club team** each one is: search for it (e.g. `hawks m1`) to link it, which puts the match on the club's pages on the website.
 - **Umpires**: your colleague. Search for them if they have an account (they can then edit the match too), or type their name if they don't.
 - **Events**: add a goal, card, penalty corner, stroke or note at a period and time; cancel an event (it's kept, struck through, and can be restored); add or change a card's reason.
@@ -64,9 +66,9 @@ Each can be saved to a folder you pick (**Save to phone**) or shared:
 
 ## Setting up a match on the phone
 
-Typing team names is easier on the phone. **Settings → Set up a match**: choose the format, the teams' names, colours and captains, and the venue, then **Send to watch**. The watch opens its setup screen with it; check it and tap **Ready**.
+Typing team names is easier on the phone. **Settings → Set up a match**: choose the format, the teams' names, colours and captains, and the venue and competition, then **Send to watch**. The watch opens its setup screen with it; check it and tap **Ready**.
 
-The team names and the venue can be anything you type. As you type, the app also offers the clubs' teams and the venues listed on the website (e.g. type `hawks` for **Oxford Hawks M1**, or `banbury` for **Banbury Road, Oxford**): tap one to use it. Clubs keep their teams up to date, and the site's admins the venues; with no signal, you just type.
+The team names, venue and competition can be anything you type. As you type, the app also offers the clubs' teams and the venues and competitions listed on the website (e.g. type `hawks` for **Oxford Hawks M1**, or `banbury` for **Banbury Road, Oxford**): tap one to use it. Clubs keep their teams up to date. A venue or competition that isn't on the list yet can be added from the field: type it in full, then tap **Add “…” as a new venue** (or competition), and it's there for everyone from then on. With no signal, you just type.
 
 On a Wear OS watch you can start from the watch instead: **Setup on phone** on the watch opens this screen on the phone.
 
@@ -77,6 +79,8 @@ To have nothing to type at the ground, set matches up beforehand under **Upcomin
 At the ground, open the match and tap **Send to watch**, as above. It's marked **Sent to watch**, and it leaves the list by itself once the played match comes back from the watch. A match whose day has gone without being played shows its date in amber; edit it or delete it.
 
 Upcoming matches are kept on the phone only, and aren't in backups.
+
+If a club appoints you, **Upcoming** also shows its requests to **Accept** or **Decline**, and matches you're second umpire for. A match you accept as the watch umpire joins the list already set up, marked **Appointed**: add the colours and captains, and send it to the watch as usual. Until you send it, it follows any change the club makes; if you delete it, it isn't added again. You're reminded the day before. Appointments are fetched when the app opens and when you come back to it; pull down on **Upcoming** to fetch them now. Asking for cover, and taking someone else's over, are on the website. See [Club umpiring](guide/club-umpiring.md).
 
 ## Backups and moving phones
 
@@ -92,12 +96,12 @@ Uploaded matches are safe on the website. Anything only on the phone isn't, so b
 | Setting | |
 | --- | --- |
 | **Account** | Your name, email and roles, **Manage on the website**, and **Sign out**. Signing out removes the matches from this phone; anything not uploaded is lost, so it warns you first. |
-| **Notifications** | **Turn on notifications** for a reminder when a match from your watch hasn't been uploaded 2 hours after it arrived. |
+| **Notifications** | One switch for all the app's notifications: a reminder when a match from your watch hasn't been uploaded 2 hours after it arrived, and at 6pm the day before a match a club has appointed you to. Turning it on asks for the phone's permission the first time; turning it off cancels any reminders already scheduled. |
 | **Watch** | Whether your watch is connected, and **Set up a match**. A match from the watch that couldn't be read shows here, with a way to export it. |
 | **Health Connect** (Android) | Save workouts to Health Connect, for Samsung Health and other fitness apps. See [Workouts](guide/workouts.md). |
 | **Your matches** | Backups and importing. |
 | **Feedback** | **Report a bug** or **Suggest a feature**: opens the form on the project's GitHub (it needs a free GitHub account). A bug report starts with the app's version and your phone and watch models filled in. Issues there are public, so leave out players' names and anything private. |
-| **About** | The version and build. On Android: update notices, and whether to include test builds (**Include pre-releases**). |
+| **About** | The version and build, and whether the server answers: **Online**, **Having problems** (it answered with an error) or **Can't reach it** (check the phone's internet connection), with **Check again**. **What's new** lists the changes in each version; it also opens by itself once after an update. On Android: update notices, and whether to include test builds (**Include pre-releases**). |
 
 ## Updates (Android)
 

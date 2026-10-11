@@ -1,4 +1,5 @@
 {
+  "competition" : "South Men's Division 2",
   "createdOn" : "watchos",
   "endedAt" : "2026-09-21T15:20:20.000Z",
   "events" : [
@@ -335,7 +336,7 @@
       "wallTime" : "2026-09-21T15:20:20.000Z"
     }
   ],
-  "id" : "01a0c450-6c00-7719-b473-da3c26765009",
+  "id" : "01a0c450-6c00-76db-b2f6-ba12071c8094",
   "schemaVersion" : 1,
   "settings" : {
     "breakLengthsSec" : [

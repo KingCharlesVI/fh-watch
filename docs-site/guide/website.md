@@ -4,8 +4,9 @@ The website, at [app.fhmatchcentre.com](https://app.fhmatchcentre.com), is where
 
 ## For everyone
 
-- **Matches**: published results, newest first, with the score, timeline, cards and statistics.
+- **Matches**: published results, newest first, with the score, timeline, cards and statistics. Filter them by club, team, competition or venue.
 - **Clubs**: each club's teams and their matches.
+- **Search** (the box at the top, or the magnifying glass on a phone): finds clubs, teams, competitions, venues and matches at once. A match is found when each word you type is in a team's name, the venue or the competition.
 - A match can be downloaded as a report (PDF), a spreadsheet (CSV) or data (JSON).
 
 ## For umpires
@@ -19,14 +20,46 @@ Register with your email address, in the phone app (**Create an account** on the
 
 Both umpires on a match can edit it; the website keeps every revision.
 
-The **Dashboard** lists your matches, with downloads of them all. A match's **Edit** page has the same fixes as the phone app, for doing them at a desk.
+If clubs appoint you to their fixtures, **Umpiring** has your appointments, availability and season. See [Club umpiring](guide/club-umpiring.md).
+
+The **Dashboard** lists your matches, with downloads of them all. Filter them by status, dates, club, team, competition and venue: pick a club to choose one of its teams, and type a competition or venue or pick it from the site's lists (any name containing what you type counts). The CSV download has the same filters. A match's **Edit** page has the same fixes as the phone app, for doing them at a desk: link each team to its club team, and type the venue and competition or pick them from the site's lists.
 
 ## For clubs
 
 Club admins keep their club's **teams** up to date from **manage teams** on the **Dashboard** (or **Manage club** on the club's page): add and rename them. Umpires link a match's teams to these, which puts the match on the club's pages, and the phone app offers them as team names when an umpire sets up a match.
 
+Club admins can also organise their club's umpiring from the **Dashboard**: a list of the club's umpires, its fixtures, and who's appointed to each. See [Club umpiring](guide/club-umpiring.md).
+
 Anyone can ask for a new club, or to be a club's admin, from their account page; an admin approves it.
 
-## Venues
+## For admins
 
-The site keeps one list of venues, the grounds matches are played at (e.g. `Banbury Road, Oxford`), apart from the clubs, since clubs often share a ground. The phone app offers them when an umpire sets up a match. Admins keep the list under **Admin → Venues**; a match keeps its venue as text, so renaming or deleting one doesn't change matches already played there. To have one added, ask an admin.
+**Admin** (in the account menu) has:
+
+- **Club requests** and **Testing requests**: approve or turn them down. Both email the person who asked.
+- **Users**: roles, a club admin's club, and accounts that have asked to be deleted.
+- **Clubs and teams**, **Venues** and **Competitions**: add, rename, delete and merge duplicates (below), and each competition's umpire level.
+- **Import**: many clubs and teams, venues or competitions at once (below).
+- **All matches**: every match on the dashboard, drafts included.
+
+## Venues and competitions
+
+The site keeps two lists that umpires pick from, apart from the clubs:
+
+- **Venues**, the grounds matches are played at (e.g. `Banbury Road, Oxford`): offered when setting up a match in the phone app, and when editing one in the app or here. They aren't tied to a club, since clubs often share a ground.
+- **Competitions**, the leagues and cups (e.g. `South League Premier`): offered when setting up a match in the phone app, and when editing one in the app or here.
+
+The site's lists of clubs, teams, venues and competitions are refreshed every minute, so one added from the phone app shows on the website within a minute; changes made on the website show straight away.
+
+Umpires add one that's missing as they go: typing a name the list doesn't have offers **Add “…” as a new venue** (or competition), in the phone app and on a match's **Edit** page. Adding one that's already there, in different capitals, just picks that one. Admins tidy the lists under **Admin → Venues** and **Admin → Competitions**: add, rename and delete. **Admin → Competitions** also sets the umpire level each competition asks for, which clubs see when they appoint (see [Club umpiring](guide/club-umpiring.md?id=for-admins)). A match keeps its venue and competition as text, so renaming or deleting one doesn't change matches already played.
+
+**Merge duplicates**, on the same pages, is for two names for one thing (`Banbury Rd` and `Banbury Road, Oxford`): pick the duplicate and the one to keep. Matches with the duplicate's name, in any capitals, take the kept one's, and the duplicate is deleted. Clubs and teams merge the same way: under **Admin → Clubs**, a duplicate club's teams, club admins and logo move to the club you keep (a team with the same name there is merged into it), and on a club's page, a duplicate team's matches are linked to the team you keep. Each changed match gets a new revision, so its edit history shows the change and phones pick it up.
+
+## Importing from a spreadsheet
+
+To start a league or season, **Admin → Import** adds many at once from a CSV file (save the spreadsheet as CSV), or rows pasted in:
+
+- **Clubs and teams**: columns `club` and `team`, one row per team. A row with only a club adds just the club.
+- **Venues** or **Competitions**: one column, `name`.
+
+A heading row is optional. **Preview** shows what would be added, how many rows are already on the site (matched in any capitals) and any rows that can't be imported, by their line in the file. **Import** then adds them. Nothing already there is changed, so importing the same file twice is safe.

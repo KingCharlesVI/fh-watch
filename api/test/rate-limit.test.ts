@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { setupTestApp } from "./helpers.js";
+import { PASSWORD, setupTestApp } from "./helpers.js";
 
 const t = await setupTestApp({ authRateLimitMax: 10 });
 
@@ -34,5 +34,26 @@ describe("join form rate limit", () => {
 
     t.advance(15 * 60 * 1000);
     expect((await ask("one-too-many@example.com")).statusCode).toBe(202);
+  });
+});
+
+describe("password change rate limit", () => {
+  it("allows 10 attempts per account per 15 minutes, then 429", async () => {
+    const { user, headers } = await t.createUser();
+    const change = (h = headers) =>
+      t.app.inject({
+        method: "PATCH",
+        url: "/v1/me",
+        headers: h,
+        payload: { currentPassword: "a wrong guess", newPassword: "another good password" },
+      });
+
+    for (let i = 0; i < 10; i++) expect((await change()).statusCode).toBe(403);
+    expect((await change()).statusCode).toBe(429);
+
+    // The access token has expired by then, so sign in again.
+    t.advance(15 * 60 * 1000);
+    const login = await t.app.inject({ method: "POST", url: "/v1/auth/login", payload: { email: user.email, password: PASSWORD } });
+    expect((await change({ authorization: `Bearer ${login.json().accessToken}` })).statusCode).toBe(403);
   });
 });

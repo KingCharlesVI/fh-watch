@@ -1,9 +1,9 @@
 "use server";
 
 import type { MatchDocument, ValidationIssue } from "@fh/shared";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
-import { ApiError, api } from "@/lib/api";
+import { ApiError, LISTS_TAG, api } from "@/lib/api";
 import { type FormState, formError, text } from "@/lib/forms";
 import type { Items, Match, TeamWithClub, Umpire } from "@/lib/types";
 
@@ -71,6 +71,39 @@ export async function saveMatch(id: string, revision: number, document: MatchDoc
 export async function searchTeams(q: string): Promise<TeamWithClub[]> {
   if (q.trim().length < 1) return [];
   return (await api<Items<TeamWithClub>>("/v1/teams", { query: { q } })).items;
+}
+
+/** Venues and competitions whose names have every word of q, from the lists admins keep. */
+export async function searchVenues(q: string): Promise<{ id: string; name: string }[]> {
+  if (q.trim().length < 1) return [];
+  return (await api<Items<{ id: string; name: string }>>("/v1/venues", { query: { q }, auth: false })).items;
+}
+
+export async function searchCompetitions(q: string): Promise<{ id: string; name: string }[]> {
+  if (q.trim().length < 1) return [];
+  return (await api<Items<{ id: string; name: string }>>("/v1/competitions", { query: { q }, auth: false })).items;
+}
+
+export type AddResult = { ok: true; name: string } | { ok: false; error: string };
+
+/** Adds a venue or competition the list is missing. One already there (in any capitals) comes back instead. */
+async function addToList(list: "venues" | "competitions", name: string): Promise<AddResult> {
+  try {
+    const item = await api<{ id: string; name: string }>(`/v1/${list}`, { method: "POST", body: { name } });
+    updateTag(LISTS_TAG);
+    revalidatePath(`/admin/${list}`);
+    return { ok: true, name: item.name };
+  } catch (err) {
+    return { ok: false, error: formError(err)?.error ?? "Couldn't add it." };
+  }
+}
+
+export async function addVenue(name: string): Promise<AddResult> {
+  return addToList("venues", name);
+}
+
+export async function addCompetition(name: string): Promise<AddResult> {
+  return addToList("competitions", name);
 }
 
 export async function searchUmpires(q: string): Promise<{ id: string; displayName: string }[]> {

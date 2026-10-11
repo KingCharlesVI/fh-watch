@@ -1,16 +1,37 @@
 "use server";
 
-import { ROLES, type Role } from "@fh/shared";
-import { revalidatePath } from "next/cache";
+import { type ImportResult, ROLES, type Role, parseCsv } from "@fh/shared";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
-import { api } from "@/lib/api";
+import { LISTS_TAG, api } from "@/lib/api";
 import { type FormState, formError, optionalText, text } from "@/lib/forms";
-import type { Club, ClubRequest, Team, Venue } from "@/lib/types";
+import type { Club, ClubRequest, Team, Venue as NamedItem } from "@/lib/types";
 
 const done = (ok: string, ...paths: string[]): FormState => {
   for (const p of paths) revalidatePath(p);
   return { ok };
 };
+
+/** For a change to clubs, teams, logos, venues or competitions: the public lists show it straight away. */
+const listsChanged = (ok: string, ...paths: string[]): FormState => {
+  updateTag(LISTS_TAG);
+  return done(ok, ...paths);
+};
+
+/** Merges `from` into `into`, both picked on a Merge duplicates form, at the API's merge path for `from`. */
+async function merge(fd: FormData, path: (from: string) => string, ...paths: string[]): Promise<FormState> {
+  const from = text(fd, "from");
+  const into = text(fd, "into");
+  if (!from || !into) return { error: "Pick the duplicate and the one to keep." };
+  if (from === into) return { error: "Pick two different ones." };
+  try {
+    const res = await api<{ matches: number }>(path(from), { method: "POST", body: { into } });
+    const updated = res.matches === 0 ? "No matches needed changing." : `${res.matches} ${res.matches === 1 ? "match" : "matches"} updated.`;
+    return listsChanged(`Merged. ${updated}`, ...paths);
+  } catch (err) {
+    return formError(err);
+  }
+}
 
 // ---- Users ----
 
@@ -64,6 +85,7 @@ function logoFailed(saved: string, err: unknown): FormState {
 
 /** Logos show on the public club pages as well as in admin. */
 function revalidateClubPages(id: string) {
+  updateTag(LISTS_TAG);
   revalidatePath(`/admin/clubs/${id}`);
   revalidatePath("/admin/clubs");
   revalidatePath("/clubs", "layout");
@@ -105,6 +127,7 @@ export async function createClub(_: FormState, fd: FormData): Promise<FormState>
   } catch (err) {
     return formError(err);
   }
+  updateTag(LISTS_TAG);
   revalidatePath("/admin/clubs");
   if (logo) {
     try {
@@ -123,7 +146,7 @@ export async function renameClub(_: FormState, fd: FormData): Promise<FormState>
   } catch (err) {
     return formError(err);
   }
-  return done("Saved.", `/admin/clubs/${id}`, "/admin/clubs");
+  return listsChanged("Saved.", `/admin/clubs/${id}`, "/admin/clubs");
 }
 
 export async function deleteClub(_: FormState, fd: FormData): Promise<FormState> {
@@ -132,8 +155,13 @@ export async function deleteClub(_: FormState, fd: FormData): Promise<FormState>
   } catch (err) {
     return formError(err);
   }
+  updateTag(LISTS_TAG);
   revalidatePath("/admin/clubs");
   redirect("/admin/clubs?deleted=1");
+}
+
+export async function mergeClub(_: FormState, fd: FormData): Promise<FormState> {
+  return merge(fd, (from) => `/v1/clubs/${from}/merge`, "/admin/clubs", `/admin/clubs/${text(fd, "into")}`);
 }
 
 export async function createTeam(_: FormState, fd: FormData): Promise<FormState> {
@@ -143,7 +171,7 @@ export async function createTeam(_: FormState, fd: FormData): Promise<FormState>
   } catch (err) {
     return formError(err);
   }
-  return done("Team added.", `/admin/clubs/${clubId}`);
+  return listsChanged("Team added.", `/admin/clubs/${clubId}`);
 }
 
 export async function renameTeam(_: FormState, fd: FormData): Promise<FormState> {
@@ -153,7 +181,7 @@ export async function renameTeam(_: FormState, fd: FormData): Promise<FormState>
   } catch (err) {
     return formError(err);
   }
-  return done("Saved.", `/admin/clubs/${clubId}`);
+  return listsChanged("Saved.", `/admin/clubs/${clubId}`);
 }
 
 export async function deleteTeam(_: FormState, fd: FormData): Promise<FormState> {
@@ -163,36 +191,108 @@ export async function deleteTeam(_: FormState, fd: FormData): Promise<FormState>
   } catch (err) {
     return formError(err);
   }
-  return done("Team deleted.", `/admin/clubs/${clubId}`);
+  return listsChanged("Team deleted.", `/admin/clubs/${clubId}`);
 }
 
-// ---- Venues ----
+export async function mergeTeam(_: FormState, fd: FormData): Promise<FormState> {
+  const clubId = text(fd, "clubId");
+  return merge(fd, (from) => `/v1/clubs/${clubId}/teams/${from}/merge`, `/admin/clubs/${clubId}`);
+}
 
-export async function createVenue(_: FormState, fd: FormData): Promise<FormState> {
+// ---- Venues and competitions ----
+
+/** The lists admins keep for umpires to pick from (the API's /venues and /competitions). */
+const LISTS = { venues: "Venue", competitions: "Competition" } as const;
+export type ListName = keyof typeof LISTS;
+
+/** The list a form is about, from its hidden `list` field; only ever one of LISTS. */
+function list(fd: FormData): ListName {
+  const name = text(fd, "list");
+  if (!(name in LISTS)) throw new Error(`Not a list: ${name}`);
+  return name as ListName;
+}
+
+export async function createListItem(_: FormState, fd: FormData): Promise<FormState> {
+  const l = list(fd);
   try {
-    await api<Venue>("/v1/venues", { method: "POST", body: { name: text(fd, "name") } });
+    await api<NamedItem>(`/v1/${l}`, { method: "POST", body: { name: text(fd, "name") } });
   } catch (err) {
     return formError(err);
   }
-  return done("Venue added.", "/admin/venues");
+  return listsChanged(`${LISTS[l]} added.`, `/admin/${l}`);
 }
 
-export async function renameVenue(_: FormState, fd: FormData): Promise<FormState> {
+export async function renameListItem(_: FormState, fd: FormData): Promise<FormState> {
+  const l = list(fd);
   try {
-    await api(`/v1/venues/${text(fd, "id")}`, { method: "PATCH", body: { name: text(fd, "name") } });
+    await api(`/v1/${l}/${text(fd, "id")}`, { method: "PATCH", body: { name: text(fd, "name") } });
   } catch (err) {
     return formError(err);
   }
-  return done("Saved.", "/admin/venues");
+  return listsChanged("Saved.", `/admin/${l}`);
 }
 
-export async function deleteVenue(_: FormState, fd: FormData): Promise<FormState> {
+export async function deleteListItem(_: FormState, fd: FormData): Promise<FormState> {
+  const l = list(fd);
   try {
-    await api(`/v1/venues/${text(fd, "id")}`, { method: "DELETE" });
+    await api(`/v1/${l}/${text(fd, "id")}`, { method: "DELETE" });
   } catch (err) {
     return formError(err);
   }
-  return done("Venue deleted.", "/admin/venues");
+  return listsChanged(`${LISTS[l]} deleted.`, `/admin/${l}`);
+}
+
+export async function mergeListItem(_: FormState, fd: FormData): Promise<FormState> {
+  const l = list(fd);
+  return merge(fd, (from) => `/v1/${l}/${from}/merge`, `/admin/${l}`);
+}
+
+// ---- Bulk import ----
+
+export type ImportKind = "clubs" | "venues" | "competitions";
+
+/** A bulk import's preview or outcome, with the file's text kept so Import can send it again. */
+export type ImportState =
+  | {
+      kind: ImportKind;
+      csv: string;
+      /** False for the preview. */
+      saved: boolean;
+      result: ImportResult;
+      /** What to add to a row's index to get its line in the file (1, or 2 after a heading). */
+      firstLine: number;
+    }
+  | { error: string }
+  | undefined;
+
+const HEADINGS = new Set(["club", "club name", "name", "venue", "competition"]);
+
+/**
+ * Previews a bulk import (the `preview` button) or saves it (`save`), from a CSV file or
+ * pasted text. A heading row, if there is one, is left out.
+ */
+export async function importRows(_: ImportState, fd: FormData): Promise<ImportState> {
+  const kind = text(fd, "kind") as ImportKind;
+  if (!["clubs", "venues", "competitions"].includes(kind)) return { error: "Choose what to import." };
+  const file = fd.get("file");
+  const csv = file instanceof File && file.size > 0 ? await file.text() : String(fd.get("csv") ?? "");
+  const rows = parseCsv(csv);
+  const heading = rows.length > 0 && HEADINGS.has(rows[0]![0]!.toLowerCase());
+  const data = heading ? rows.slice(1) : rows;
+  if (data.length === 0) return { error: "There's nothing to import: choose a CSV file or paste its rows." };
+  if (data.length > 2000) return { error: `That's ${data.length} rows. Import at most 2000 at a time.` };
+  const saved = fd.get("save") !== null;
+  try {
+    const result = await api<ImportResult>("/v1/import", { method: "POST", body: { kind, rows: data, dryRun: !saved } });
+    if (saved && result.added.length > 0) {
+      updateTag(LISTS_TAG);
+      revalidatePath(kind === "clubs" ? "/admin/clubs" : `/admin/${kind}`);
+      if (kind === "clubs") revalidatePath("/clubs", "layout");
+    }
+    return { kind, csv, saved, result, firstLine: heading ? 2 : 1 };
+  } catch (err) {
+    return { error: formError(err)?.error ?? "Couldn't import that." };
+  }
 }
 
 // ---- Testing requests ----
@@ -230,5 +330,5 @@ export async function reviewRequest(_: FormState, fd: FormData): Promise<FormSta
       return logoFailed("Approved", err);
     }
   }
-  return done(decision === "approve" ? "Approved." : "Rejected.", "/admin/requests", "/admin");
+  return listsChanged(decision === "approve" ? "Approved." : "Rejected.", "/admin/requests", "/admin");
 }

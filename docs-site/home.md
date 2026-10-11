@@ -12,6 +12,7 @@ It's made for club umpires: the watch does the timekeeping and remembers everyth
 | Learn the watch app in detail | [Wear OS watch](guide/wear-os.md) or [Apple Watch](guide/apple-watch.md) |
 | Check, fix and share a match afterwards | [Phone app](guide/phone.md) |
 | Publish results, or keep my club's teams up to date | [The website](guide/website.md) |
+| Organise my club's umpires, or answer a club's appointments | [Club umpiring](guide/club-umpiring.md) |
 | Report a red card to England Hockey | [Red card reports](guide/red-cards.md) |
 | See my heart rate and distance for a match | [Workouts and fitness](guide/workouts.md) |
 | Fix something that isn't working | [Troubleshooting](guide/troubleshooting.md) |
@@ -21,7 +22,8 @@ It's made for club umpires: the watch does the timekeeping and remembers everyth
 
 - **A watch app** for Wear OS (Samsung Galaxy Watch 4 and later, Google Pixel Watch) and Apple Watch: the match clock, goals, green, yellow and red cards with suspension timers, shootouts, and vibrations you can tell apart without looking. It works with no phone and no signal.
 - **A phone app** for Android and iPhone: every match you've umpired, editing, one-page match reports (PDF), spreadsheets (CSV), backups, red card reports and your workouts.
-- **A website**: publish results, share them with a link or QR code, and let clubs see their matches and keep their teams up to date.
+- **A website**: publish results, share them with a link or QR code, search everything, and let clubs see their matches and keep their teams up to date.
+- **Club umpiring**, if a club wants it: its umpire list, its fixtures, and appointing umpires to them, with availability, cover, reminders and a calendar. Umpires can still umpire any match on their own, as always.
 
 ## Where things are
 

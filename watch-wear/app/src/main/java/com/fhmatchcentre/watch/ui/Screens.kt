@@ -165,6 +165,7 @@ fun SetupScreen(services: Services, onStarted: () -> Unit) {
     val homeName = rememberTextInput("Home team") { setup = setup.copy(homeName = it.take(80)) }
     val awayName = rememberTextInput("Away team") { setup = setup.copy(awayName = it.take(80)) }
     val venue = rememberTextInput("Venue") { setup = setup.copy(venue = it.take(120)) }
+    val competition = rememberTextInput("Competition") { setup = setup.copy(competition = it.take(120)) }
 
     editing?.let { field ->
         val done = { editing = null }
@@ -206,6 +207,7 @@ fun SetupScreen(services: Services, onStarted: () -> Unit) {
         item { ChoiceButton("Away colour", COLOUR_NAMES[setup.awayColor], color = parseColor(setup.awayColor)) { editing = Editing.AWAY_COLOUR } }
         item { ChoiceButton("Away captain", setup.awayCaptain?.let { "#$it" } ?: "None") { editing = Editing.AWAY_CAPTAIN } }
         item { ChoiceButton("Venue", setup.venue ?: "None") { venue() } }
+        item { ChoiceButton("Competition", setup.competition ?: "None") { competition() } }
         item {
             SwitchButton(
                 checked = setup.shootoutIfDrawn,
@@ -222,7 +224,7 @@ fun SetupScreen(services: Services, onStarted: () -> Unit) {
                     away = Team(setup.awayName, null, setup.awayColor, setup.awayCaptain),
                 )
                 scope.launch {
-                    services.controller.create(setup.settings(), teams, setup.venue)
+                    services.controller.create(setup.settings(), teams, setup.venue, setup.competition)
                     onStarted()
                 }
             }

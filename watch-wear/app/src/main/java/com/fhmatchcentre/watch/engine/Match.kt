@@ -96,7 +96,14 @@ object Engine {
 
     val DEFAULT_CARDS = CardDurations(green = 120, yellowShort = 300, yellowLong = 600)
 
-    fun newMatch(settings: MatchSettings, teams: Teams, venue: String?, now: Moment, id: String = uuidV7(now.wallMs)): MatchRecord {
+    fun newMatch(
+        settings: MatchSettings,
+        teams: Teams,
+        venue: String?,
+        now: Moment,
+        id: String = uuidV7(now.wallMs),
+        competition: String? = null,
+    ): MatchRecord {
         rule(settings.breakLengthsSec.size == settings.periods - 1) { "Need ${settings.periods - 1} break lengths." }
         return MatchRecord(
             document = MatchDocument(
@@ -106,6 +113,7 @@ object Engine {
                 settings = settings,
                 teams = teams,
                 venue = venue?.trim()?.ifEmpty { null },
+                competition = competition?.trim()?.ifEmpty { null },
                 // Replaced when the first period starts.
                 startedAt = now.iso,
                 events = emptyList(),

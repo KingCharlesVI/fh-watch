@@ -30,7 +30,7 @@ class DocumentSchemaTest {
 
     /** A match that uses every kind of event the watch writes. */
     private fun everything(): MatchRecord {
-        var m = Engine.newMatch(QUARTERS, TEAMS, "Oxford Hawks, Pitch 1", t.now)
+        var m = Engine.newMatch(QUARTERS, TEAMS, "Oxford Hawks, Pitch 1", t.now, competition = "South Men's Division 2")
         m = m.startPeriod(t.now)
         t.advance(3 * MIN)
         m = m.goal(Side.HOME, 9, GoalMethod.FIELD, t.now)
@@ -86,6 +86,7 @@ class DocumentSchemaTest {
         m = m.goal(Side.AWAY, null, null, t.now)
         val json = DocumentJson.encodeToString(m.document)
         assertFalse("venue" in json)
+        assertFalse("competition" in json)
         assertFalse("\"player\"" in json)
         assertFalse("endedAt" in json)
         // teamId is required-but-nullable, so it's always there.

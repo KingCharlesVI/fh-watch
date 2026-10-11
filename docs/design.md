@@ -124,7 +124,7 @@ Every event carries `seq` and, when recorded on the watch, `wallTime` (UTC). Eve
 | `clubs` | id, name, slug |
 | `club_requests` | id, user_id, club_id? (existing club) or club_name (new club), status (pending/approved/rejected), reviewed_by, reviewed_at |
 | `teams` | id, club_id, name (e.g. "Men's 1s"), slug |
-| `venues` | id, name (unique, e.g. "Banbury Road, Oxford"). One list, not tied to clubs, since clubs share grounds. Offered to umpires setting up a match; a match keeps its venue as text. |
+| `venues`, `competitions` | id, name (unique, e.g. "Banbury Road, Oxford", "South League Premier"). Lists umpires add to as they go and admins tidy, not tied to clubs (clubs share grounds). Offered to umpires setting up (venues) and editing (both) a match; a match keeps the names as text. |
 | `matches` | id (watch UUID), home_team_id?, away_team_id?, home_name, away_name, venue?, competition?, played_at, status (`draft` / `published`), current_revision, share_code |
 | `match_umpires` | match_id, slot (1 or 2), user_id?, name. user_id is empty when that umpire isn't registered. |
 | `match_revisions` | match_id, revision, document (jsonb), created_by, created_at, source (`watch` / `mobile` / `web`) |
@@ -222,7 +222,7 @@ The native module confirms receipt once it has written the file, not when the JS
 - Every message carries `schemaVersion`. The phone accepts its current version and one earlier; anything else goes to a "Needs app update" list and is never dropped.
 - A document that fails validation is kept as raw JSON, flagged in the app, and can be exported for debugging.
 - A "Resend all unsynced" action on the watch covers a phone that was reinstalled or changed.
-- Matches only go from watch to phone. The other way, the phone sends a match setup (Setup on phone, and upcoming matches) and, on Wear OS GitHub builds, a new watch app (both in the table above). Team and venue names reach the watch only as part of a setup; the watch keeps no lists of its own.
+- Matches only go from watch to phone. The other way, the phone sends a match setup (Setup on phone, and upcoming matches) and, on Wear OS GitHub builds, a new watch app (both in the table above). Team, venue and competition names reach the watch only as part of a setup; the watch keeps no lists of its own.
 
 ## Mobile app
 
@@ -244,13 +244,13 @@ Upgrading a phone from the alpha to the beta keeps its matches: signing in clear
 | Reset your password | Two steps: ask for the email, then paste the link from it (the token is taken out of whatever is pasted) and choose a new password. The emailed link is a website address, so this is what saves a trip to the browser; the reset ends every session the account had. |
 | Matches | Tabs: New from watch, Drafts, Published (alpha: New and Saved). Each row shows the teams, score, date and an upload status badge. Published matches with unlinked teams show a "Link teams" badge. |
 | Match detail | Score header, per-period summary, event timeline, and card and penalty-corner totals. |
-| Edit match | Link the home and away teams to clubs and teams (searchable), set venue and competition, add umpire 2, add, change or void events, and add notes. The score updates live as events change. |
+| Edit match | Link the home and away teams to clubs and teams (searchable), set venue and competition (typed, or picked from the lists as the umpire types), add umpire 2, add, change or void events, and add notes. The score updates live as events change. |
 | Publish | Uploads any changes first, then publishes. Unpublish takes it off the website again. |
 | Share | QR code shown full screen, plus a copy-link button and the native share sheet. |
-| Set up a match | The watch's setup fields (format, teams, colours, captains, venue), sent to the watch. Team names and the venue are free text, with the directory's teams (`GET /teams`) and venues (`GET /venues`) offered as the umpire types (beta, when online). |
+| Set up a match | The watch's setup fields (format, teams, colours, captains, venue, competition), sent to the watch. Team names, the venue and the competition are free text, with the directory's teams (`GET /teams`), venues (`GET /venues`) and competitions (`GET /competitions`) offered as the umpire types (beta, when online). The watch puts the venue and competition in the match it starts. |
 | Upcoming | Setups made ahead of time, with a day and kick-off from the platform's date and time pickers, kept on the phone and sent to the watch at the ground. |
 | Summary | The umpire's matches added up by season. |
-| Settings | Account and sign out, notification permission, watch connection status and Set up a match, Health Connect (Android), backups and "Import from file", and the version with update notices (Android GitHub builds). |
+| Settings | Account and sign out, a notifications switch, watch connection status and Set up a match, Health Connect (Android), backups and "Import from file", and the version with update notices (Android GitHub builds). |
 
 **Data and upload**
 
@@ -271,6 +271,7 @@ Upgrading a phone from the alpha to the beta keeps its matches: signing in clear
 - After sign-in, once notifications are allowed, the app registers its Expo push token with `POST /me/push-tokens`. Sign-out removes it. The token is best effort: an emulator, or an Android build without Firebase (FCM) set up, has none, and Settings still shows notifications as on, since the reminders don't need it.
 - Nothing sends a push yet: the upload reminders are local notifications, scheduled on the phone. The token registration and the API's Expo Push Service sender are kept for messages from the server later, which will need Firebase set up for Android first.
 - Tapping a notification opens its match.
+- Settings → Notifications is one switch for all of them, on by default (once the phone allows notifications). Off cancels every scheduled reminder, removes the push token, and hides anything that still arrives while the app is open. It's kept on the phone (`mobile/src/core/notification-prefs.ts`).
 
 **Share link and QR code**
 
@@ -290,8 +291,9 @@ The API is a versioned REST service (`/v1`) written in Fastify, and all input is
 - The API takes `Authorization: Bearer <token>` only. The phone app keeps tokens in secure storage; the website's server keeps them in httpOnly, SameSite=Lax cookies and calls the API on the user's behalf.
 - Refresh tokens rotate on every use. Presenting an already-used refresh token revokes every token from that sign-in, since it may have been stolen.
 - Sign-in is refused until the email address is verified. Following a password-reset link also counts as verifying it.
-- Sign-up requires email verification. Password reset uses a single-use link that expires after 1 hour. Mail goes out over SMTP.
-- Sign-in and reset requests are rate-limited per IP address and per email, to 10 per 15 minutes.
+- Sign-up requires email verification. Password reset uses a single-use link that expires after 1 hour. Mail goes out over SMTP. Every email is built by `api/src/services/email.ts`, as branded HTML (a table layout with inline styles, for email clients) with a plain-text version, and one button for its main link.
+- Sign-in and reset requests are rate-limited per IP address and per email, to 10 per 15 minutes. Password changes are limited to 10 per 15 minutes per account.
+- Every other API request is limited to 600 a minute per IP address, and CSV and PDF downloads to 30 a minute. These are generous on purpose: they only stop scripts, not a club with several people on one connection or a phone catching up after a match day. Health checks aren't counted.
 
 **Endpoints**
 
@@ -306,9 +308,9 @@ The API is a versioned REST service (`/v1`) written in Fastify, and all input is
 | `POST /auth/verify-email`, `/auth/forgot-password`, `/auth/reset-password` | Public | Email flows |
 | `GET /me` · `PATCH /me` · `DELETE /me` | Signed in | View or edit your own account; DELETE asks an admin to delete it |
 | `POST /me/push-tokens` · `DELETE /me/push-tokens/{token}` | Signed in | Register or remove a device for push notifications |
-| `GET /umpires?q=` | Umpire / admin | Find registered umpires by name, to add as umpire 2 |
+| `GET /umpires?q=` | Umpire, club admin, admin | Find registered umpires by name, to add as umpire 2 or to a club's umpire list |
 | `GET /users` · `PATCH /users/{id}` · `DELETE /users/{id}` | Admin | Manage users, set roles, assign club admins |
-| `GET /matches` | Public (published only), wider by role | List with filters: club, team, umpire, date range, competition. Paged. |
+| `GET /matches` | Public (published only), wider by role | List with filters: club, team, umpire, date range, competition, venue, status, and `q` (words in a team's name, the venue or the competition). Paged. |
 | `GET /matches/{id}` · `GET /m/{shareCode}` | Public if published | Match document plus the worked-out summary |
 | `PUT /matches/{id}` | Umpire (own) / admin | Create or replace. Body `{ source, document }`. Idempotent; changing an existing match needs `If-Match` (428 without it, 412 if stale). Returns the match and any validation warnings. |
 | `PUT /matches/{id}/umpires/2` · `DELETE …` | Umpire (own) / admin | Set umpire 2: `{ userId }` for a registered umpire or `{ name }` for anyone else |
@@ -318,8 +320,11 @@ The API is a versioned REST service (`/v1`) written in Fastify, and all input is
 | `GET /matches/{id}/export.{json,csv,pdf}` | Same as reading the match | Downloads |
 | `GET /matches/export.csv?…` | Club admin (own club) / admin | Bulk CSV for a filtered list |
 | `GET/POST/PATCH/DELETE /clubs`, `/clubs/{id}/teams` | Read: public · Clubs: admin · Teams: admin or club admin (own club) · Delete: admin | Club and team directory. `GET /clubs/{id or slug}` includes the teams. |
-| `GET /teams?q=` | Public | Search teams by club and team name together (e.g. `hawks m1`), for linking a match and setting one up |
-| `GET /venues?q=` · `POST /venues` · `PATCH/DELETE /venues/{id}` | Read: public · Write and delete: admin | The venue list: all of it, or the venues whose name has every word of `q`, for setting up a match |
+| `GET /teams?q=` | Public | Search teams by club and team name together (e.g. `hawks m1`), for linking a match and setting one up; without `q`, every club's teams |
+| `POST /clubs/{id}/merge` · `POST /clubs/{id}/teams/{teamId}/merge` · `POST /venues/{id}/merge` · `POST /competitions/{id}/merge` | Admin | Merge a duplicate into another, `{ into }`, giving each changed match a new revision |
+| `POST /import` | Admin | Add clubs and teams, venues or competitions from a spreadsheet's rows, with `dryRun` to preview |
+| `/clubs/{id}/umpires`, `/clubs/{id}/fixtures`, `/me/appointments`, `/me/availability`, `/me/calendar`, `/calendar/{token}.ics` and more | Club admin (own club), the umpire, admin | Club umpiring, described under Roles & permissions below; every route is in the API reference |
+| `GET /venues?q=` · `POST /venues` · `PATCH/DELETE /venues/{id}`, and the same at `/competitions` | Read: public · Add: umpire or admin (an existing name, in any capitals, is answered with that one) · Rename and delete: admin | The venue and competition lists: all of one, or those whose name has every word of `q`, for setting up and editing a match |
 | `GET/POST /club-requests` · `POST /club-requests/{id}/approve` · `/reject` | Signed in (own) / admin | Ask for a new club or to be a club's admin; admins review |
 
 **Background jobs**
@@ -327,6 +332,8 @@ The API is a versioned REST service (`/v1`) written in Fastify, and all input is
 - Purge: a daily job permanently removes matches soft-deleted more than 30 days ago.
 - It runs inside the API process on a timer, and is safe to repeat.
 - Purge also removes expired refresh tokens and spent or expired email tokens. Revoked refresh tokens are kept until they expire, so reuse of a stolen one is still detected.
+- Requests: every 6 hours, test requests and club requests answered more than 12 months ago are deleted, as the privacy policy says.
+- Umpiring gaps: hourly, club admins are emailed about the next week's fixtures still short of umpires (see Club umpiring below).
 
 **Conventions**
 
@@ -353,12 +360,29 @@ An account holds a set of roles, so one person can be both an umpire and a club 
 | Edit own account, ask an admin to delete it | — | Yes | Yes | Yes |
 | Request a new club or club-admin role | — | Yes | Yes | Creates directly |
 | Manage clubs and teams | — | — | Add and edit own club's teams | Yes |
-| Manage venues | — | — | — | Yes |
+| Add a venue or competition | — | Yes | — | Yes |
+| Rename, delete or merge venues and competitions | — | — | — | Yes |
+| Merge duplicate clubs or teams | — | — | — | Yes |
 | Manage users and roles | — | — | — | Yes |
+| Keep a club's umpire list, fixtures and appointments | — | — | Own club's | Yes |
+| Answer appointments, ask for or take cover, mark availability | — | Own | — | Yes |
+| Set the umpire level a competition asks for | — | — | — | Yes |
 
 "Own club's" means the home or away team belongs to the club admin's club. Checks run in one API policy module, `can(user, action, match)`, which allows an action if any of the user's roles allows it. The website and phone app use the same module only to hide buttons, never to enforce access.
 
 Deleting an account keeps its published matches, which become "Umpire: deleted user". Deleting a user's matches too is a separate admin action.
+
+**Club umpiring**
+
+An extra, not a gate: umpires still set up and umpire any match themselves. A club's admins keep a list of its umpires (`club_umpires`, with each one's level, 0 Trainee, 1 Level 1 (Unassessed), 2 Level 1 (Assessed), 3 Level 2, 4 Level 3, 5 National, and the team they play for), its fixtures (`fixtures`: a local date and kick-off in UK time, as the phone keeps them, the teams, venue, competition, an optional format preset, and one or two umpires needed), and appointments (`appointments`). One person can be on several clubs' lists.
+
+- An appointment is the fixture's **watch** umpire, who runs the watch app and gets the match in their phone's Upcoming, set up; or its **second**, named on the match. One watch per fixture avoids two watches keeping different times. Partial unique indexes allow one active (asked or accepted) appointment per role and per umpire on a fixture, and the API allows no more than the fixture needs.
+- Statuses: `offered`, then `accepted` or `declined`. An accepted umpire can ask for cover; another umpire on the club's list takes it over, which marks the first `released` and adds theirs as accepted.
+- Umpires mark days free (with optional hours) or not (`umpire_availability`), and weekdays they're never free (`umpire_unavailable_weekdays`); a marked day overrides its weekday.
+- Suggestions for a fixture rank the club's umpires by availability, then whether anything is against them (playing in the match or that day, umpiring at the same time, little time to travel between grounds, below the competition's level from `competition_umpire_levels`), then by appointments accepted this season (from 1 August).
+- Emails go out for each step: asked, accepted or declined (to the club's admins), cover wanted and taken, taken off, and the fixture moved or cancelled. An hourly job emails club admins about the next week's fixtures still short of umpires, on Mondays and two days before; `umpiring_gap_notices` keeps it to once a day.
+- Each umpire has a private iCalendar feed of accepted appointments (`calendar_feeds`). Its token is stored as it is, unlike sign-in tokens, so the same address can be shown again; it can be replaced.
+- The phone fetches appointments when it opens and comes to the front. Accepted watch appointments are added to Upcoming once (the phone remembers which, so a deleted one stays deleted) and follow fixture changes until sent. It schedules a local reminder at 6pm the day before each accepted appointment, under the notifications switch.
 
 ## Website & exports
 
@@ -370,6 +394,7 @@ The website is a Next.js app. Public pages are rendered on the server, so shared
 - A Next.js proxy (middleware) runs before each page. When the access token is missing or within 60 seconds of expiring, it swaps the refresh token for a new pair first. Parallel requests share one refresh, and the API gives a just-used refresh token 30 seconds' grace, so a page with several requests can't sign the user out.
 - Forms are server actions. The API's problem responses become the error shown under the form.
 - The website passes the visitor's `X-Forwarded-For` on to the API, so sign-in rate limits apply per visitor rather than to the web server.
+- The public lists behind the match filters and sign-up (clubs, a club's teams, competitions, venues) are cached on the website's server for a minute and shared by every visitor. Changes made on the website show straight away; changes from the phone, such as a new venue, within the minute.
 - Downloads go through the website (`/matches/{id}/export/{format}`, `/dashboard/export`), which adds the visitor's token, so signed-in users can download drafts too.
 - The match editor checks the document with the shared validator as you type and saves with `If-Match`; a conflicting save asks the umpire to reload.
 
@@ -378,6 +403,8 @@ The website is a Next.js app. Public pages are rendered on the server, so shared
 | Route | Contents |
 | --- | --- |
 | `/` | Latest published matches, and search by club or team |
+| `/matches` | Every published result, with filters by club, team, competition and venue |
+| `/search?q=` | Clubs, teams, competitions, venues and matches at once (the header's search box) |
 | `/m/{shareCode}` | Match page: score, period scores, goal and card timeline, penalty-corner count, shootout, umpires, venue. Download buttons. Open Graph image with the score. |
 | `/clubs/{slug}`, `/clubs/{slug}/{team}` | A club's or team's published matches, with results |
 
@@ -389,7 +416,10 @@ The website is a Next.js app. Public pages are rendered on the server, so shared
 | `/matches/{id}/edit` | Umpire (own), admin | Same edit features as the phone app, for fixes made at a desk |
 | `/admin/users`, `/admin/clubs`, `/admin/club-requests` | Admin | User roles, club-admin assignment, club and team directory, request review |
 | `/admin/clubs/{id}` | Admin, club admin (own club) | A club's teams; for admins also its name, web address, logo and deletion |
-| `/admin/venues` | Admin | The venue list |
+| `/admin/venues`, `/admin/competitions` | Admin | The venue and competition lists, and each competition's umpire level |
+| `/admin/import` | Admin | Import clubs and teams, venues or competitions from a CSV |
+| `/dashboard/umpires`, `/dashboard/fixtures` (and `/new`, `/import`, `/{id}`) | Club admin | The club's umpire list, its fixtures, and appointing umpires to them |
+| `/appointments`, `/availability`, `/season` | Signed in | An umpire's appointments, cover and calendar address; availability; this season |
 
 **Export formats**
 
@@ -448,7 +478,7 @@ The work runs from the server outwards, so every step can be tested end to end b
 | 6 | Wear OS app + Android sync | Full umpiring features. A match reaches the phone automatically. Tested at a real match. Built: the app, sync and phone receiver, tested on emulators (see below); the match screen is now swiped pages (timing, goals, cards, settings), after MatchGear. Still to do: a paired end-to-end test and a real match. |
 | 7 | Alpha (Android) | Watch and phone only: no account, matches saved and exported on the phone (PDF, CSV, JSON, backups), uploads only when the umpire asks. Released to umpires through Google Play internal testing ([play-store.md](play-store.md)). |
 | 8 | watchOS app + iOS sync | Same features as Wear OS, including workout session, Action Button and double-tap |
-| 9 | Beta (1.0 and later) | The API and website in the apps (sign-in and upload), the server deployed, email through Amazon SES, for invited testers. Closed testing on Google Play first (Google requires 12 testers for 14 days before production). |
+| 9 | Beta (1.0 and later) | The API and website in the apps (sign-in and upload), the server deployed, email through Amazon SES, for invited testers. Closed testing on Google Play first (Google requires 12 testers for 14 days before production). 1.2 adds club umpiring, search, imports and HTML emails. |
 | 10 | Public release | Google Play and the App Store, for everyone. |
 
 The watchOS work (8) doesn't depend on the Android alpha and can run alongside it. Releasing the iOS and watchOS apps needs an Apple Developer account ($99/yr) and a Mac. The Google Play Console account is in place.
@@ -468,7 +498,7 @@ None at the moment.
 - No auto-publish: a match stays a draft until an umpire publishes it. The phone reminds the umpire to upload a match from the watch that isn't uploaded 2 hours after it arrived.
 - Email goes through Amazon SES (SMTP), in eu-north-1.
 - The server is an old laptop running Ubuntu Desktop 24.04 LTS, behind a Cloudflare Tunnel; a VPS later if needed.
-- Only admins create clubs; club admins add and edit their own club's teams; admins keep one list of venues, apart from clubs; users can request clubs and club-admin status.
+- Only admins create clubs; club admins add and edit their own club's teams; umpires add to the lists of venues and competitions and admins tidy them, apart from clubs; users can request clubs and club-admin status.
 - Anyone can register as an umpire, with no approval.
 - Accounts hold a set of roles.
 - Live scoring is out of scope until v3 at the earliest.

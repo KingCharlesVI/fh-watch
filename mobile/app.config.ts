@@ -13,6 +13,15 @@ const release = JSON.parse(readFileSync(join(__dirname, "..", "version.json"), "
 if (process.env.FH_BUILD_NUMBER) release.build = Number(process.env.FH_BUILD_NUMBER);
 
 /**
+ * What's new (Settings → About, and once after each update): the newest 12 entries of the
+ * repository's CHANGELOG.md, which git-cliff writes at each release. The app reads them in
+ * src/core/changelog.ts.
+ */
+const changelogFile = readFileSync(join(__dirname, "..", "CHANGELOG.md"), "utf8");
+const entryStarts = [...changelogFile.matchAll(/^## \[/gm)].map((m) => m.index);
+const changelog = entryStarts.length > 12 ? changelogFile.slice(0, entryStarts[12]) : changelogFile;
+
+/**
  * The Expo (EAS) project, for iPhone builds and push notifications. `npx eas-cli init` (in
  * mobile/) created it and printed this ID; it isn't a secret. EAS_PROJECT_ID overrides it.
  */
@@ -85,6 +94,7 @@ const config: ExpoConfig = {
   experiments: { typedRoutes: true },
   extra: {
     eas: EAS_PROJECT_ID ? { projectId: EAS_PROJECT_ID } : undefined,
+    changelog,
   },
 };
 

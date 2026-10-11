@@ -36,6 +36,30 @@ Something went wrong with that match. **Settings → Watch** shows it with an **
 
 The watch app has to be installed from a computer (with `adb`) or with a sideloading app. If it says the app is already installed with a different signature, uninstall the watch app first (after syncing its matches to the phone), then install again.
 
+## I'm not getting emails
+
+Emails (confirming your address, password resets, appointments) come from FH Match Centre at fhmatchcentre.com. Check your spam or junk folder, and add the address to your contacts. A password reset link lasts an hour and a confirmation link 24 hours; ask for a new one if it's run out.
+
+## "Too many attempts" or "Too many requests"
+
+To stop people guessing passwords, sign-in, password resets and similar allow 10 tries in 15 minutes. Wait, then try again. Everything else allows far more than anyone needs, so seeing it there means the app or a script is going wrong: tell us.
+
+## The phone app can't reach the server
+
+**Settings → About** says whether the server answers. **Can't reach it** usually means the phone has no internet connection; **Having problems** means the server answered with an error. Either way your matches are safe on the phone and can be uploaded later. [status.fhmatchcentre.com](https://status.fhmatchcentre.com) shows whether the service is up.
+
+## Reminders don't arrive
+
+- Check **Settings → Notifications** in the app is on.
+- If it says notifications are turned off in your phone's settings, allow them for FH Match Centre there.
+- Upload reminders are for matches from your watch that haven't been uploaded after 2 hours; appointment reminders come at 6pm the day before a match you've accepted.
+
+## An appointment isn't in Upcoming
+
+- Only matches you've **accepted** as the **watch umpire** join the list; as second umpire, they're shown above it.
+- Pull down on **Upcoming** to fetch your appointments now.
+- If you deleted it from Upcoming, it isn't added again: set it up yourself, or see it on the website under **Umpiring → Appointments**.
+
 ## Still stuck?
 
 Report a problem on [GitHub](https://github.com/KingCharlesVI/fh-watch/issues), with your phone and watch models and the app versions from Settings.

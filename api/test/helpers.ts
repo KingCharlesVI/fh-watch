@@ -22,7 +22,9 @@ export const PASSWORD = "correct horse battery";
  * One app per test file, on the shared test database, with fake email, push
  * and a clock tests can move. Tables are emptied before each test.
  */
-export async function setupTestApp(options: { authRateLimitMax?: number; env?: Record<string, string> } = {}) {
+export async function setupTestApp(
+  options: { authRateLimitMax?: number; apiRateLimitMax?: number; exportRateLimitMax?: number; env?: Record<string, string> } = {},
+) {
   const config = loadConfig({
     NODE_ENV: "test",
     DATABASE_URL: testDatabaseUrl(),
@@ -44,12 +46,14 @@ export async function setupTestApp(options: { authRateLimitMax?: number; env?: R
     pdf,
     now: () => clock.now,
     authRateLimit: { max: options.authRateLimitMax ?? 1000, windowMs: 15 * 60 * 1000 },
+    apiRateLimit: { max: options.apiRateLimitMax ?? 100_000, windowMs: 60 * 1000 },
+    exportRateLimit: { max: options.exportRateLimitMax ?? 100_000, windowMs: 60 * 1000 },
   };
   const app = await buildApp(deps);
 
   beforeEach(async () => {
     await db.execute(
-      sql`truncate table audit_log, push_tokens, email_tokens, refresh_tokens, match_revisions, match_umpires, matches, club_requests, access_requests, users, teams, clubs restart identity cascade`,
+      sql`truncate table audit_log, umpiring_gap_notices, calendar_feeds, appointments, umpire_availability, umpire_unavailable_weekdays, fixtures, club_umpires, competition_umpire_levels, push_tokens, email_tokens, refresh_tokens, match_revisions, match_umpires, matches, club_requests, access_requests, users, teams, clubs, venues, competitions restart identity cascade`,
     );
     mailer.sent.length = 0;
     push.sent.length = 0;

@@ -21,12 +21,21 @@ export interface NavUser {
   isAdmin: boolean;
 }
 
-/** The main sections: Matches, Clubs, and the dashboard when signed in. */
+/** The main sections: Matches, Clubs, and the dashboard and umpiring when signed in. */
 export function sections(user: NavUser | null) {
   return [
     { href: "/matches", label: "Matches", match: (p: string) => p === "/matches" || p.startsWith("/matches/") || p.startsWith("/m/") },
     { href: "/clubs", label: "Clubs", match: (p: string) => p.startsWith("/clubs") },
-    ...(user ? [{ href: "/dashboard", label: "Dashboard", match: (p: string) => p.startsWith("/dashboard") }] : []),
+    ...(user
+      ? [
+          { href: "/dashboard", label: "Dashboard", match: (p: string) => p === "/dashboard" },
+          {
+            href: "/appointments",
+            label: "Umpiring",
+            match: (p: string) => ["/appointments", "/availability", "/season", "/dashboard/fixtures", "/dashboard/umpires"].some((s) => p.startsWith(s)),
+          },
+        ]
+      : []),
   ];
 }
 

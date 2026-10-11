@@ -1,8 +1,9 @@
 import { summarizeMatch } from "@fh/shared";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, RefreshControl, StyleSheet, View } from "react-native";
+import { Pressable, RefreshControl, StyleSheet, TextInput, View } from "react-native";
 import { errorMessage } from "@/core/api";
+import { matchesSearch } from "@/core/match-search";
 import { overdueUploads } from "@/core/upload-reminders";
 import { StatusBadges, formatDate } from "@/features/match-view";
 import { UpdateNotice } from "@/features/update-notice";
@@ -11,8 +12,8 @@ import { sync } from "@/services";
 import { drainWatchInbox } from "@/services/watch";
 import { type MatchRow, useMatches } from "@/state/sync";
 import { useUpdates } from "@/state/updates";
-import { Banner, Button, Empty, Screen, Tabs, Text } from "@/ui/kit";
-import { radius, space, useColors } from "@/ui/theme";
+import { Banner, Button, Empty, Ionicons, Screen, Tabs, Text } from "@/ui/kit";
+import { FONT, radius, space, useColors } from "@/ui/theme";
 
 type Tab = "new" | "saved" | "drafts" | "published";
 
@@ -33,10 +34,13 @@ export default function MatchesScreen() {
   const [tab, setTab] = useState<Tab>("new");
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   const { update, dismissed } = useUpdates();
+  const found = rows.filter((r) => matchesSearch(r.match, search));
   const counts = { new: 0, saved: 0, drafts: 0, published: 0 };
-  for (const r of rows) for (const t of TABS) if (inTab(r, t)) counts[t]++;
-  const shown = rows.filter((r) => inTab(r, tab));
+  for (const r of found) for (const t of TABS) if (inTab(r, t)) counts[t]++;
+  const shown = found.filter((r) => inTab(r, tab));
+  const searching = search.trim() !== "";
 
   async function refresh() {
     setRefreshing(true);
@@ -57,7 +61,9 @@ export default function MatchesScreen() {
       <Tabs value={tab} onChange={setTab} options={TABS.map((t) => ({ value: t, label: `${TAB_NAMES[t]} (${counts[t]})` }))} />
       {error && <Banner tone="warn" icon="cloud-offline-outline" title="Couldn't refresh">{error}</Banner>}
       {ONLINE && <UploadReminder rows={rows} />}
-      {loaded && shown.length === 0 && (
+      {(rows.length > 0 || searching) && <SearchField value={search} onChange={setSearch} />}
+      {loaded && shown.length === 0 && searching && <Empty icon="search-outline" title="No matches found">Nothing here has a team, club, competition or venue with “{search.trim()}” in it.</Empty>}
+      {loaded && shown.length === 0 && !searching && (
         <Empty icon={tab === "new" ? "watch-outline" : "document-text-outline"} title={tab === "new" ? "Nothing new" : "No matches here"}>
           {tab === "new"
             ? "Matches from your watch appear here when they arrive. You can also import one from a file in Settings."
@@ -75,6 +81,31 @@ export default function MatchesScreen() {
         </View>
       )}
     </Screen>
+  );
+}
+
+/** Narrows the list to matches with these words in a team, club, competition or venue. */
+function SearchField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const c = useColors();
+  return (
+    <View style={[styles.search, { borderColor: c.input }]}>
+      <Ionicons name="search-outline" size={18} color={c.muted} />
+      <TextInput
+        value={value}
+        onChangeText={onChange}
+        placeholder="Team, club, competition or venue"
+        placeholderTextColor={c.muted}
+        accessibilityLabel="Find a match"
+        autoCorrect={false}
+        returnKeyType="search"
+        style={[styles.searchInput, { color: c.text }]}
+      />
+      {value !== "" && (
+        <Pressable accessibilityRole="button" accessibilityLabel="Clear" hitSlop={8} onPress={() => onChange("")}>
+          <Ionicons name="close-circle" size={18} color={c.muted} />
+        </Pressable>
+      )}
+    </View>
   );
 }
 
@@ -153,6 +184,8 @@ function MatchItem({ row, first }: { row: MatchRow; first: boolean }) {
 
 const styles = StyleSheet.create({
   list: { borderWidth: 1, borderRadius: radius.xl, overflow: "hidden" },
+  search: { flexDirection: "row", alignItems: "center", gap: space.sm, borderWidth: 1, borderRadius: radius.lg, paddingHorizontal: space.md },
+  searchInput: { flex: 1, paddingVertical: 10, fontSize: 16, fontFamily: FONT },
   item: { paddingHorizontal: space.lg, paddingVertical: space.md, gap: 6 },
   itemTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   dot: { width: 8, height: 8, borderRadius: 4 },

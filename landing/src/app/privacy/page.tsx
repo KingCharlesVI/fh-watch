@@ -25,7 +25,7 @@ export default function Privacy() {
         <Container className="max-w-2xl py-14">
           <article className="space-y-5 text-muted-foreground [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_strong]:text-foreground">
             <h1 className="text-3xl font-semibold tracking-tight">Privacy policy</h1>
-            <p className="text-sm">Last updated 7 October 2026.</p>
+            <p className="text-sm">Last updated 8 October 2026.</p>
             <p>
               {SITE.name} is a field hockey umpiring system: a watch app and a phone app that umpires use to time and record matches, and a website at
               app.fhmatchcentre.com where umpires publish results and clubs keep their teams up to date. This policy covers all of them, and the
@@ -85,11 +85,39 @@ export default function Privacy() {
               and umpires who follow them.
             </Why>
 
+            <H3>Club umpiring</H3>
+            <p>Only if a club uses the site to organise its umpires, and adds you to its list:</p>
+            <List>
+              <li>
+                <strong>The club&apos;s umpire list</strong> holds your name and email address, which the club&apos;s admins can see, and the{" "}
+                <strong>qualification level</strong> and <strong>team you play for</strong> that they record, so they can choose suitable umpires.
+              </li>
+              <li>
+                <strong>Appointments</strong>: the fixtures a club asks you to umpire, and your answers (accepted, declined, or asking for cover). The
+                club&apos;s admins and the other umpire on a fixture see them. If you ask for cover, the club&apos;s other umpires see that fixture so
+                one can take it over. We email you when you&apos;re asked, and when a fixture you&apos;re on changes or is cancelled.
+              </li>
+              <li>
+                <strong>Availability</strong> you choose to give: days you&apos;re free or not, the hours, and weekdays you&apos;re never free. A
+                club&apos;s admins see only whether you&apos;re free for each of their fixtures.
+              </li>
+              <li>
+                <strong>Your calendar address</strong>: a private link to a calendar of your accepted appointments. Anyone you give it to can see them;
+                you can replace it at any time.
+              </li>
+            </List>
+            <p>You can leave a club&apos;s list yourself, unmark your availability, or ask a club&apos;s admins to take you off.</p>
+            <Why>
+              it&apos;s in the legitimate interest of the clubs you umpire for, and yours, to arrange who umpires which match, and it&apos;s only used
+              for that.
+            </Why>
+
             <H3>Notifications</H3>
             <p>
-              If you turn on notifications in the phone app, your phone gets a <strong>push token</strong> from Apple or Google (through Expo, the
-              service the app is built with), which we store with your account so we could send you a message about your matches later. We don&apos;t
-              send any yet: the reminders to upload a match are made on your phone. Signing out removes the token.
+              If you turn on notifications in the phone app, the reminders to upload a match and about the next day&apos;s appointments are made on
+              your phone. Your phone also gets a <strong>push token</strong> from Apple or Google (through Expo, the service the app is built with),
+              which we store with your account so we could send you a message about your matches later. We don&apos;t send any yet. Turning
+              notifications off in the app&apos;s Settings, or signing out, removes the token.
             </p>
 
             <H3>Asking to join the test</H3>
@@ -179,6 +207,11 @@ export default function Privacy() {
                 kept until we do.
               </li>
               <li>
+                <strong>Club umpiring:</strong> a club&apos;s fixtures, and the appointments to them, until the club&apos;s admins delete them or the
+                club is deleted. Your place on a club&apos;s list until you or its admins take you off. Your availability and calendar address until you
+                remove them or your account is deleted.
+              </li>
+              <li>
                 <strong>Sign-in sessions:</strong> up to 30 days. Email links expire after 24 hours (confirming your email address) or 1 hour
                 (resetting your password).
               </li>
@@ -191,7 +224,8 @@ export default function Privacy() {
             <H2>Deleting your account</H2>
             <p>
               Ask for it from your account page on the website (<strong>Delete account</strong>), or email us. An admin then deletes your account, your
-              sign-in sessions, any push tokens and your club requests. The matches you uploaded stay on the service, because they&apos;re also the
+              sign-in sessions, any push tokens, your club requests, your place on clubs&apos; umpire lists, your appointments, your availability and
+              your calendar address. The matches you uploaded stay on the service, because they&apos;re also the
               other umpire&apos;s and the clubs&apos; record of the match, but your name on them is replaced with &ldquo;Deleted user&rdquo;. If
               you&apos;d also like particular matches removed, tell us.
             </p>

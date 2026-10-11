@@ -127,6 +127,8 @@ struct Setup: Codable, Equatable {
     var awayColor = "#DC2626"
     var awayCaptain: Int?
     var venue: String?
+    /// Usually from the phone, which has the competitions list.
+    var competition: String?
 
     init() {}
 
@@ -147,6 +149,7 @@ struct Setup: Codable, Equatable {
         awayColor = try c.decodeIfPresent(String.self, forKey: .awayColor) ?? d.awayColor
         awayCaptain = try c.decodeIfPresent(Int.self, forKey: .awayCaptain)
         venue = try c.decodeIfPresent(String.self, forKey: .venue)
+        competition = try c.decodeIfPresent(String.self, forKey: .competition)
     }
 
     var hasHalfTime: Bool { periods % 2 == 0 && periods > 2 }
@@ -195,6 +198,8 @@ struct Setup: Codable, Equatable {
         s.awayCaptain = awayCaptain.flatMap { shirtNumbers.contains($0) ? $0 : nil }
         let v = venue.map { String($0.trimmingCharacters(in: .whitespacesAndNewlines).prefix(120)) }
         s.venue = v?.isEmpty == false ? v : nil
+        let league = competition.map { String($0.trimmingCharacters(in: .whitespacesAndNewlines).prefix(120)) }
+        s.competition = league?.isEmpty == false ? league : nil
         return s
     }
 

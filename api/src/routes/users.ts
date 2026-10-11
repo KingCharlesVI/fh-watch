@@ -9,6 +9,7 @@ import { decodeCursor, page } from "../lib/cursor.js";
 import { HttpError, badRequest, conflict, forbidden, notFound } from "../lib/errors.js";
 import { Limit, containsPattern } from "../lib/sql.js";
 import { audit } from "../services/audit.js";
+import { RateLimiter } from "../lib/rate-limit.js";
 import { hashPassword, revokeAllRefreshTokens, verifyPassword } from "../services/auth-tokens.js";
 import { DisplayName, Password } from "./auth.js";
 
@@ -18,6 +19,8 @@ export const userRoutes =
   (deps: AppDeps): FastifyPluginAsyncZod =>
   async (app) => {
     const { db } = deps;
+    // Password changes per account, so a stolen sign-in can't be used to guess the password.
+    const passwordLimiter = new RateLimiter(deps.authRateLimit.max, deps.authRateLimit.windowMs, deps.now);
 
     async function loadUser(id: string) {
       const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -55,6 +58,7 @@ export const userRoutes =
         const changes: Partial<typeof users.$inferInsert> = { updatedAt: now };
         if (displayName !== undefined) changes.displayName = displayName;
         if (newPassword) {
+          if (!passwordLimiter.hit(actor.id)) throw new HttpError(429, "rate_limited", "Too many attempts. Try again in 15 minutes.");
           if (!(await verifyPassword(user.passwordHash, currentPassword!))) {
             throw new HttpError(403, "wrong_password", "Current password is wrong.");
           }
@@ -114,14 +118,15 @@ export const userRoutes =
       },
     );
 
-    // ---- Umpire lookup, for adding umpire 2 to a match ----
+    // ---- Umpire lookup, for adding umpire 2 to a match, or an umpire to a club's list ----
 
     app.get(
       "/umpires",
       { schema: { tags: ["users"], querystring: z.object({ q: z.string().trim().min(1).max(80) }) } },
       async (request) => {
         const actor = requireActor(request);
-        if (!actor.roles.includes("umpire") && !actor.roles.includes("admin")) throw forbidden();
+        // Club admins too, to add umpires to their club's list.
+        if (!actor.roles.some((r) => r === "umpire" || r === "admin" || r === "club_admin")) throw forbidden();
         const rows = await db
           .select({ id: users.id, displayName: users.displayName })
           .from(users)

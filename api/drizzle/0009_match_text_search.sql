@@ -1,0 +1,2 @@
+CREATE INDEX "matches_home_name_trgm_index" ON "matches" USING gin ("home_name" gin_trgm_ops);--> statement-breakpoint
+CREATE INDEX "matches_away_name_trgm_index" ON "matches" USING gin ("away_name" gin_trgm_ops);

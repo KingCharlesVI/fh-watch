@@ -11,6 +11,7 @@ import {
   removeUpcoming,
   saveUpcoming,
   sortUpcoming,
+  upcomingStore,
   whenLabel,
 } from "../src/core/upcoming";
 
@@ -96,5 +97,64 @@ describe("upcoming matches", () => {
     const teams = (home: string, away: string) => ({ home: { name: home, teamId: null, color: "#1D4ED8" }, away: { name: away, teamId: null, color: "#DC2626" } });
     const played = [{ teams: teams(" hawks m2", "Reading M3 "), startedAt: "2026-10-11T14:01:00Z" }];
     expect(playedUpcoming(list, played)).toEqual(["played"]);
+  });
+});
+
+describe("the upcoming matches kept on the phone", () => {
+  /** expo-sqlite's key-value store, in memory. */
+  const memory = (saved: Record<string, string> = {}) => {
+    const values = new Map(Object.entries(saved));
+    return {
+      values,
+      getItem: async (key: string) => values.get(key) ?? null,
+      setItem: async (key: string, value: string) => {
+        values.set(key, value);
+      },
+    };
+  };
+  const ids = (list: UpcomingMatch[] | null) => list?.map((u) => u.id).sort();
+
+  it("keeps every match saved, however many, across restarts", async () => {
+    const storage = memory({ upcomingMatches: JSON.stringify([match("a"), match("b")]) });
+    const store = upcomingStore(storage);
+    for (const id of ["c", "d", "e", "f"]) await store.save(match(id));
+    expect(ids(store.current())).toEqual(["a", "b", "c", "d", "e", "f"]);
+    // Opened again: all six are there.
+    expect(ids(await upcomingStore(storage).load())).toEqual(["a", "b", "c", "d", "e", "f"]);
+  });
+
+  it("keeps deleted matches deleted and edits made", async () => {
+    const storage = memory({ upcomingMatches: JSON.stringify([match("a"), match("b")]) });
+    const store = upcomingStore(storage);
+    await store.remove("a");
+    await store.save(match("b", { date: "2026-10-11" }));
+    await store.save(match("c"));
+    const reopened = await upcomingStore(storage).load();
+    expect(ids(reopened)).toEqual(["b", "c"]);
+    expect(reopened.find((u) => u.id === "b")!.date).toBe("2026-10-11");
+  });
+
+  it("loses neither of two saves made at once", async () => {
+    const store = upcomingStore(memory());
+    await Promise.all([store.save(match("a")), store.save(match("b")), store.removeAll([])]);
+    expect(ids(store.current())).toEqual(["a", "b"]);
+  });
+
+  it("starts empty when nothing's saved, or it can't be read", async () => {
+    expect(await upcomingStore(memory()).load()).toEqual([]);
+    expect(await upcomingStore(memory({ upcomingMatches: "not json" })).load()).toEqual([]);
+    const broken = { getItem: () => Promise.reject(new Error("disk")), setItem: async () => {} };
+    expect(await upcomingStore(broken).load()).toEqual([]);
+  });
+
+  it("tells the screens when the list changes", async () => {
+    const store = upcomingStore(memory());
+    let told = 0;
+    const off = store.subscribe(() => told++);
+    await store.save(match("a"));
+    off();
+    await store.save(match("b"));
+    // Once when it was read, once for the save; nothing after unsubscribing.
+    expect(told).toBe(2);
   });
 });

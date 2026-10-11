@@ -1,9 +1,10 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { createClub } from "@/app/actions/admin";
+import { createClub, mergeClub } from "@/app/actions/admin";
 import { ActionForm } from "@/components/ActionForm";
 import { ClubBadge } from "@/components/ClubBadge";
 import { LogoField } from "@/components/LogoField";
+import { MergeCard } from "@/components/MergeCard";
 import { PageHeader } from "@/components/PageHeader";
 import { TextField } from "@/components/TextField";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,17 +42,25 @@ export default async function AdminClubsPage({ searchParams }: { searchParams: P
             </ul>
           )}
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Add a club</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ActionForm action={createClub} submitLabel="Add club" className="max-w-none">
-              <TextField label="Name" name="name" required minLength={2} maxLength={100} />
-              <LogoField />
-            </ActionForm>
-          </CardContent>
-        </Card>
+        <div className="grid gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Add a club</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ActionForm action={createClub} submitLabel="Add club" className="max-w-none">
+                <TextField label="Name" name="name" required minLength={2} maxLength={100} />
+                <LogoField />
+              </ActionForm>
+            </CardContent>
+          </Card>
+          <MergeCard
+            action={mergeClub}
+            items={clubs.items}
+            noun="club"
+            description="Its teams move to the club you keep; a team with the same name there is merged into it. Its club admins, requests and logo (if the other has none) move too."
+          />
+        </div>
       </div>
     </div>
   );

@@ -1,10 +1,11 @@
-import { ROLES, type MatchDocument } from "@fh/shared";
+import { type FixtureFormat, ROLES, type MatchDocument, UMPIRE_LEVELS } from "@fh/shared";
 import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
   check,
   customType,
+  date,
   index,
   integer,
   jsonb,
@@ -58,14 +59,36 @@ export const teams = pgTable(
 );
 
 /**
- * Where matches are played, e.g. "Banbury Road, Oxford": one list, not tied to any club
- * (clubs share grounds), kept by admins and offered to umpires setting up a match.
+ * A list of names admins keep and umpires pick from: venues and competitions. A match keeps
+ * the name as text, so changing a list never changes a match. Typed with a plain string
+ * name so every such table has the same type, and the routes serve any of them.
  */
-export const venues = pgTable("venues", {
-  id: uuid().primaryKey().defaultRandom(),
-  name: text().notNull().unique(),
-  createdAt: createdAt(),
-});
+const namedList = (name: string) =>
+  pgTable(name, {
+    id: uuid().primaryKey().defaultRandom(),
+    name: text().notNull().unique(),
+    createdAt: createdAt(),
+  });
+export type NamedListTable = ReturnType<typeof namedList>;
+
+/** Where matches are played, e.g. "Banbury Road, Oxford": not tied to any club, as clubs share grounds. */
+export const venues = namedList("venues");
+
+/** What a match is played in, e.g. "South Men's Division 2" or "Hampshire Cup". */
+export const competitions = namedList("competitions");
+
+/** The lowest umpire level suggested for a competition's fixtures. None for a competition means any level. */
+export const competitionUmpireLevels = pgTable(
+  "competition_umpire_levels",
+  {
+    competitionId: uuid()
+      .primaryKey()
+      .references(() => competitions.id, { onDelete: "cascade" }),
+    /** An index into UMPIRE_LEVELS. */
+    minLevel: integer().notNull(),
+  },
+  (t) => [check("competition_umpire_levels_level", sql`${t.minLevel} between 0 and ${sql.raw(String(UMPIRE_LEVELS.length - 1))}`)],
+);
 
 export const users = pgTable(
   "users",
@@ -90,6 +113,149 @@ export const users = pgTable(
     check("users_roles_valid", sql`${t.roles} <@ array['admin','umpire','club_admin']::text[]`),
     check("users_club_admin_club", sql`('club_admin' = any(${t.roles})) = (${t.clubId} is not null)`),
   ],
+);
+
+/** A club's umpire list. One person can umpire for several clubs. */
+export const clubUmpires = pgTable(
+  "club_umpires",
+  {
+    clubId: uuid()
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** An index into UMPIRE_LEVELS, or null if not recorded. */
+    level: integer(),
+    /** The club's team they play for, so they aren't suggested for its matches. */
+    playsForTeamId: uuid().references(() => teams.id, { onDelete: "set null" }),
+    addedAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.clubId, t.userId] }),
+    index().on(t.userId),
+    check("club_umpires_level", sql`${t.level} between 0 and ${sql.raw(String(UMPIRE_LEVELS.length - 1))}`),
+  ],
+);
+
+/** A match a club needs umpires for. Its date and kick-off are local (UMPIRING_TIME_ZONE), as on the phone. */
+export const fixtures = pgTable(
+  "fixtures",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    /** The club appointing umpires to it. */
+    clubId: uuid()
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    date: date({ mode: "string" }).notNull(),
+    /** "14:00", or null if not known yet. */
+    time: text(),
+    homeName: text().notNull(),
+    awayName: text().notNull(),
+    homeTeamId: uuid().references(() => teams.id, { onDelete: "set null" }),
+    awayTeamId: uuid().references(() => teams.id, { onDelete: "set null" }),
+    venue: text(),
+    competition: text(),
+    format: jsonb().$type<FixtureFormat>(),
+    /** 2, or 1 when the other side provides one. */
+    umpiresNeeded: integer().notNull().default(2),
+    notes: text(),
+    createdBy: uuid().references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: createdAt(),
+  },
+  (t) => [
+    index().on(t.clubId, t.date),
+    index().on(t.date),
+    check("fixtures_time", sql`${t.time} ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'`),
+    check("fixtures_umpires_needed", sql`${t.umpiresNeeded} in (1, 2)`),
+  ],
+);
+
+/** Still in play: not declined or given up. One per role and per umpire on a fixture. */
+const ACTIVE_APPOINTMENT = sql`status in ('offered', 'accepted')`;
+
+/** An umpire asked to umpire a fixture, and what they said. */
+export const appointments = pgTable(
+  "appointments",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    fixtureId: uuid()
+      .notNull()
+      .references(() => fixtures.id, { onDelete: "cascade" }),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** The watch umpire runs the watch app; the second is named on the match. */
+    role: text({ enum: ["watch", "second"] }).notNull(),
+    mentoring: boolean().notNull().default(false),
+    status: text({ enum: ["offered", "accepted", "declined", "released"] })
+      .notNull()
+      .default("offered"),
+    /** Accepted, and asking for someone to cover it. */
+    coverRequestedAt: tstz(),
+    createdBy: uuid().references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    respondedAt: tstz(),
+  },
+  (t) => [
+    index().on(t.fixtureId),
+    index().on(t.userId),
+    uniqueIndex("appointments_active_role").on(t.fixtureId, t.role).where(ACTIVE_APPOINTMENT),
+    uniqueIndex("appointments_active_user").on(t.fixtureId, t.userId).where(ACTIVE_APPOINTMENT),
+  ],
+);
+
+/**
+ * An umpire's private calendar link. The token is kept as it is, not hashed, so the same
+ * address can be shown again: it only reads that umpire's appointments, and can be replaced.
+ */
+export const calendarFeeds = pgTable("calendar_feeds", {
+  userId: uuid()
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  token: text().notNull().unique(),
+  createdAt: createdAt(),
+});
+
+/** The last day each club's admins were emailed about fixtures still needing umpires, so it's once a day at most. */
+export const umpiringGapNotices = pgTable("umpiring_gap_notices", {
+  clubId: uuid()
+    .primaryKey()
+    .references(() => clubs.id, { onDelete: "cascade" }),
+  sentOn: date({ mode: "string" }).notNull(),
+});
+
+const TIME_CHECK = "'^([01][0-9]|2[0-3]):[0-5][0-9]$'";
+
+/** A day an umpire has said they can or can't umpire, with the hours when they only can for some. */
+export const umpireAvailability = pgTable(
+  "umpire_availability",
+  {
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    date: date({ mode: "string" }).notNull(),
+    available: boolean().notNull(),
+    fromTime: text(),
+    toTime: text(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.date] }),
+    check("umpire_availability_times", sql`(${t.fromTime} is null or ${t.fromTime} ~ ${sql.raw(TIME_CHECK)}) and (${t.toTime} is null or ${t.toTime} ~ ${sql.raw(TIME_CHECK)})`),
+  ],
+);
+
+/** Weekdays an umpire is never free (0 Sunday to 6 Saturday), unless they mark a day otherwise. */
+export const umpireUnavailableWeekdays = pgTable(
+  "umpire_unavailable_weekdays",
+  {
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    weekday: integer().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.weekday] }), check("umpire_unavailable_weekdays_weekday", sql`${t.weekday} between 0 and 6`)],
 );
 
 export const clubRequests = pgTable(
@@ -177,9 +343,18 @@ export const matches = pgTable(
     updatedAt: createdAt(),
   },
   (t) => [
-    index().on(t.playedAt.desc(), t.id.desc()),
+    index().on(t.playedAt.desc().nullsFirst(), t.id.desc().nullsFirst()),
+    // The public results list, newest first.
+    index("matches_published_played_at_id_index")
+      .on(t.playedAt.desc().nullsFirst(), t.id.desc().nullsFirst())
+      .where(sql`${t.status} = 'published' and ${t.deletedAt} is null`),
     index().on(t.homeTeamId),
     index().on(t.awayTeamId),
+    // Competition, venue and text search filters match any part of a name (ILIKE '%…%'), which needs trigrams.
+    index("matches_competition_trgm_index").using("gin", t.competition.op("gin_trgm_ops")),
+    index("matches_venue_trgm_index").using("gin", t.venue.op("gin_trgm_ops")),
+    index("matches_home_name_trgm_index").using("gin", t.homeName.op("gin_trgm_ops")),
+    index("matches_away_name_trgm_index").using("gin", t.awayName.op("gin_trgm_ops")),
   ],
 );
 

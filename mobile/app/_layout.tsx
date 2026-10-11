@@ -5,10 +5,12 @@ import { useEffect } from "react";
 import { ActivityIndicator, View, useColorScheme } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { notificationTarget } from "@/services/push";
+import { useAppointmentSync } from "@/state/appointments";
 import { AuthProvider, useAuth } from "@/state/auth";
 import { ONLINE } from "@/config";
 import { useSyncTriggers, useUploadReminders, useWatchInbox } from "@/state/sync";
 import { useUpdateChecks } from "@/state/updates";
+import { takeNewEntries } from "@/state/whats-new";
 import { FONT, useColors } from "@/ui/theme";
 
 export default function RootLayout() {
@@ -38,7 +40,16 @@ function Navigator() {
   useWatchInbox(open);
   useSyncTriggers(ONLINE && signedIn);
   useUploadReminders(ONLINE && signedIn);
+  useAppointmentSync(ONLINE && signedIn);
   useUpdateChecks();
+
+  // After an update, What's new opens once, with what changed since it last did.
+  useEffect(() => {
+    if (!open) return;
+    void takeNewEntries().then((count) => {
+      if (count > 0) router.push({ pathname: "/whats-new", params: { new: String(count) } });
+    });
+  }, [open]);
 
   // A tapped notification opens its match (or its editor, when teams need linking); an upload reminder, the match.
   const lastResponse = Notifications.useLastNotificationResponse();
@@ -75,6 +86,7 @@ function Navigator() {
         {/* Setup on phone: the watch opens this (fhmatchcentre://setup). */}
         <Stack.Screen name="setup" options={{ title: "Set up a match" }} />
         <Stack.Screen name="upcoming/[id]" options={{ title: "Upcoming match" }} />
+        <Stack.Screen name="whats-new" options={{ title: "What's new" }} />
       </Stack.Protected>
       <Stack.Protected guard={!open}>
         <Stack.Screen name="login" options={{ headerShown: false }} />

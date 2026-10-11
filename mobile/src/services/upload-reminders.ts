@@ -1,6 +1,7 @@
 import * as Notifications from "expo-notifications";
 import { awaitingUpload, remindAt } from "@/core/upload-reminders";
 import { sync } from "./index";
+import { notificationSetting } from "./push";
 
 const PREFIX = "upload:";
 
@@ -8,9 +9,11 @@ const PREFIX = "upload:";
  * Keeps one local notification scheduled for each match from the watch that hasn't been
  * uploaded, two hours after it arrived, and cancels it once the match is uploaded (or
  * deleted). Local, so it needs no server; only the phone's permission to notify, which
- * Settings → Notifications asks for. Without it, the match list's banner still reminds.
+ * Settings → Notifications asks for, and that switch on (turning it off cancels them).
+ * Without them, the match list's banner still reminds.
  */
 export async function syncUploadReminders(): Promise<void> {
+  if (!(await notificationSetting.load())) return;
   const { status } = await Notifications.getPermissionsAsync();
   if (status !== "granted") return;
 

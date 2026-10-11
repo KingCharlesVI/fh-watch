@@ -7,7 +7,7 @@ The [README](https://github.com/KingCharlesVI/fh-watch#readme) has every command
 | For | You need |
 | --- | --- |
 | Everything | Node 22+, pnpm 9 |
-| The API and website | PostgreSQL 16+ |
+| The API and website | PostgreSQL 16+, with its standard extensions (the migrations turn on `pg_trgm`, which comes with PostgreSQL's installers and Ubuntu's package) |
 | Android (phone and Wear OS) | Android Studio: the SDK, emulators, and CMake 3.31.6. On Windows, turn on long paths. |
 | iPhone and Apple Watch | A Mac with Xcode, to run them locally. Cloud builds (EAS) need no Mac. |
 | The Apple Watch engine's tests | Swift (a Mac, or [Swift for Windows](https://www.swift.org/install/windows/)) |
@@ -52,11 +52,16 @@ pnpm gen:schema   # after changing packages/shared/src/schema.ts
 
 | Tests | Run with |
 | --- | --- |
-| Shared package, API, website, phone app | `pnpm test` (the API's use the `fh_test` database) |
+| Shared package, API, phone app | `pnpm test` (the API's use the `fh_test` database) |
+| Website | No tests of its own: `pnpm typecheck`, and `npx next build` in `web` |
 | Wear OS app | `cd watch-wear && ./gradlew :app:testDebugUnitTest` |
 | Apple Watch engine | `cd mobile/targets && swift test` |
 
 The watch apps' tests write a full match to `mobile/test/fixtures/` (`wear-full-match.json`, `watchos-full-match.json`), which the phone app's tests run through its real import, so a change to either watch that breaks the format fails a test.
+
+## Emails in development
+
+Without `SMTP_URL` in `api/.env`, the API writes each email to its log instead of sending it, links included. Every email is built by `api/src/services/email.ts`, as HTML with a plain-text version; to see one as it would look, render it with `composeEmail` and open the HTML in a browser.
 
 ## Commits
 
