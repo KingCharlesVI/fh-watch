@@ -1,6 +1,6 @@
 # Field Hockey Match System — Design
 
-Last updated: 2026-10-07
+Last updated: 2026-10-11
 
 ## Overview & goals
 
@@ -130,7 +130,9 @@ Every event carries `seq` and, when recorded on the watch, `wallTime` (UTC). Eve
 | `match_revisions` | match_id, revision, document (jsonb), created_by, created_at, source (`watch` / `mobile` / `web`) |
 | `push_tokens` | id, user_id, token, platform (`ios` / `android`), created_at, last_used_at |
 | `refresh_tokens` | id, user_id, token_hash, expires_at, revoked_at |
-| `audit_log` | actor_id, action, entity, entity_id, at, diff (jsonb) |
+| `audit_log` | actor_id, action, entity, entity_id, at, diff (jsonb). Admins read it at `GET /audit`; a match's own history is built from its revisions and its rows here. |
+| `webhooks` | id, club_id? or competition_id? (exactly one), url, description, secret (kept as is: it signs deliveries), enabled, failures (in a row) |
+| `webhook_deliveries` | id, webhook_id, seq (queue order), event, match_id, payload (jsonb), status (`pending` / `delivered` / `failed`), attempts, next_attempt_at, response_status, error. Kept 30 days. |
 
 Team names on the watch are free text. On the phone the umpire links each name to a real team, which is what gives club admins visibility.
 
@@ -317,6 +319,9 @@ The API is a versioned REST service (`/v1`) written in Fastify, and all input is
 | `POST /matches/{id}/publish` · `/unpublish` | Umpire (own) / admin | Change visibility |
 | `DELETE /matches/{id}` | Admin | Soft delete for 30 days, then purged |
 | `GET /matches/{id}/revisions` · `GET /matches/{id}/revisions/{n}` | Umpire (own), club admin (own club), admin | Edit history, and any past revision's document |
+| `GET /matches/{id}/history` | Umpire (own), club admin (own club), admin | Each revision with what it changed (`describeChanges` in the shared package), publishing, and umpire 2 changes, newest first |
+| `GET /audit` | Admin | The audit log, filtered by entity, record, person, action and time |
+| `GET/POST /webhooks` · `PATCH/DELETE /webhooks/{id}` · `POST /webhooks/{id}/secret` · `/ping` · `GET /webhooks/{id}/deliveries` | Club admin (own club's) / admin (any, and competitions') | Webhooks: see Webhooks below |
 | `GET /matches/{id}/export.{json,csv,pdf}` | Same as reading the match | Downloads |
 | `GET /matches/export.csv?…` | Club admin (own club) / admin | Bulk CSV for a filtered list |
 | `GET/POST/PATCH/DELETE /clubs`, `/clubs/{id}/teams` | Read: public · Clubs: admin · Teams: admin or club admin (own club) · Delete: admin | Club and team directory. `GET /clubs/{id or slug}` includes the teams. |
@@ -334,6 +339,7 @@ The API is a versioned REST service (`/v1`) written in Fastify, and all input is
 - Purge also removes expired refresh tokens and spent or expired email tokens. Revoked refresh tokens are kept until they expire, so reuse of a stolen one is still detected.
 - Requests: every 6 hours, test requests and club requests answered more than 12 months ago are deleted, as the privacy policy says.
 - Umpiring gaps: hourly, club admins are emailed about the next week's fixtures still short of umpires (see Club umpiring below).
+- Webhooks: every 30 seconds, due deliveries are sent (one run at a time, each delivery claimed first), and every 6 hours deliveries over 30 days old are deleted.
 
 **Conventions**
 
@@ -341,6 +347,16 @@ The API is a versioned REST service (`/v1`) written in Fastify, and all input is
 - Lists are paged with cursors (`?cursor=&limit=`, at most 100).
 - The OpenAPI spec is generated from the route schemas and served at `/v1/docs`.
 - Every write goes into `audit_log`.
+
+**Webhooks**
+
+A club (its admins) or a competition (admins only) can have up to 5 webhooks: HTTPS addresses told about its published matches. The full contract for receivers is in the docs site's Webhooks page.
+
+- Events: `match.published`; `match.updated` for a new revision, an umpire 2 change or an admin merge on a published match; `match.unpublished` and `match.deleted` (the match's ID only, as it's no longer public); and `ping`. Drafts are never sent.
+- Which webhooks: those on a club owning the home or away team, and those on a competition whose name equals the match's, in any capitals.
+- Outbox: deliveries are inserted in the same transaction as the change, so a rolled-back change sends nothing, and the match is sent as it is after the change: the match DTO and its summary, as the public page shows.
+- Sending: the job claims a batch with `FOR UPDATE SKIP LOCKED`, posts each with `X-FH-Event`, `X-FH-Delivery` and `X-FH-Signature: t=…,v1=HMAC-SHA256(secret, "t.body")`, waits 10 seconds at most and follows no redirects. 2xx is delivered; anything else is retried after 1 min, 5 min, 30 min, 2 h and 6 h, then failed. Five failed deliveries in a row turn the webhook off.
+- The server is at home, so webhooks must not reach its network: `https` only, and the DNS lookup used for the connection refuses any name with a private, loopback, link-local or reserved address (checked again on every delivery, so a name changed to point inward later is still refused).
 
 ## Roles & permissions
 
@@ -502,6 +518,7 @@ None at the moment.
 - Anyone can register as an umpire, with no approval.
 - Accounts hold a set of roles.
 - Live scoring is out of scope until v3 at the earliest.
+- Results reach other systems through webhooks (a club's or a competition's), sent only for published matches.
 - The watch screen layout follows MatchGear's; screenshots will be supplied before the watch milestones.
 - The site is FH Match Centre: the landing page at https://fhmatchcentre.com, the website and API at https://app.fhmatchcentre.com. Email goes out as no-reply@fhmatchcentre.com.
 - The website's UI uses shadcn/ui (Radix + Tailwind CSS v4), with light and dark themes.

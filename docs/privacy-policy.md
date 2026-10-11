@@ -1,6 +1,6 @@
 # FH Match Centre privacy policy
 
-Last updated: 8 October 2026
+Last updated: 11 October 2026
 
 FH Match Centre is a field hockey umpiring system: a watch app and a phone app that umpires use to time and record matches, and a website at app.fhmatchcentre.com where umpires publish results and clubs keep their teams up to date. This policy covers all of them, and the project's other sites: fhmatchcentre.com, docs.fhmatchcentre.com and status.fhmatchcentre.com.
 
@@ -29,6 +29,7 @@ Nothing leaves your phone until you tap **Upload**. An uploaded match holds what
 
 - A match you've uploaded but not published is a **draft**: only you, the other umpire on it, the admins of the clubs whose teams played, and our admins can see it.
 - A match you **publish** is public: anyone can see it on the website and download it, and search engines may list it. Players are shown by shirt number, never by name, but people who know the teams may recognise them. You can unpublish a match at any time.
+- A published match can also be sent automatically to another system: a club whose team played can have it sent to the club's own website, and we can send a league's matches to its results table. They get what anyone can see on the match's public page, and again whenever it changes. If you unpublish the match, or it's deleted, they're told it's gone, but what they've already received is theirs to remove.
 
 *Why we're allowed to:* uploading and publishing are what you use the service for, and publishing results is in the legitimate interest of the clubs, players and umpires who follow them.
 
@@ -88,7 +89,7 @@ We use a small number of services to run FH Match Centre. Each only gets what it
 
 Our server and its database are in the United Kingdom. Some of these services are based in, or may handle data in, the United States and elsewhere; where they do, they protect it with the safeguards UK law requires, such as the UK's data bridge with the US or the standard contract clauses.
 
-We don't sell your data or share it with anyone else, unless the law requires us to.
+We don't sell your data or share it with anyone else, apart from sending published matches to clubs' and leagues' systems as described above, unless the law requires us to.
 
 ## How long we keep it
 
@@ -96,6 +97,7 @@ We don't sell your data or share it with anyone else, unless the law requires us
 - **Matches:** until they're deleted. A match an admin deletes is kept for 30 days in case of mistakes, then removed for good.
 - **Requests to join the test and club requests:** 12 months after we answer them. Requests still waiting for an answer are kept until we do.
 - **Club umpiring:** a club's fixtures, and the appointments to them, until the club's admins delete them or the club is deleted. Your place on a club's list until you or its admins take you off. Your availability and calendar address until you remove them or your account is deleted.
+- **Matches sent to clubs' and leagues' systems:** our record of each sending, 30 days.
 - **Sign-in sessions:** up to 30 days. Email links expire after 24 hours (confirming your email address) or 1 hour (resetting your password).
 - **Backups:** we back up the database regularly and keep each backup for 14 days. Something deleted from the service disappears from the backups as they're replaced.
 

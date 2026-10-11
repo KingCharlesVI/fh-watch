@@ -25,7 +25,7 @@ export default function Privacy() {
         <Container className="max-w-2xl py-14">
           <article className="space-y-5 text-muted-foreground [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_strong]:text-foreground">
             <h1 className="text-3xl font-semibold tracking-tight">Privacy policy</h1>
-            <p className="text-sm">Last updated 8 October 2026.</p>
+            <p className="text-sm">Last updated 11 October 2026.</p>
             <p>
               {SITE.name} is a field hockey umpiring system: a watch app and a phone app that umpires use to time and record matches, and a website at
               app.fhmatchcentre.com where umpires publish results and clubs keep their teams up to date. This policy covers all of them, and the
@@ -78,6 +78,12 @@ export default function Privacy() {
                 A match you <strong>publish</strong> is public: anyone can see it on the website and download it, and search engines may list it.
                 Players are shown by shirt number, never by name, but people who know the teams may recognise them. You can unpublish a match at any
                 time.
+              </li>
+              <li>
+                A published match can also be sent automatically to another system: a club whose team played can have it sent to the club&apos;s own
+                website, and we can send a league&apos;s matches to its results table. They get what anyone can see on the match&apos;s public page,
+                and again whenever it changes. If you unpublish the match, or it&apos;s deleted, they&apos;re told it&apos;s gone, but what
+                they&apos;ve already received is theirs to remove.
               </li>
             </List>
             <Why>
@@ -191,7 +197,10 @@ export default function Privacy() {
               elsewhere; where they do, they protect it with the safeguards UK law requires, such as the UK&apos;s data bridge with the US or the
               standard contract clauses.
             </p>
-            <p>We don&apos;t sell your data or share it with anyone else, unless the law requires us to.</p>
+            <p>
+              We don&apos;t sell your data or share it with anyone else, apart from sending published matches to clubs&apos; and leagues&apos; systems
+              as described above, unless the law requires us to.
+            </p>
 
             <H2>How long we keep it</H2>
             <List>
@@ -210,6 +219,9 @@ export default function Privacy() {
                 <strong>Club umpiring:</strong> a club&apos;s fixtures, and the appointments to them, until the club&apos;s admins delete them or the
                 club is deleted. Your place on a club&apos;s list until you or its admins take you off. Your availability and calendar address until you
                 remove them or your account is deleted.
+              </li>
+              <li>
+                <strong>Matches sent to clubs&apos; and leagues&apos; systems:</strong> our record of each sending, 30 days.
               </li>
               <li>
                 <strong>Sign-in sessions:</strong> up to 30 days. Email links expire after 24 hours (confirming your email address) or 1 hour

@@ -16,6 +16,7 @@
   - [Development setup](technical/development.md)
   - [The match format](technical/match-format.md)
   - [API reference](technical/api.md)
+  - [Webhooks](technical/webhooks.md)
   - [Design](technical/design.md)
   - [Releasing](technical/releasing.md)
   - [Google Play](technical/play-store.md)
