@@ -60,7 +60,7 @@ Each can be saved to a folder you pick (**Save to phone**) or shared:
 - **Details**: competition and venue. Type them, or pick from the website's lists as you type (e.g. `south` for **South League Premier**). One that isn't on the list can be added there, as for a venue when setting up a match.
 - **Teams**: names, colours and captains, and the **club team** each one is: search for it (e.g. `hawks m1`) to link it, which puts the match on the club's pages on the website.
 - **Umpires**: your colleague. Search for them if they have an account (they can then edit the match too), or type their name if they don't.
-- **Events**: add a goal, card, penalty corner, stroke or note at a period and time; cancel an event (it's kept, struck through, and can be restored); add or change a card's reason.
+- **Events**: add a goal, card, penalty corner, stroke or note at a period and time; cancel an event (it's kept, struck through, and can be restored); change a goal's or card's shirt number, and a card's reason, with **Edit**.
 
 **Save** checks the match first (the score and the events must make sense) and says what to fix if something's wrong.
 
