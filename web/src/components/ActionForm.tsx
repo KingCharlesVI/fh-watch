@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/CopyButton";
 import type { FormState } from "@/lib/forms";
 import { cn } from "@/lib/utils";
 
@@ -78,7 +79,16 @@ export function ActionForm({ action, children, submitLabel, pendingLabel, confir
       )}
       {!inline && state?.ok && (
         <Alert>
-          <AlertDescription className="text-foreground">{state.ok}</AlertDescription>
+          <AlertDescription className="text-foreground">
+            {state.ok}
+            {/* A secret shown once, e.g. a webhook's: keyed so a new one replaces it. */}
+            {state.secret && (
+              <span key={state.secret} className="mt-2 flex flex-wrap items-center gap-2">
+                <code className="rounded bg-muted px-2 py-1 text-xs break-all">{state.secret}</code>
+                <CopyButton value={state.secret} label="Copy" />
+              </span>
+            )}
+          </AlertDescription>
         </Alert>
       )}
       {confirm && (

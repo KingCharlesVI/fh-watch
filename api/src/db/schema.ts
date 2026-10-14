@@ -450,3 +450,64 @@ export const auditLog = pgTable(
   },
   (t) => [index().on(t.entity, t.entityId)],
 );
+
+/**
+ * An address told about published matches: a club's (any match its teams play) or a
+ * competition's (by its name). The secret signs each delivery, so it's kept as it is.
+ */
+export const webhooks = pgTable(
+  "webhooks",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    clubId: uuid().references(() => clubs.id, { onDelete: "cascade" }),
+    competitionId: uuid().references(() => competitions.id, { onDelete: "cascade" }),
+    url: text().notNull(),
+    /** The signed JSON payload, or a chat message for Slack, Discord or Teams. */
+    format: text({ enum: ["json", "slack", "discord", "teams"] })
+      .notNull()
+      .default("json"),
+    description: text(),
+    secret: text().notNull(),
+    enabled: boolean().notNull().default(true),
+    /** Deliveries in a row that failed for good; 5 turns the webhook off. */
+    failures: integer().notNull().default(0),
+    createdBy: uuid().references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index().on(t.clubId),
+    index().on(t.competitionId),
+    check("webhooks_one_owner", sql`(${t.clubId} is null) <> (${t.competitionId} is null)`),
+  ],
+);
+
+/** One message to a webhook, sent and retried by the delivery job. Kept 30 days. */
+export const webhookDeliveries = pgTable(
+  "webhook_deliveries",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    webhookId: uuid()
+      .notNull()
+      .references(() => webhooks.id, { onDelete: "cascade" }),
+    /** The order they were queued in, which is the order they're sent in. */
+    seq: bigint({ mode: "number" }).notNull().generatedAlwaysAsIdentity(),
+    event: text().notNull(),
+    /** Not a foreign key: a deleted match's delivery still goes out. */
+    matchId: uuid(),
+    payload: jsonb().notNull(),
+    status: text({ enum: ["pending", "delivered", "failed"] })
+      .notNull()
+      .default("pending"),
+    attempts: integer().notNull().default(0),
+    /** When the job next tries it; null once delivered or failed for good. */
+    nextAttemptAt: tstz(),
+    responseStatus: integer(),
+    error: text(),
+    createdAt: createdAt(),
+    deliveredAt: tstz(),
+  },
+  (t) => [
+    index("webhook_deliveries_due").on(t.seq).where(sql`${t.status} = 'pending'`),
+    index().on(t.webhookId, t.seq.desc()),
+  ],
+);

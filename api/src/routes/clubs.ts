@@ -98,6 +98,7 @@ export const clubRoutes =
         (doc) => ({ ...doc, teams: { home: relink(doc.teams.home), away: relink(doc.teams.away) } }),
         deps.now(),
         "team_merge",
+        deps.config.webUrl,
       );
       await tx.delete(teams).where(eq(teams.id, from.id));
       await audit(tx, actorId, "merge", "team", from.id, { from: teamDto(from), into: teamDto(into), matches: n });

@@ -59,7 +59,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           club ? (
             <>
               Club admin for <Link href={`/clubs/${club.slug}`}>{club.name}</Link> · <Link href={`/admin/clubs/${club.id}`}>manage teams</Link> ·{" "}
-              <Link href="/dashboard/fixtures">fixtures</Link> · <Link href="/dashboard/umpires">umpires</Link>
+              <Link href="/dashboard/fixtures">fixtures</Link> · <Link href="/dashboard/umpires">umpires</Link> ·{" "}
+              <Link href="/dashboard/webhooks">webhooks</Link>
             </>
           ) : (
             `Signed in as ${user.displayName}`

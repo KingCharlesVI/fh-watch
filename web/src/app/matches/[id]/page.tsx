@@ -6,20 +6,17 @@ import { deleteMatch, publishMatch, unpublishMatch } from "@/app/actions/matches
 import { ActionForm } from "@/components/ActionForm";
 import { CopyButton } from "@/components/CopyButton";
 import { StatusBadges } from "@/components/MatchList";
+import { MatchHistory } from "@/components/MatchHistory";
 import { MatchView } from "@/components/MatchView";
 import { PageHeader } from "@/components/PageHeader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
 import { ApiError, api, apiOrNull } from "@/lib/api";
-import { formatDateTime } from "@/lib/format";
 import { requireUser } from "@/lib/session";
-import type { FullMatch, Items, Revision } from "@/lib/types";
+import type { FullMatch, Items, MatchHistoryEntry } from "@/lib/types";
 
 export const metadata = { title: "Manage match" };
-
-const SOURCES = { watch: "Watch", mobile: "Phone app", web: "Website" } as const;
 
 /** The signed-in view of a match, drafts included, with the umpire's controls. */
 export default async function MatchPage({ params }: { params: Promise<{ id: string }> }) {
@@ -31,7 +28,7 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
 
   const isAdmin = hasRole(user, "admin");
   const canEdit = isAdmin || (hasRole(user, "umpire") && m.umpires.some((u) => u.userId === user.id));
-  const revisions = await api<Items<Revision>>(`/v1/matches/${id}/revisions`).catch((err) => {
+  const history = await api<Items<MatchHistoryEntry>>(`/v1/matches/${id}/history`).catch((err) => {
     if (err instanceof ApiError && err.status === 403) return null;
     throw err;
   });
@@ -122,35 +119,7 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
 
       <MatchView data={data} downloadBase={`/matches/${id}/export`} />
 
-      {revisions && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Edit history</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Revision</TableHead>
-                  <TableHead>Saved</TableHead>
-                  <TableHead>From</TableHead>
-                  <TableHead>By</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {revisions.items.map((r) => (
-                  <TableRow key={r.revision}>
-                    <TableCell>{r.revision}</TableCell>
-                    <TableCell>{formatDateTime(r.createdAt)}</TableCell>
-                    <TableCell>{SOURCES[r.source]}</TableCell>
-                    <TableCell>{r.createdBy?.displayName ?? "Deleted user"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+      {history && <MatchHistory items={history.items} />}
     </div>
   );
 }

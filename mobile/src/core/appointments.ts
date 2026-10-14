@@ -6,7 +6,7 @@ import type { UpcomingMatch } from "./upcoming";
  * Appointments from clubs, on the phone. A fixture you've accepted as its watch umpire joins
  * Upcoming, set up from the fixture, ready to send to the watch. It's added once: delete it
  * and it stays deleted. Until it's sent, it follows changes the club makes; it goes if you're
- * taken off. Second umpires aren't in Upcoming, as they don't run the watch.
+ * taken off. Who's umpiring with you is kept up to date even after it's sent. Second umpires aren't in Upcoming, as they don't run the watch.
  */
 
 /** Upcoming's id for an appointment's match. */
@@ -62,11 +62,12 @@ export function applyAppointments(
       if (u.sentAt || (u.date !== null && u.date < today)) next.push(u);
       continue;
     }
-    next.push(u.sentAt ? u : { ...u, setup: setupFrom(a, u.setup), date: a.fixture.date, time: a.fixture.time });
+    const colleague = a.colleague;
+    next.push(u.sentAt ? { ...u, colleague } : { ...u, setup: setupFrom(a, u.setup), date: a.fixture.date, time: a.fixture.time, colleague });
   }
   for (const [id, a] of mine) {
     if (nextAdded.has(a.id) || next.some((u) => u.id === id)) continue;
-    next.push({ id, setup: setupFrom(a), date: a.fixture.date, time: a.fixture.time, createdAt: now, sentAt: null });
+    next.push({ id, setup: setupFrom(a), date: a.fixture.date, time: a.fixture.time, createdAt: now, sentAt: null, colleague: a.colleague });
     nextAdded.add(a.id);
   }
   return { list: next, added: nextAdded };

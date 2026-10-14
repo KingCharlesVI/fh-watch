@@ -60,6 +60,29 @@ export function setCardReason(doc: MatchDocument, seq: number, reason: CardReaso
   };
 }
 
+/**
+ * Sets or clears the shirt number on a goal or card (null clears it). Like a card's
+ * reason, this edits the event itself, and a new revision keeps the old one in the history.
+ */
+export function setEventPlayer(doc: MatchDocument, seq: number, player: number | null): MatchDocument {
+  return {
+    ...doc,
+    events: doc.events.map((e) => {
+      if (e.seq !== seq || (e.type !== "goal" && e.type !== "card")) return e;
+      const { player: _old, ...rest } = e;
+      return player === null ? rest : { ...rest, player };
+    }),
+  };
+}
+
+/** A shirt number as typed, or why it won't do. Blank is no number, unless [required]. */
+export function parseShirtNumber(value: string, required: boolean): { player: number | undefined } | { error: string } {
+  if (value.trim() === "") return required ? { error: "Cards need the player's shirt number." } : { player: undefined };
+  const player = Number(value);
+  if (!Number.isInteger(player) || player < 0 || player > 999) return { error: "Shirt numbers are whole numbers from 0 to 999." };
+  return { player };
+}
+
 /** "12:30" or "12" (minutes) → milliseconds. Null if unreadable. */
 export function parseClock(value: string): number | null {
   const m = /^\s*(\d{1,3})(?::([0-5]\d))?\s*$/.exec(value);
@@ -90,11 +113,9 @@ export function buildEvent(input: EventInput, settings: MatchSettings): { event:
   const clockMs = parseClock(input.clock);
   if (input.type !== "note" && clockMs === null) return { error: "Enter the time on the match clock, e.g. 12:30." };
   if (input.type === "note" && !input.text?.trim()) return { error: "Write the note first." };
-  if (input.type === "card" && input.player.trim() === "") return { error: "Cards need the player's shirt number." };
-  const player = input.player.trim() === "" ? undefined : Number(input.player);
-  if (player !== undefined && (!Number.isInteger(player) || player < 0 || player > 999)) {
-    return { error: "Shirt numbers are whole numbers from 0 to 999." };
-  }
+  const shirtNumber = parseShirtNumber(input.player, input.type === "card");
+  if ("error" in shirtNumber) return shirtNumber;
+  const { player } = shirtNumber;
   if (input.period < 1 || input.period > settings.periods) return { error: "Pick a period in this match." };
 
   const at = { period: input.period, clockMs: clockMs ?? 0 };

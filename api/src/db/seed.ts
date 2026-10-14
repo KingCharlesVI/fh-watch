@@ -8,6 +8,7 @@ import { hashPassword, signAccessToken } from "../services/auth-tokens.js";
 import { memoryMailer } from "../services/mailer.js";
 import { fakePdfRenderer } from "../services/pdf.js";
 import { memoryPushSender } from "../services/push.js";
+import { memoryWebhookSender } from "../services/webhooks.js";
 import { createDb } from "./client.js";
 import { clubs, competitions, teams, users, venues } from "./schema.js";
 
@@ -29,6 +30,7 @@ const app = await buildApp({
   mailer: memoryMailer(),
   push: memoryPushSender(),
   pdf: fakePdfRenderer(),
+  webhooks: memoryWebhookSender(),
   now: () => new Date(),
   authRateLimit: { max: 1000, windowMs: 1000 },
   apiRateLimit: { max: 1000, windowMs: 1000 },

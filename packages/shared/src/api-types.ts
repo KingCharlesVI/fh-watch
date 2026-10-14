@@ -60,6 +60,34 @@ export interface Revision {
   createdBy: { id: string; displayName: string | null } | null;
 }
 
+/** One thing that happened to a match, for its history: a revision saved, publishing, an umpire change. */
+export interface MatchHistoryEntry {
+  at: string;
+  action: "create" | "update" | "publish" | "unpublish" | "set_umpire_2" | "remove_umpire_2";
+  /** Null when the account was deleted. */
+  actor: { id: string; displayName: string } | null;
+  /** For create and update: the revision saved and where from. */
+  revision: number | null;
+  source: "watch" | "mobile" | "web" | null;
+  /** For update: what changed from the revision before, in plain English. For set_umpire_2: who. */
+  changes: string[];
+  /** Why, when it wasn't an umpire's own edit (e.g. an admin merging duplicate teams). */
+  reason: string | null;
+}
+
+/** A row of the audit log: who did what to which record. */
+export interface AuditEntry {
+  id: number;
+  at: string;
+  /** Null for the system (e.g. the command line), or when the account was deleted. */
+  actor: { id: string; displayName: string } | null;
+  action: string;
+  entity: string;
+  entityId: string;
+  /** Whatever the write recorded: the new values, or before and after. */
+  diff: unknown;
+}
+
 export interface Club {
   id: string;
   name: string;
@@ -275,4 +303,64 @@ export interface Problem {
   errors?: (ValidationIssue | { path: string; message: string })[];
   warnings?: ValidationIssue[];
   currentRevision?: number;
+}
+
+/** What a webhook is told about. `ping` is only sent when someone presses Send test. */
+export type WebhookEvent = "match.published" | "match.updated" | "match.unpublished" | "match.deleted" | "ping";
+
+/**
+ * What a webhook sends: the signed JSON payload for the club's or league's own system, or a short
+ * message for a chat channel's incoming webhook.
+ */
+export type WebhookFormat = "json" | "slack" | "discord" | "teams";
+
+/** An address told about a club's or a competition's published matches. */
+export interface Webhook {
+  id: string;
+  /** Exactly one of these: the club whose teams' matches it hears about, or the competition. */
+  clubId: string | null;
+  competitionId: string | null;
+  url: string;
+  /** Fixed when it's added: to change it, add another. */
+  format: WebhookFormat;
+  description: string | null;
+  /** Off when someone turns it off, or after 5 deliveries in a row fail for good. */
+  enabled: boolean;
+  /** Deliveries in a row that failed for good. */
+  failures: number;
+  createdAt: string;
+}
+
+/** A webhook just made, or with a new secret: the only time the secret is shown. */
+export interface WebhookWithSecret {
+  webhook: Webhook;
+  secret: string;
+}
+
+export interface WebhookDelivery {
+  id: string;
+  event: WebhookEvent;
+  matchId: string | null;
+  status: "pending" | "delivered" | "failed";
+  attempts: number;
+  /** The receiver's HTTP status from the last attempt, or null if it couldn't be reached. */
+  responseStatus: number | null;
+  error: string | null;
+  nextAttemptAt: string | null;
+  createdAt: string;
+  deliveredAt: string | null;
+}
+
+/** The JSON body of every delivery in the `json` format (chat formats get a message instead). Match events carry the match as its public page shows it. */
+export interface WebhookPayload {
+  id: string;
+  event: WebhookEvent;
+  createdAt: string;
+  data: {
+    /** match.published and match.updated: the match and its summary. */
+    match?: Match;
+    summary?: MatchSummary;
+    /** match.unpublished and match.deleted: only which match, as it's no longer public. */
+    matchId?: string;
+  };
 }

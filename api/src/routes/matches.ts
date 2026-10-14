@@ -1,10 +1,12 @@
 import {
   type FullMatch,
   type MatchDocument as MatchDoc,
+  type MatchHistoryEntry,
   MatchDocument,
   canOnMatch,
   canUploadMatch,
   checkSemantics,
+  describeChanges,
   hasRole,
   matchEventsToCsv,
   matchListToCsv,
@@ -14,19 +16,20 @@ import {
 } from "@fh/shared";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type SQL, and, desc, eq, exists, gte, ilike, inArray, isNull, lt, or, sql } from "drizzle-orm";
+import { type SQL, and, asc, desc, eq, exists, gte, ilike, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import type { FastifyReply } from "fastify";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { type AuthUser, requireActor, requireRole } from "../auth.js";
 import type { DbOrTx } from "../db/client.js";
-import { matchRevisions, matchUmpires, matches, teams, users } from "../db/schema.js";
+import { auditLog, matchRevisions, matchUmpires, matches, teams, users } from "../db/schema.js";
 import type { AppDeps } from "../deps.js";
 import { decodeCursor, page } from "../lib/cursor.js";
 import { HttpError, badRequest, forbidden, notFound } from "../lib/errors.js";
 import { parseIfMatch, revisionEtag } from "../lib/etag.js";
 import { Limit, containsPattern } from "../lib/sql.js";
 import { audit } from "../services/audit.js";
+import { queueMatchEvent } from "../services/webhooks.js";
 
 import {
   type MatchRow,
@@ -70,6 +73,9 @@ function matchesWords(q: string): SQL | undefined {
 }
 
 const BULK_EXPORT_MAX = 5000;
+
+/** Audit log actions on a match shown in its history, besides the revisions themselves. */
+const HISTORY_ACTIONS = ["publish", "unpublish", "set_umpire_2", "remove_umpire_2"];
 
 /** Matches involving a club: its team is home or away. */
 const involvesClub = (db: DbOrTx, clubId: string) =>
@@ -289,6 +295,7 @@ export const matchRoutes =
             .where(eq(matches.id, id));
           await tx.insert(matchRevisions).values({ matchId: id, revision, document, createdBy: actor.id, source, createdAt: now });
           await audit(tx, actor.id, "update", "match", id, { revision, source });
+          if (existing.status === "published") await queueMatchEvent(tx, config.webUrl, id, "match.updated", now);
           return { status: 200 as const, revision };
         });
 
@@ -331,6 +338,7 @@ export const matchRoutes =
             .onConflictDoUpdate({ target: [matchUmpires.matchId, matchUmpires.slot], set: value });
           await tx.update(matches).set({ updatedAt: deps.now() }).where(eq(matches.id, match.id));
           await audit(tx, actor.id, "set_umpire_2", "match", match.id, value);
+          if (match.status === "published") await queueMatchEvent(tx, config.webUrl, match.id, "match.updated", deps.now());
         });
         return { match: await dtoFor(match.id) };
       },
@@ -340,8 +348,12 @@ export const matchRoutes =
       const actor = requireActor(request);
       const { match } = await loadForAction(eq(matches.id, request.params.id), actor, "edit");
       await db.transaction(async (tx) => {
-        await tx.delete(matchUmpires).where(and(eq(matchUmpires.matchId, match.id), eq(matchUmpires.slot, 2)));
+        const removed = await tx
+          .delete(matchUmpires)
+          .where(and(eq(matchUmpires.matchId, match.id), eq(matchUmpires.slot, 2)))
+          .returning({ slot: matchUmpires.slot });
         await audit(tx, actor.id, "remove_umpire_2", "match", match.id);
+        if (removed.length && match.status === "published") await queueMatchEvent(tx, config.webUrl, match.id, "match.updated", deps.now());
       });
       return { match: await dtoFor(match.id) };
     });
@@ -353,6 +365,7 @@ export const matchRoutes =
         await db.transaction(async (tx) => {
           await publishMatch(tx, match, deps.now());
           await audit(tx, actor.id, "publish", "match", match.id);
+          await queueMatchEvent(tx, config.webUrl, match.id, "match.published", deps.now());
         });
       }
       return { match: await dtoFor(match.id) };
@@ -376,6 +389,7 @@ export const matchRoutes =
             .set({ status: "draft", publishedAt: null, updatedAt: deps.now() })
             .where(eq(matches.id, match.id));
           await audit(tx, actor.id, "unpublish", "match", match.id);
+          if (match.status === "published") await queueMatchEvent(tx, config.webUrl, match.id, "match.unpublished", deps.now());
         });
         return { match: await dtoFor(match.id) };
       },
@@ -390,6 +404,7 @@ export const matchRoutes =
         await db.transaction(async (tx) => {
           await tx.update(matches).set({ deletedAt: deps.now() }).where(eq(matches.id, match.id));
           await audit(tx, actor.id, "delete", "match", match.id);
+          if (match.status === "published") await queueMatchEvent(tx, config.webUrl, match.id, "match.deleted", deps.now());
         });
         return reply.code(204).send();
       },
@@ -549,6 +564,79 @@ export const matchRoutes =
           .where(and(eq(matchRevisions.matchId, match.id), eq(matchRevisions.revision, request.params.revision)));
         if (!rev) throw notFound("Revision not found.");
         return { revision: rev.revision, source: rev.source, createdAt: rev.createdAt.toISOString(), document: rev.document };
+      },
+    );
+
+    app.get(
+      "/matches/:id/history",
+      {
+        schema: {
+          tags: ["matches"],
+          summary: "Everything that happened to a match, newest first: each revision with what it changed, publishing, and umpire 2.",
+          params: IdParams,
+        },
+      },
+      async (request) => {
+        const { match } = await loadForAction(eq(matches.id, request.params.id), request.actor, "view_history");
+        const [revisions, events] = await Promise.all([
+          db
+            .select({
+              revision: matchRevisions.revision,
+              source: matchRevisions.source,
+              createdAt: matchRevisions.createdAt,
+              document: matchRevisions.document,
+              actorId: matchRevisions.createdBy,
+              actorName: users.displayName,
+            })
+            .from(matchRevisions)
+            .leftJoin(users, eq(users.id, matchRevisions.createdBy))
+            .where(eq(matchRevisions.matchId, match.id))
+            .orderBy(asc(matchRevisions.revision)),
+          db
+            .select({ id: auditLog.id, at: auditLog.at, action: auditLog.action, diff: auditLog.diff, actorId: auditLog.actorId, actorName: users.displayName })
+            .from(auditLog)
+            .leftJoin(users, eq(users.id, auditLog.actorId))
+            .where(and(eq(auditLog.entity, "match"), eq(auditLog.entityId, match.id), inArray(auditLog.action, [...HISTORY_ACTIONS, "update"])))
+            .orderBy(asc(auditLog.id)),
+        ]);
+        const actor = (id: string | null, name: string | null) => (id && name !== null ? { id, displayName: name } : null);
+        // Why a revision was saved, when the audit log says (e.g. an admin merging teams).
+        const reasons = new Map<number, string>();
+        for (const e of events) {
+          const d = e.diff as { revision?: number; reason?: string } | null;
+          if (e.action === "update" && d?.revision && d.reason) reasons.set(d.revision, d.reason);
+        }
+
+        const entries: { order: number; entry: MatchHistoryEntry }[] = revisions.map((r, i) => ({
+          order: i,
+          entry: {
+            at: r.createdAt.toISOString(),
+            action: r.revision === 1 ? "create" : "update",
+            actor: actor(r.actorId, r.actorName),
+            revision: r.revision,
+            source: r.source,
+            changes: i === 0 ? [] : describeChanges(revisions[i - 1]!.document, r.document),
+            reason: reasons.get(r.revision) ?? null,
+          },
+        }));
+        for (const e of events) {
+          if (e.action === "update") continue;
+          const d = e.diff as { name?: string } | null;
+          entries.push({
+            order: revisions.length + e.id,
+            entry: {
+              at: e.at.toISOString(),
+              action: e.action as MatchHistoryEntry["action"],
+              actor: actor(e.actorId, e.actorName),
+              revision: null,
+              source: null,
+              changes: e.action === "set_umpire_2" && d?.name ? [`Umpire 2: ${d.name}`] : [],
+              reason: null,
+            },
+          });
+        }
+        entries.sort((a, b) => b.entry.at.localeCompare(a.entry.at) || b.order - a.order);
+        return { items: entries.map((e) => e.entry) };
       },
     );
   };

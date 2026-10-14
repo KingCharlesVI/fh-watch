@@ -114,7 +114,8 @@ A match the caller isn't allowed to see answers `404`, not `403`, so draft match
 | 🔑 | `DELETE /matches/:id/umpires/2` | Remove them |
 | 🔑 | `POST /matches/:id/publish` | Make it public, with a share code |
 | 🔑 | `POST /matches/:id/unpublish` | Hide it again |
-| 🔑 | `GET /matches/:id/revisions` | Its edit history |
+| 🔑 | `GET /matches/:id/history` | Everything that happened to it, newest first: each revision with what it changed in plain English (`Score: 2–1 → 2–2`), publishing and unpublishing, and umpire 2 being set or removed |
+| 🔑 | `GET /matches/:id/revisions` | Its revisions |
 | 🔑 | `GET /matches/:id/revisions/:revision` | One past revision's document |
 | 🛡️ | `DELETE /matches/:id` | Delete it (purged after 30 days) |
 
@@ -208,6 +209,18 @@ An hourly job emails each club's admins about fixtures in the next week still sh
 | 🛡️ | `GET /users/:id` | One user |
 | 🛡️ | `PATCH /users/:id` | Set their name, roles and club |
 | 🛡️ | `DELETE /users/:id` | Delete them; their matches stay |
+
+### Admin: audit log
+
+Every change made through the API is recorded: who made it, to which record, when, and what it was.
+
+| | Route | |
+| --- | --- | --- |
+| 🛡️ | `GET /audit` | The log, newest first. Filters: `entity` (`match`, `club`, `team`, `user`, `webhook`…), `entityId`, `actorId`, `action` (`create`, `update`, `delete`, `publish`…), `from`, `to`. Paged with `cursor` and `limit` |
+
+### Webhooks
+
+Addresses told about a club's or a competition's published matches, with signed deliveries and retries. See [Webhooks](technical/webhooks.md) for the routes, what's sent and how to check it.
 
 ## Trying it
 

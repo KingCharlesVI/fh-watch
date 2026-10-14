@@ -60,7 +60,7 @@ Each can be saved to a folder you pick (**Save to phone**) or shared:
 - **Details**: competition and venue. Type them, or pick from the website's lists as you type (e.g. `south` for **South League Premier**). One that isn't on the list can be added there, as for a venue when setting up a match.
 - **Teams**: names, colours and captains, and the **club team** each one is: search for it (e.g. `hawks m1`) to link it, which puts the match on the club's pages on the website.
 - **Umpires**: your colleague. Search for them if they have an account (they can then edit the match too), or type their name if they don't.
-- **Events**: add a goal, card, penalty corner, stroke or note at a period and time; cancel an event (it's kept, struck through, and can be restored); add or change a card's reason.
+- **Events**: add a goal, card, penalty corner, stroke or note at a period and time; cancel an event (it's kept, struck through, and can be restored); change a goal's or card's shirt number, and a card's reason, with **Edit**.
 
 **Save** checks the match first (the score and the events must make sense) and says what to fix if something's wrong.
 
@@ -80,7 +80,7 @@ At the ground, open the match and tap **Send to watch**, as above. It's marked *
 
 Upcoming matches are kept on the phone only, and aren't in backups.
 
-If a club appoints you, **Upcoming** also shows its requests to **Accept** or **Decline**, and matches you're second umpire for. A match you accept as the watch umpire joins the list already set up, marked **Appointed**: add the colours and captains, and send it to the watch as usual. Until you send it, it follows any change the club makes; if you delete it, it isn't added again. You're reminded the day before. Appointments are fetched when the app opens and when you come back to it; pull down on **Upcoming** to fetch them now. Asking for cover, and taking someone else's over, are on the website. See [Club umpiring](guide/club-umpiring.md).
+If a club appoints you, **Upcoming** also shows its requests to **Accept** or **Decline**, and matches you're second umpire for. A match you accept as the watch umpire joins the list already set up, marked **Appointed** and showing who you're umpiring with: add the colours and captains, and send it to the watch as usual. Until you send it, it follows any change the club makes; if you delete it, it isn't added again. You're reminded the day before. Appointments are fetched when the app opens and when you come back to it; pull down on **Upcoming** to fetch them now. **Availability**, next to **New match**, shows a month at a time, up to a year ahead: tap a day to say you're free or not, press and hold one to give the hours you can do, and pick the weekdays you're never free. Asking for cover, and taking someone else's over, are on the website. See [Club umpiring](guide/club-umpiring.md).
 
 ## Backups and moving phones
 

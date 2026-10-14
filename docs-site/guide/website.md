@@ -18,7 +18,7 @@ Register with your email address, in the phone app (**Create an account** on the
 3. The match is a **draft** on the website: only you and your colleague can see it. **Publish** it from the phone or the website when you're happy with it: nothing is published until you do.
 4. **Share** a published match with a link or QR code.
 
-Both umpires on a match can edit it; the website keeps every revision.
+Both umpires on a match can edit it; the website keeps every revision. A match's **History**, at the bottom of its page, shows each change: who made it, when, from which app, and what changed (`Score: 2–1 → 2–2`, `Added: H2 15:00 Goal, Reading M1 #7`), as well as when it was published or unpublished.
 
 If clubs appoint you to their fixtures, **Umpiring** has your appointments, availability and season. See [Club umpiring](guide/club-umpiring.md).
 
@@ -29,6 +29,8 @@ The **Dashboard** lists your matches, with downloads of them all. Filter them by
 Club admins keep their club's **teams** up to date from **manage teams** on the **Dashboard** (or **Manage club** on the club's page): add and rename them. Umpires link a match's teams to these, which puts the match on the club's pages, and the phone app offers them as team names when an umpire sets up a match.
 
 Club admins can also organise their club's umpiring from the **Dashboard**: a list of the club's umpires, its fixtures, and who's appointed to each. See [Club umpiring](guide/club-umpiring.md).
+
+**Webhooks**, also on the **Dashboard**, post the club's results to a Slack, Discord or Microsoft Teams channel, or send them to the club's own website or another system, the moment they're published, and again whenever they change. See [Webhooks](technical/webhooks.md); whoever looks after the receiving end will need it.
 
 Anyone can ask for a new club, or to be a club's admin, from their account page; an admin approves it.
 
@@ -41,6 +43,8 @@ Anyone can ask for a new club, or to be a club's admin, from their account page;
 - **Clubs and teams**, **Venues** and **Competitions**: add, rename, delete and merge duplicates (below), and each competition's umpire level.
 - **Import**: many clubs and teams, venues or competitions at once (below).
 - **All matches**: every match on the dashboard, drafts included.
+- **Webhooks**: every club's webhooks, and competitions', which only admins can add (for a league's own results table, say). See [Webhooks](technical/webhooks.md).
+- **Audit log**: every change made through the apps and the website, newest first: who made it, to what, and the details. Filter it by kind of record or action; pick a record to see everything that happened to it, or a person to see everything they did (also from **Their changes** on a user's page).
 
 ## Venues and competitions
 

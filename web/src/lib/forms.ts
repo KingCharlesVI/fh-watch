@@ -1,7 +1,7 @@
 import { ApiError } from "./api";
 
 /** What a server action tells its form: an error to show, or a success message. */
-export type FormState = { error?: string; details?: string[]; ok?: string } | undefined;
+export type FormState = { error?: string; details?: string[]; ok?: string; secret?: string } | undefined;
 
 /** Turns an API problem into form feedback. Anything else (including redirects) is rethrown. */
 export function formError(err: unknown): FormState {

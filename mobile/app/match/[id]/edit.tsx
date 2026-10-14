@@ -2,6 +2,7 @@ import {
   CARD_REASONS,
   type CardReason,
   type EventInput,
+  type MatchEvent,
   type MatchDocument,
   type TeamSide,
   type TeamWithClub,
@@ -11,9 +12,11 @@ import {
   describeEvent,
   eventTime,
   parseMatch,
+  parseShirtNumber,
   periodLabel,
   restoreEvent,
   setCardReason,
+  setEventPlayer,
   sortChronologically,
   summarizeMatch,
   voidedSeqs,
@@ -329,8 +332,8 @@ function EventsCard({ doc, saved, onChange }: { doc: MatchDocument; saved: Match
   const c = useColors();
   const savedSeqs = useMemo(() => new Set(saved.events.map((e) => e.seq)), [saved]);
   const voided = voidedSeqs(doc);
-  // The card whose reason is being picked, if any.
-  const [reasonFor, setReasonFor] = useState<number | null>(null);
+  // The goal or card whose shirt number and reason are being changed, if any.
+  const [editing, setEditing] = useState<number | null>(null);
   const shown = sortChronologically(doc.events.filter((e) => e.type !== "void" && e.type !== "period_start" && e.type !== "period_end"));
 
   return (
@@ -352,8 +355,8 @@ function EventsCard({ doc, saved, onChange }: { doc: MatchDocument; saved: Match
                   </Text>
                 )}
               </View>
-              {e.type === "card" && !isVoided && (
-                <Button small variant="ghost" title="Reason" onPress={() => setReasonFor(reasonFor === e.seq ? null : e.seq)} />
+              {(e.type === "goal" || e.type === "card") && !isVoided && (
+                <Button small variant="ghost" title="Edit" onPress={() => setEditing(editing === e.seq ? null : e.seq)} />
               )}
               {isVoided ? (
                 <Button small variant="ghost" title="Restore" onPress={() => onChange(restoreEvent(doc, e.seq))} />
@@ -361,22 +364,47 @@ function EventsCard({ doc, saved, onChange }: { doc: MatchDocument; saved: Match
                 <Button small variant="ghost" title={savedSeqs.has(e.seq) ? "Cancel" : "Remove"} onPress={() => onChange(cancelEvent(doc, e.seq, savedSeqs))} />
               )}
             </View>
-            {e.type === "card" && reasonFor === e.seq && (
-              <View style={{ paddingVertical: space.sm }}>
-                <ReasonChoice
-                  value={e.reason}
-                  onChange={(reason) => {
-                    onChange(setCardReason(doc, e.seq, reason ?? null));
-                    setReasonFor(null);
-                  }}
-                />
-              </View>
+            {(e.type === "goal" || e.type === "card") && editing === e.seq && (
+              <EventDetails event={e} doc={doc} onChange={onChange} onDone={() => setEditing(null)} />
             )}
           </View>
         );
       })}
       <AddEvent doc={doc} onAdd={(ev) => onChange(addEvent(doc, ev))} />
     </Card>
+  );
+}
+
+/** A goal's or card's shirt number, and a card's reason, changed in place. */
+function EventDetails({
+  event,
+  doc,
+  onChange,
+  onDone,
+}: {
+  event: Extract<MatchEvent, { type: "goal" | "card" }>;
+  doc: MatchDocument;
+  onChange: (d: MatchDocument) => void;
+  onDone: () => void;
+}) {
+  const c = useColors();
+  const [number, setNumber] = useState(event.player?.toString() ?? "");
+  const [error, setError] = useState<string | null>(null);
+
+  function changeNumber(value: string) {
+    setNumber(value);
+    const parsed = parseShirtNumber(value, event.type === "card");
+    setError("error" in parsed ? parsed.error : null);
+    if (!("error" in parsed)) onChange(setEventPlayer(doc, event.seq, parsed.player ?? null));
+  }
+
+  return (
+    <View style={{ gap: space.sm, paddingVertical: space.sm }}>
+      <Field label="Shirt number" value={number} onChangeText={changeNumber} keyboardType="number-pad" maxLength={3} />
+      {error && <T variant="small" style={{ color: c.danger }}>{error}</T>}
+      {event.type === "card" && <ReasonChoice value={event.reason} onChange={(reason) => onChange(setCardReason(doc, event.seq, reason ?? null))} />}
+      <Button small variant="outline" title="Done" onPress={onDone} />
+    </View>
   );
 }
 

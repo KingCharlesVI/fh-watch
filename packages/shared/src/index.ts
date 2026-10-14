@@ -5,6 +5,7 @@ export * from "./csv.js";
 export { buildMatchJsonSchema } from "./json-schema.js";
 export * from "./policy.js";
 export * from "./describe.js";
+export * from "./changes.js";
 export * from "./edit.js";
 export * from "./report.js";
 export * from "./umpiring.js";

@@ -52,7 +52,18 @@ export default function UpcomingScreen() {
         ) : undefined
       }
     >
-      <Button title="New match" icon="add" onPress={() => router.push("/upcoming/new")} />
+      {ONLINE ? (
+        <Row>
+          <View style={{ flex: 1 }}>
+            <Button title="New match" icon="add" onPress={() => router.push("/upcoming/new")} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button title="Availability" icon="calendar-outline" variant="outline" onPress={() => router.push("/availability")} />
+          </View>
+        </Row>
+      ) : (
+        <Button title="New match" icon="add" onPress={() => router.push("/upcoming/new")} />
+      )}
       {appointments && <Appointments items={appointments} today={today} />}
       {list && shown.length === 0 && (
         <Empty icon="calendar-outline" title="No upcoming matches">
@@ -101,6 +112,12 @@ function UpcomingItem({ match: u, today, first }: { match: UpcomingMatch; today:
       <Text style={{ color: c.muted, fontSize: 14 }} numberOfLines={1}>
         {[format, s.competition?.trim(), s.venue?.trim()].filter(Boolean).join(" · ")}
       </Text>
+      {u.colleague && (
+        <Text style={{ color: c.muted, fontSize: 14 }} numberOfLines={1}>
+          With {u.colleague.displayName}
+          {u.colleague.status === "offered" ? " (asked)" : ""}
+        </Text>
+      )}
     </Pressable>
   );
 }

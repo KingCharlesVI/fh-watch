@@ -13,6 +13,7 @@ import type { AppDeps } from "./deps.js";
 import { HttpError, isUniqueViolation } from "./lib/errors.js";
 import { RateLimiter } from "./lib/rate-limit.js";
 import { accessRequestRoutes } from "./routes/access-requests.js";
+import { auditRoutes } from "./routes/audit.js";
 import { authRoutes } from "./routes/auth.js";
 import { appointmentRoutes } from "./routes/appointments.js";
 import { availabilityRoutes } from "./routes/availability.js";
@@ -24,6 +25,7 @@ import { importRoutes } from "./routes/import.js";
 import { listRoutes } from "./routes/lists.js";
 import { matchRoutes } from "./routes/matches.js";
 import { userRoutes } from "./routes/users.js";
+import { webhookRoutes } from "./routes/webhooks.js";
 
 function problem(status: number, slug: string, title: string, extra: Record<string, unknown> = {}) {
   return { type: `/problems/${slug}`, title, status, ...extra };
@@ -128,6 +130,8 @@ export async function buildApp(deps: AppDeps, options: { logger?: FastifyBaseLog
       await v1.register(availabilityRoutes(deps));
       await v1.register(appointmentRoutes(deps));
       await v1.register(calendarRoutes(deps));
+      await v1.register(auditRoutes(deps));
+      await v1.register(webhookRoutes(deps));
     },
     { prefix: "/v1" },
   );
