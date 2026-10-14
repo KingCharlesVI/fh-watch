@@ -31,5 +31,6 @@ export type {
   Venue,
   Webhook,
   WebhookDelivery,
+  WebhookFormat,
   WebhookWithSecret,
 } from "@fh/shared";

@@ -21,11 +21,14 @@ async function attempt(call: () => Promise<FormState | void>, ok: string): Promi
 /** `owner` is "club:<id>" or "competition:<id>". */
 export async function createWebhook(_: FormState, fd: FormData): Promise<FormState> {
   const [kind, id] = text(fd, "owner").split(":");
+  const format = text(fd, "format") || "json";
   return attempt(async () => {
     const created = await api<WebhookWithSecret>("/v1/webhooks", {
       method: "POST",
-      body: { [kind === "competition" ? "competitionId" : "clubId"]: id, url: text(fd, "url"), description: optionalText(fd, "description") ?? null },
+      body: { [kind === "competition" ? "competitionId" : "clubId"]: id, url: text(fd, "url"), format, description: optionalText(fd, "description") ?? null },
     });
+    // Nothing checks a channel's messages, so its secret is no use to show.
+    if (format !== "json") return { ok: "Added. Send a test to check it reaches the channel." };
     return { ok: "Added. Copy its secret now: it isn't shown again.", secret: created.secret };
   }, "Added.");
 }

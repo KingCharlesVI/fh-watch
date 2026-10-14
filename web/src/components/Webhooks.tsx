@@ -8,10 +8,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDateTime } from "@/lib/format";
-import type { Webhook, WebhookDelivery } from "@/lib/types";
+import type { Webhook, WebhookDelivery, WebhookFormat } from "@/lib/types";
 
 /** Where the format, the events and how to check the signature are written up. */
 export const WEBHOOK_DOCS = "https://docs.fhmatchcentre.com/#/technical/webhooks";
+
+const FORMATS: { value: WebhookFormat; label: string }[] = [
+  { value: "slack", label: "A Slack channel" },
+  { value: "discord", label: "A Discord channel" },
+  { value: "teams", label: "A Microsoft Teams channel" },
+  { value: "json", label: "Your own website or system (signed JSON)" },
+];
+
+const FORMAT_NAMES: Record<WebhookFormat, string> = { slack: "Slack", discord: "Discord", teams: "Teams", json: "JSON" };
 
 const EVENTS: Record<WebhookDelivery["event"], string> = {
   "match.published": "Published",
@@ -34,8 +43,9 @@ export function AddWebhook({ owners }: { owners: { value: string; label: string 
       <CardHeader>
         <CardTitle>Add a webhook</CardTitle>
         <CardDescription>
-          A web address told within half a minute whenever a match is published, changed after publishing, unpublished or deleted. It gets the match
-          as its public page shows it, signed with a secret so the receiver can tell it came from here. <Link href={WEBHOOK_DOCS}>What it sends</Link>.
+          Posts the result to a Slack, Discord or Teams channel within half a minute whenever a match is published, changed after publishing,
+          unpublished or deleted. Or, for your own website, sends the match as its public page shows it, signed so it can tell it came from here.{" "}
+          <Link href={WEBHOOK_DOCS}>How to set one up</Link>.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -48,7 +58,18 @@ export function AddWebhook({ owners }: { owners: { value: string; label: string 
               <FilterSelect name="owner" defaultValue={owners[0]?.value ?? ""} options={owners} />
             </Field>
           )}
-          <TextField label="Address" name="url" type="url" required placeholder="https://example.com/hockey-results" hint="Must start with https://." />
+          <Field>
+            <FieldLabel>Send to</FieldLabel>
+            <FilterSelect name="format" defaultValue="slack" options={FORMATS} />
+          </Field>
+          <TextField
+            label="Address"
+            name="url"
+            type="url"
+            required
+            placeholder="https://hooks.slack.com/services/…"
+            hint="Must start with https://. For a channel, its incoming webhook: in Slack, add Incoming Webhooks to the channel; in Discord, the channel's settings, Integrations; in Teams, a Workflows “post to a channel when a webhook request is received”."
+          />
           <TextField label="Description (optional)" name="description" maxLength={200} placeholder="e.g. the league's results table" />
         </ActionForm>
       </CardContent>
@@ -63,6 +84,7 @@ export function WebhookCard({ webhook: w, deliveries, owner }: { webhook: Webhoo
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center gap-2 break-all">
           {w.url}
+          {w.format !== "json" && <Badge variant="secondary">{FORMAT_NAMES[w.format]}</Badge>}
           {w.enabled ? (
             w.failures > 0 && <Badge variant="destructive">{w.failures} failed in a row</Badge>
           ) : (
@@ -123,15 +145,17 @@ export function WebhookCard({ webhook: w, deliveries, owner }: { webhook: Webhoo
           <input type="hidden" name="id" value={w.id} />
           <input type="hidden" name="enabled" value={String(!w.enabled)} />
         </ActionForm>
-        <ActionForm
-          action={newWebhookSecret}
-          submitLabel="New secret"
-          variant="outline"
-          className="max-w-none gap-2"
-          confirm={{ title: "Replace the secret?", description: "The old one stops working straight away, so the receiver needs the new one before it can trust deliveries again.", action: "Replace" }}
-        >
-          <input type="hidden" name="id" value={w.id} />
-        </ActionForm>
+        {w.format === "json" && (
+          <ActionForm
+            action={newWebhookSecret}
+            submitLabel="New secret"
+            variant="outline"
+            className="max-w-none gap-2"
+            confirm={{ title: "Replace the secret?", description: "The old one stops working straight away, so the receiver needs the new one before it can trust deliveries again.", action: "Replace" }}
+          >
+            <input type="hidden" name="id" value={w.id} />
+          </ActionForm>
+        )}
         <ActionForm
           action={deleteWebhook}
           submitLabel="Delete"
