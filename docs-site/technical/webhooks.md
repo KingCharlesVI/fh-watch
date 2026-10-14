@@ -1,11 +1,33 @@
 # Webhooks
 
-A webhook sends a club's or a competition's results to another system as soon as they're published: a club's own website, a league's results table, a chat bot. FH Match Centre posts each change to an address you choose, and signs it, so the receiver can be sure it came from here.
+A webhook sends a club's or a competition's results somewhere else as soon as they're published: a Slack, Discord or Microsoft Teams channel, a club's own website, or a league's results table. A channel gets a short message; anything else gets the whole match, signed, so the receiver can be sure it came from here.
 
 - **A club's webhook** hears about every match one of the club's teams plays (once both teams are linked, a match is heard about by both clubs). Its club admins add it from **Dashboard → webhooks**, and admins from **Admin → Webhooks**.
 - **A competition's webhook** hears about every match whose competition has that name, in any capitals. Only admins add these, for example for a league secretary.
 
 There can be up to 5 for each club or competition. Only published matches are sent: a draft never is.
+
+## Slack, Discord and Teams
+
+Choose the platform under **Send to** when adding the webhook, and paste the channel's incoming webhook address:
+
+- **Slack**: add the *Incoming Webhooks* app to your workspace, choose the channel, and copy the address. It starts `https://hooks.slack.com/services/`.
+- **Discord**: in the channel's settings, **Integrations → Webhooks → New Webhook**, then **Copy Webhook URL**. It starts `https://discord.com/api/webhooks/`.
+- **Microsoft Teams**: in the channel's **⋯** menu, **Workflows**, then *Post to a channel when a webhook request is received*. Copy the address it gives you at the end.
+
+Then press **Send test**: a test message should appear in the channel within half a minute. If it doesn't, the delivery's error on the webhook's page says what the platform answered.
+
+Each message gives the result, the competition, the day and the venue, with a link to the match report:
+
+> **Result: Oxford Hawks M1 3–1 Reading M1**
+> South League Premier · Sat 11 Oct · Banbury Road, Oxford
+> Match report
+
+A published match that's changed is posted again as *Result corrected*, and one that's unpublished or deleted as *Result withdrawn* or *Result removed*, without the link. Umpires aren't named, since anyone in the channel can read it.
+
+The platform can't be changed once a webhook is added: add another, then delete the old one. A Slack or Discord address is checked when it's added, so one pasted under the wrong platform is caught.
+
+Everything below is for **your own system**, which gets the signed JSON.
 
 ## Events
 
@@ -103,7 +125,7 @@ The address must start with `https://` and be on the public internet. Addresses 
 | | Route | |
 | --- | --- | --- |
 | 🏷️ | `GET /webhooks?clubId=` · `?competitionId=` | A club's (its admins, admins) or a competition's (admins) webhooks. With neither, admins get all of them and club admins their club's |
-| 🏷️ | `POST /webhooks` | Add one: `{ clubId \| competitionId, url, description? }`. Answers `{ webhook, secret }`; the secret isn't shown again |
+| 🏷️ | `POST /webhooks` | Add one: `{ clubId \| competitionId, url, format?, description? }`. `format` is `json` (the default), `slack`, `discord` or `teams`. Answers `{ webhook, secret }`; the secret isn't shown again, and isn't used by the chat formats |
 | 🏷️ | `PATCH /webhooks/:id` | Change `{ url, description, enabled }`. Turning it back on clears its failures |
 | 🏷️ | `DELETE /webhooks/:id` | Delete it and its deliveries |
 | 🏷️ | `POST /webhooks/:id/secret` | A new secret, `{ webhook, secret }` |

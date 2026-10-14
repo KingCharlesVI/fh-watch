@@ -1,6 +1,6 @@
 # FH Match Centre privacy policy
 
-Last updated: 11 October 2026
+Last updated: 14 October 2026
 
 FH Match Centre is a field hockey umpiring system: a watch app and a phone app that umpires use to time and record matches, and a website at app.fhmatchcentre.com where umpires publish results and clubs keep their teams up to date. This policy covers all of them, and the project's other sites: fhmatchcentre.com, docs.fhmatchcentre.com and status.fhmatchcentre.com.
 
@@ -29,7 +29,7 @@ Nothing leaves your phone until you tap **Upload**. An uploaded match holds what
 
 - A match you've uploaded but not published is a **draft**: only you, the other umpire on it, the admins of the clubs whose teams played, and our admins can see it.
 - A match you **publish** is public: anyone can see it on the website and download it, and search engines may list it. Players are shown by shirt number, never by name, but people who know the teams may recognise them. You can unpublish a match at any time.
-- A published match can also be sent automatically to another system: a club whose team played can have it sent to the club's own website, and we can send a league's matches to its results table. They get what anyone can see on the match's public page, and again whenever it changes. If you unpublish the match, or it's deleted, they're told it's gone, but what they've already received is theirs to remove.
+- A published match can also be sent automatically to another system: a club whose team played can have it sent to the club's own website, and we can send a league's matches to its results table. They get what anyone can see on the match's public page, and again whenever it changes. A club or league can instead have a short message posted in its own Slack, Discord or Microsoft Teams channel: the teams, the score, the competition, the day and the venue, but not the umpires' names. If you unpublish the match, or it's deleted, they're told it's gone, but what they've already received is theirs to remove.
 
 *Why we're allowed to:* uploading and publishing are what you use the service for, and publishing results is in the legitimate interest of the clubs, players and umpires who follow them.
 

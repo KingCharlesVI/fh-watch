@@ -30,7 +30,7 @@ Club admins keep their club's **teams** up to date from **manage teams** on the 
 
 Club admins can also organise their club's umpiring from the **Dashboard**: a list of the club's umpires, its fixtures, and who's appointed to each. See [Club umpiring](guide/club-umpiring.md).
 
-**Webhooks**, also on the **Dashboard**, send the club's results to the club's own website or another system the moment they're published, and again whenever they change. See [Webhooks](technical/webhooks.md); whoever looks after the receiving end will need it.
+**Webhooks**, also on the **Dashboard**, post the club's results to a Slack, Discord or Microsoft Teams channel, or send them to the club's own website or another system, the moment they're published, and again whenever they change. See [Webhooks](technical/webhooks.md); whoever looks after the receiving end will need it.
 
 Anyone can ask for a new club, or to be a club's admin, from their account page; an admin approves it.
 

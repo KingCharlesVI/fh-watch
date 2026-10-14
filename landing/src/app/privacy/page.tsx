@@ -25,7 +25,7 @@ export default function Privacy() {
         <Container className="max-w-2xl py-14">
           <article className="space-y-5 text-muted-foreground [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_strong]:text-foreground">
             <h1 className="text-3xl font-semibold tracking-tight">Privacy policy</h1>
-            <p className="text-sm">Last updated 11 October 2026.</p>
+            <p className="text-sm">Last updated 14 October 2026.</p>
             <p>
               {SITE.name} is a field hockey umpiring system: a watch app and a phone app that umpires use to time and record matches, and a website at
               app.fhmatchcentre.com where umpires publish results and clubs keep their teams up to date. This policy covers all of them, and the
@@ -82,8 +82,9 @@ export default function Privacy() {
               <li>
                 A published match can also be sent automatically to another system: a club whose team played can have it sent to the club&apos;s own
                 website, and we can send a league&apos;s matches to its results table. They get what anyone can see on the match&apos;s public page,
-                and again whenever it changes. If you unpublish the match, or it&apos;s deleted, they&apos;re told it&apos;s gone, but what
-                they&apos;ve already received is theirs to remove.
+                and again whenever it changes. A club or league can instead have a short message posted in its own Slack, Discord or Microsoft
+                Teams channel: the teams, the score, the competition, the day and the venue, but not the umpires&apos; names. If you unpublish the
+                match, or it&apos;s deleted, they&apos;re told it&apos;s gone, but what they&apos;ve already received is theirs to remove.
               </li>
             </List>
             <Why>

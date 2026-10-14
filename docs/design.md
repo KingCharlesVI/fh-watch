@@ -1,6 +1,6 @@
 # Field Hockey Match System — Design
 
-Last updated: 2026-10-11
+Last updated: 2026-10-14
 
 ## Overview & goals
 
@@ -131,7 +131,7 @@ Every event carries `seq` and, when recorded on the watch, `wallTime` (UTC). Eve
 | `push_tokens` | id, user_id, token, platform (`ios` / `android`), created_at, last_used_at |
 | `refresh_tokens` | id, user_id, token_hash, expires_at, revoked_at |
 | `audit_log` | actor_id, action, entity, entity_id, at, diff (jsonb). Admins read it at `GET /audit`; a match's own history is built from its revisions and its rows here. |
-| `webhooks` | id, club_id? or competition_id? (exactly one), url, description, secret (kept as is: it signs deliveries), enabled, failures (in a row) |
+| `webhooks` | id, club_id? or competition_id? (exactly one), url, format (`json` / `slack` / `discord` / `teams`, fixed once added), description, secret (kept as is: it signs deliveries), enabled, failures (in a row) |
 | `webhook_deliveries` | id, webhook_id, seq (queue order), event, match_id, payload (jsonb), status (`pending` / `delivered` / `failed`), attempts, next_attempt_at, response_status, error. Kept 30 days. |
 
 Team names on the watch are free text. On the phone the umpire links each name to a real team, which is what gives club admins visibility.
@@ -356,6 +356,7 @@ A club (its admins) or a competition (admins only) can have up to 5 webhooks: HT
 - Which webhooks: those on a club owning the home or away team, and those on a competition whose name equals the match's, in any capitals.
 - Outbox: deliveries are inserted in the same transaction as the change, so a rolled-back change sends nothing, and the match is sent as it is after the change: the match DTO and its summary, as the public page shows.
 - Sending: the job claims a batch with `FOR UPDATE SKIP LOCKED`, posts each with `X-FH-Event`, `X-FH-Delivery` and `X-FH-Signature: t=…,v1=HMAC-SHA256(secret, "t.body")`, waits 10 seconds at most and follows no redirects. 2xx is delivered; anything else is retried after 1 min, 5 min, 30 min, 2 h and 6 h, then failed. Five failed deliveries in a row turn the webhook off.
+- Formats: `json` is the signed payload above. `slack`, `discord` and `teams` post a short message to a channel's incoming webhook instead (Slack `text`, a Discord embed with mentions turned off, a Teams Workflows Adaptive Card): the teams, the score, the competition, the day and the venue, with a link to the public page while it's public. Never the umpires' names, as a channel can be read by anyone in it. The body is made when the delivery is queued, so unpublished and deleted matches are still named. Slack and Discord addresses are checked against their hosts when added, and a JSON webhook pointing at either is refused; Teams Workflows addresses vary too much to check.
 - The server is at home, so webhooks must not reach its network: `https` only, and the DNS lookup used for the connection refuses any name with a private, loopback, link-local or reserved address (checked again on every delivery, so a name changed to point inward later is still refused).
 
 ## Roles & permissions
