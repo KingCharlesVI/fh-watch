@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
-import type { MatchDocument, WebhookPayload } from "@fh/shared";
+import type { Match, MatchDocument, WebhookPayload } from "@fh/shared";
 import { describe, expect, it } from "vitest";
+import { chatMessage } from "../src/services/chat-messages.js";
 import { RETRY_DELAYS_MS, deliverDue, httpsWebhookSender, isPublicAddress, purgeOldDeliveries } from "../src/services/webhooks.js";
 import { matchDoc, setupTestApp } from "./helpers.js";
 
@@ -22,6 +23,10 @@ async function setup() {
   const { webhook, secret } = created.json();
   return { club, team: teams[0]!, clubAdmin, umpire, webhook, secret };
 }
+
+/** The day a match was played, as a chat message gives it. */
+const dayOf = (doc: MatchDocument) =>
+  new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", weekday: "short", day: "numeric", month: "short" }).format(new Date(doc.startedAt));
 
 async function upload(doc: MatchDocument, headers: Record<string, string>, publish = true) {
   expect((await req("PUT", `/v1/matches/${doc.id}`, headers, { source: "watch", document: doc })).statusCode).toBe(201);
@@ -183,6 +188,83 @@ describe("delivering", () => {
     expect(await purgeOldDeliveries(t.deps)).toEqual({ deliveries: 0 });
     t.advance(2 * 24 * 3600_000);
     expect(await purgeOldDeliveries(t.deps)).toEqual({ deliveries: 1 });
+  });
+});
+
+describe("chat channels", () => {
+  const add = (headers: Record<string, string>, clubId: string, format: string, url: string) => req("POST", "/v1/webhooks", headers, { clubId, format, url });
+
+  it("get a message instead of the signed payload, in each platform's shape", async () => {
+    const { club, team, clubAdmin, umpire } = await setup();
+    expect((await add(clubAdmin.headers, club.id, "slack", "https://hooks.slack.com/services/T0/B0/x")).json().webhook.format).toBe("slack");
+    await add(clubAdmin.headers, club.id, "discord", "https://discord.com/api/webhooks/1/x");
+    await add(clubAdmin.headers, club.id, "teams", "https://prod-01.uksouth.logic.azure.com:443/workflows/x/triggers/manual/paths/invoke");
+    const doc = { ...matchDoc({ homeTeamId: team.id }), competition: "South League", venue: "Pitch 2" };
+    await upload(doc, umpire.headers);
+    await deliver();
+    const bodies = Object.fromEntries(t.webhooks.sent.map((s) => [new URL(s.url).hostname, JSON.parse(s.body)]));
+    const { shareUrl, away } = bodies["hooks.example.com"].data.match;
+    const result = `Result: Oxford Hawks M1 2–1 ${away.name}`;
+
+    expect(bodies["hooks.slack.com"].text).toBe(`*${result}*\nSouth League · ${dayOf(doc)} · Pitch 2\n<${shareUrl}|Match report>`);
+    expect(bodies["discord.com"]).toMatchObject({ allowed_mentions: { parse: [] }, embeds: [{ title: result, url: shareUrl, color: 0x2e7d32 }] });
+    const card = bodies["prod-01.uksouth.logic.azure.com"].attachments[0];
+    expect(card.contentType).toBe("application/vnd.microsoft.card.adaptive");
+    expect(card.content.body[0].text).toBe(result);
+    expect(card.content.actions).toEqual([{ type: "Action.OpenUrl", title: "Match report", url: shareUrl }]);
+    // The umpires aren't named in a channel anyone might read.
+    expect(JSON.stringify(bodies["hooks.slack.com"])).not.toContain("Sam");
+  });
+
+  it("still name a match that's withdrawn, without its link", async () => {
+    const { club, team, clubAdmin, umpire } = await setup();
+    await add(clubAdmin.headers, club.id, "slack", "https://hooks.slack.com/services/T0/B0/x");
+    const doc = matchDoc({ homeTeamId: team.id });
+    await upload(doc, umpire.headers);
+    await req("POST", `/v1/matches/${doc.id}/unpublish`, umpire.headers);
+    await deliver();
+    const slack = t.webhooks.sent.filter((s) => s.url.startsWith("https://hooks.slack.com")).map((s) => JSON.parse(s.body).text as string);
+    expect(slack[1]).toMatch(/^\*Result withdrawn: Oxford Hawks M1 2–1 /);
+    expect(slack[1]).not.toContain("Match report");
+  });
+
+  it("send a test message when asked", async () => {
+    const { club, clubAdmin } = await setup();
+    const { webhook } = (await add(clubAdmin.headers, club.id, "discord", "https://discord.com/api/webhooks/1/x")).json();
+    await req("POST", `/v1/webhooks/${webhook.id}/ping`, clubAdmin.headers);
+    await deliver();
+    expect(JSON.parse(t.webhooks.sent.at(-1)!.body).embeds[0].title).toBe("Test from FH Match Centre");
+  });
+
+  it("catch an address pasted under the wrong platform", async () => {
+    const { club, clubAdmin, webhook } = await setup();
+    for (const [format, url] of [
+      ["slack", "https://discord.com/api/webhooks/1/x"],
+      ["discord", "https://hooks.slack.com/services/x"],
+      ["json", "https://hooks.slack.com/services/x"],
+    ] as const) {
+      const res = await add(clubAdmin.headers, club.id, format, url);
+      expect(res.statusCode, `${format} ${url}`).toBe(400);
+      expect(res.json().type).toBe("/problems/invalid_url");
+    }
+    expect((await req("PATCH", `/v1/webhooks/${webhook.id}`, clubAdmin.headers, { url: "https://discord.com/api/webhooks/1/x" })).statusCode).toBe(400);
+  });
+
+  it("escape what the platform would read as formatting", () => {
+    const match = {
+      home: { name: "<Stars> & *Co*", score: 1, shootout: 3, teamId: null },
+      away: { name: "@everyone", score: 1, shootout: 2, teamId: null },
+      competition: null,
+      venue: null,
+      playedAt: "2026-10-10T13:00:00.000Z",
+      shareUrl: "https://app.example.com/m/X",
+    } as unknown as Match;
+    expect((chatMessage("slack", "match.published", match) as { text: string }).text).toBe(
+      "*Result: &lt;Stars&gt; &amp; *Co* 1–1 @everyone (3–2 in the shootout)*\nSat 10 Oct\n<https://app.example.com/m/X|Match report>",
+    );
+    expect((chatMessage("discord", "match.published", match) as { embeds: { title: string }[] }).embeds[0]!.title).toBe(
+      "Result: <Stars\\> & \\*Co\\* 1–1 @everyone (3–2 in the shootout)",
+    );
   });
 });
 

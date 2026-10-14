@@ -20,6 +20,7 @@ import {
 const IdParams = z.object({ id: z.uuid() });
 const Url = z.string().trim().min(1).max(500);
 const Description = z.string().trim().max(200).nullable();
+const Format = z.enum(["json", "slack", "discord", "teams"]);
 
 /** Admins manage every webhook; club admins their own club's. Competitions' are for admins only. */
 function canManage(actor: Actor, owner: { clubId: string | null }): boolean {
@@ -28,7 +29,14 @@ function canManage(actor: Actor, owner: { clubId: string | null }): boolean {
 }
 
 /** For the audit log: never the secret. */
-const auditable = (w: WebhookRow) => ({ clubId: w.clubId, competitionId: w.competitionId, url: w.url, description: w.description, enabled: w.enabled });
+const auditable = (w: WebhookRow) => ({
+  clubId: w.clubId,
+  competitionId: w.competitionId,
+  url: w.url,
+  format: w.format,
+  description: w.description,
+  enabled: w.enabled,
+});
 
 export const webhookRoutes =
   (deps: AppDeps): FastifyPluginAsyncZod =>
@@ -75,17 +83,24 @@ export const webhookRoutes =
       {
         schema: {
           tags: ["webhooks"],
-          summary: "Add a webhook for a club or a competition. The answer has its secret, which isn't shown again.",
+          summary:
+            "Add a webhook for a club or a competition: signed `json` (the default), or a message for a `slack`, `discord` or `teams` channel. The answer has its secret, which isn't shown again.",
           body: z
-            .strictObject({ clubId: z.uuid().optional(), competitionId: z.uuid().optional(), url: Url, description: Description.optional() })
+            .strictObject({
+              clubId: z.uuid().optional(),
+              competitionId: z.uuid().optional(),
+              url: Url,
+              format: Format.default("json"),
+              description: Description.optional(),
+            })
             .refine((b) => !b.clubId !== !b.competitionId, { message: "Give a clubId or a competitionId, not both." }),
         },
       },
       async (request, reply) => {
         const actor = requireActor(request);
-        const { clubId = null, competitionId = null, description = null } = request.body;
+        const { clubId = null, competitionId = null, format, description = null } = request.body;
         if (competitionId ? !hasRole(actor, "admin") : !canManage(actor, { clubId })) throw forbidden();
-        const url = checkWebhookUrl(request.body.url);
+        const url = checkWebhookUrl(request.body.url, format);
         const [owner] = clubId
           ? await db.select({ id: clubs.id }).from(clubs).where(eq(clubs.id, clubId))
           : await db.select({ id: competitions.id }).from(competitions).where(eq(competitions.id, competitionId!));
@@ -100,7 +115,7 @@ export const webhookRoutes =
           if (n >= MAX_WEBHOOKS) throw badRequest("too_many_webhooks", `There can be at most ${MAX_WEBHOOKS} webhooks for each club or competition.`);
           const [row] = await tx
             .insert(webhooks)
-            .values({ clubId, competitionId, url, description: description || null, secret, createdBy: actor.id, createdAt: deps.now() })
+            .values({ clubId, competitionId, url, format, description: description || null, secret, createdBy: actor.id, createdAt: deps.now() })
             .returning();
           await audit(tx, actor.id, "create", "webhook", row!.id, auditable(row!));
           return row!;
@@ -124,7 +139,7 @@ export const webhookRoutes =
         const before = await load(request.params.id, actor);
         const { url, description, enabled } = request.body;
         const changes: Partial<WebhookRow> = {};
-        if (url !== undefined) changes.url = checkWebhookUrl(url);
+        if (url !== undefined) changes.url = checkWebhookUrl(url, before.format);
         if (description !== undefined) changes.description = description || null;
         if (enabled !== undefined) {
           changes.enabled = enabled;
@@ -173,7 +188,7 @@ export const webhookRoutes =
         const actor = requireActor(request);
         const w = await load(request.params.id, actor);
         if (!w.enabled) throw badRequest("webhook_off", "Turn the webhook on first.");
-        return reply.code(202).send(deliveryDto(await queuePing(db, w.id, deps.now())));
+        return reply.code(202).send(deliveryDto(await queuePing(db, w, deps.now())));
       },
     );
 

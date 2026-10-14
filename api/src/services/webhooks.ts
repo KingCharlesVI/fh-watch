@@ -1,4 +1,4 @@
-import { type Webhook, type WebhookDelivery, type WebhookEvent, type WebhookPayload, summarizeMatch } from "@fh/shared";
+import { type Match, type Webhook, type WebhookDelivery, type WebhookEvent, type WebhookFormat, type WebhookPayload, summarizeMatch } from "@fh/shared";
 import { createHmac, randomBytes } from "node:crypto";
 import { type LookupAddress, type LookupAllOptions, type LookupOneOptions, lookup } from "node:dns";
 import { request } from "node:https";
@@ -8,6 +8,7 @@ import type { DbOrTx } from "../db/client.js";
 import { competitions, matchRevisions, matches, teams, webhookDeliveries, webhooks } from "../db/schema.js";
 import type { AppDeps } from "../deps.js";
 import { badRequest } from "../lib/errors.js";
+import { chatHostProblem, chatMessage } from "./chat-messages.js";
 import { type MatchRow, matchDto, umpiresFor } from "./matches.js";
 
 export type WebhookRow = typeof webhooks.$inferSelect;
@@ -91,8 +92,8 @@ export function isPublicAddress(ip: string): boolean {
   return false;
 }
 
-/** A receiver's address as given, or why it won't do. Where it really leads is checked again on every delivery. */
-export function checkWebhookUrl(value: string): string {
+/** A receiver's address as given, or why it won't do for its format. Where it really leads is checked again on every delivery. */
+export function checkWebhookUrl(value: string, format: WebhookFormat): string {
   let url: URL;
   try {
     url = new URL(value);
@@ -105,6 +106,8 @@ export function checkWebhookUrl(value: string): string {
   if (isIP(host) ? !isPublicAddress(host) : host === "localhost" || /\.(localhost|local|internal|lan|home)$/.test(host) || !host.includes(".")) {
     throw badRequest("invalid_url", "The address must be on the public internet.");
   }
+  const problem = chatHostProblem(format, host);
+  if (problem) throw badRequest("invalid_url", problem);
   return url.toString();
 }
 
@@ -162,6 +165,7 @@ export function webhookDto(w: WebhookRow): Webhook {
     clubId: w.clubId,
     competitionId: w.competitionId,
     url: w.url,
+    format: w.format,
     description: w.description,
     enabled: w.enabled,
     failures: w.failures,
@@ -184,15 +188,18 @@ export function deliveryDto(d: DeliveryRow): WebhookDelivery {
   };
 }
 
-async function insertDelivery(db: DbOrTx, webhookId: string, event: WebhookEvent, matchId: string | null, data: WebhookPayload["data"], now: Date) {
+type Hook = Pick<WebhookRow, "id" | "format">;
+
+/** The body is made now, in the webhook's format, so it says what the match was when the change was made. */
+async function insertDelivery(db: DbOrTx, hook: Hook, event: WebhookEvent, matchId: string | null, data: WebhookPayload["data"], match: Match | null, now: Date) {
   const id = crypto.randomUUID();
-  const payload: WebhookPayload = { id, event, createdAt: now.toISOString(), data };
-  const [row] = await db.insert(webhookDeliveries).values({ id, webhookId, event, matchId, payload, nextAttemptAt: now, createdAt: now }).returning();
+  const payload = hook.format === "json" ? ({ id, event, createdAt: now.toISOString(), data } satisfies WebhookPayload) : chatMessage(hook.format, event, match);
+  const [row] = await db.insert(webhookDeliveries).values({ id, webhookId: hook.id, event, matchId, payload, nextAttemptAt: now, createdAt: now }).returning();
   return row!;
 }
 
 /** Queues a test delivery to one webhook. */
-export const queuePing = (db: DbOrTx, webhookId: string, now: Date) => insertDelivery(db, webhookId, "ping", null, {}, now);
+export const queuePing = (db: DbOrTx, hook: Hook, now: Date) => insertDelivery(db, hook, "ping", null, {}, null, now);
 
 /**
  * Queues a delivery of a match event to every webhook turned on for one of its clubs or its
@@ -211,18 +218,20 @@ export async function queueMatchEvent(
   const hooks = await listeners(db, match);
   if (hooks.length === 0) return 0;
 
+  const umpires = (await umpiresFor(db, [match.id])).get(match.id) ?? [];
+  const dto = matchDto(match, umpires, webUrl);
   let data: WebhookPayload["data"];
   if (event === "match.published" || event === "match.updated") {
     const [rev] = await db
       .select({ document: matchRevisions.document })
       .from(matchRevisions)
       .where(and(eq(matchRevisions.matchId, match.id), eq(matchRevisions.revision, match.currentRevision)));
-    const umpires = (await umpiresFor(db, [match.id])).get(match.id) ?? [];
-    data = { match: matchDto(match, umpires, webUrl), summary: summarizeMatch(rev!.document) };
+    data = { match: dto, summary: summarizeMatch(rev!.document) };
   } else {
+    // No longer public, so the signed payload says only which match. A chat message still names it.
     data = { matchId: match.id };
   }
-  for (const h of hooks) await insertDelivery(db, h.id, event, match.id, data, now);
+  for (const h of hooks) await insertDelivery(db, h, event, match.id, data, dto, now);
   return hooks.length;
 }
 
@@ -237,7 +246,7 @@ function listeners(db: DbOrTx, match: MatchRow) {
     : undefined;
   if (!byClub && !byCompetition) return Promise.resolve([]);
   return db
-    .select({ id: webhooks.id })
+    .select({ id: webhooks.id, format: webhooks.format })
     .from(webhooks)
     .where(and(eq(webhooks.enabled, true), or(byClub, byCompetition)));
 }

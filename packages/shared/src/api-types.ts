@@ -308,6 +308,12 @@ export interface Problem {
 /** What a webhook is told about. `ping` is only sent when someone presses Send test. */
 export type WebhookEvent = "match.published" | "match.updated" | "match.unpublished" | "match.deleted" | "ping";
 
+/**
+ * What a webhook sends: the signed JSON payload for the club's or league's own system, or a short
+ * message for a chat channel's incoming webhook.
+ */
+export type WebhookFormat = "json" | "slack" | "discord" | "teams";
+
 /** An address told about a club's or a competition's published matches. */
 export interface Webhook {
   id: string;
@@ -315,6 +321,8 @@ export interface Webhook {
   clubId: string | null;
   competitionId: string | null;
   url: string;
+  /** Fixed when it's added: to change it, add another. */
+  format: WebhookFormat;
   description: string | null;
   /** Off when someone turns it off, or after 5 deliveries in a row fail for good. */
   enabled: boolean;
@@ -343,7 +351,7 @@ export interface WebhookDelivery {
   deliveredAt: string | null;
 }
 
-/** The JSON body of every delivery. Match events carry the match as its public page shows it. */
+/** The JSON body of every delivery in the `json` format (chat formats get a message instead). Match events carry the match as its public page shows it. */
 export interface WebhookPayload {
   id: string;
   event: WebhookEvent;

@@ -462,6 +462,10 @@ export const webhooks = pgTable(
     clubId: uuid().references(() => clubs.id, { onDelete: "cascade" }),
     competitionId: uuid().references(() => competitions.id, { onDelete: "cascade" }),
     url: text().notNull(),
+    /** The signed JSON payload, or a chat message for Slack, Discord or Teams. */
+    format: text({ enum: ["json", "slack", "discord", "teams"] })
+      .notNull()
+      .default("json"),
     description: text(),
     secret: text().notNull(),
     enabled: boolean().notNull().default(true),
