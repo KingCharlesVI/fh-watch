@@ -9,6 +9,7 @@ import type {
   MatchDocument,
   MyAppointment,
   Page,
+  PlannedMatch,
   Problem,
   TeamWithClub,
   TokenPair,
@@ -166,6 +167,10 @@ export class ApiClient {
   /** Appointments clubs have asked you to umpire, from today. */
   myAppointments = () => this.request<Items<MyAppointment>>("/v1/me/appointments");
   answerAppointment = (id: string, answer: "accept" | "decline") => this.request(`/v1/me/appointments/${id}/${answer}`, { method: "POST" });
+
+  /** Matches you've planned on the website, from today. */
+  myPlannedMatches = () => this.request<Items<PlannedMatch>>("/v1/me/planned-matches");
+  deletePlannedMatch = (id: string) => this.request(`/v1/me/planned-matches/${id}`, { method: "DELETE" });
 
   /** The days you've marked from one day to another, and weekdays you're never free. */
   myAvailability = (from: string, to: string) => this.request<Availability>("/v1/me/availability", { query: { from, to } });

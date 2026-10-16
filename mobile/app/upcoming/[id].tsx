@@ -3,11 +3,13 @@ import { Stack, router, useLocalSearchParams } from "expo-router";
 import Storage from "expo-sqlite/kv-store";
 import { useEffect, useState } from "react";
 import { Alert, View } from "react-native";
+import { isPlannedUpcoming } from "@/core/planned";
 import { LAST_SETUP_KEY, type WatchSetup, readSavedSetup, setupErrors, setupMessage } from "@/core/setup";
 import type { UpcomingMatch } from "@/core/upcoming";
 import { SetupForm } from "@/features/setup-form";
 import { WhenFields } from "@/features/when-fields";
 import { WatchSync, useConnectedWatches, watchSyncAvailable } from "@/services/watch";
+import { forgetPlanned } from "@/state/planned";
 import { upcoming, useUpcoming } from "@/state/upcoming";
 import { Banner, Button, Card, Empty, Screen } from "@/ui/kit";
 import { space } from "@/ui/theme";
@@ -84,13 +86,15 @@ export default function UpcomingMatchScreen() {
   }
 
   function remove() {
-    Alert.alert("Delete this match?", "It's only on this phone, so it can't be got back.", [
+    const planned = isPlannedUpcoming(draft!);
+    Alert.alert("Delete this match?", planned ? "It goes from the website too." : "It's only on this phone, so it can't be got back.", [
       { text: "Keep", style: "cancel" },
       {
         text: "Delete",
         style: "destructive",
         onPress: async () => {
           await upcoming.remove(draft!.id);
+          forgetPlanned([draft!.id]);
           router.back();
         },
       },

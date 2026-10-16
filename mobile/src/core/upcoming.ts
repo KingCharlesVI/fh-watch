@@ -18,6 +18,8 @@ export interface UpcomingMatch {
   sentAt: string | null;
   /** For a club appointment, the other umpire on it, if there is one. */
   colleague?: MyAppointment["colleague"];
+  /** For a match planned on the website, when the version taken in was last changed there. */
+  plannedAt?: string;
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

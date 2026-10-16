@@ -8,6 +8,7 @@ import { isAppointmentUpcoming } from "@/core/appointments";
 import { presetOf } from "@/core/setup";
 import { type UpcomingMatch, dayLabel, isPast, playedUpcoming, sortUpcoming, whenLabel } from "@/core/upcoming";
 import { answerAppointment, refreshAppointments, useAppointments } from "@/state/appointments";
+import { forgetPlanned } from "@/state/planned";
 import { useMatches } from "@/state/sync";
 import { upcoming, useUpcoming } from "@/state/upcoming";
 import { Badge, Button, Card, Empty, Row, Screen, Swatch, T, Text } from "@/ui/kit";
@@ -34,7 +35,9 @@ export default function UpcomingScreen() {
   useEffect(() => {
     if (!list) return;
     const played = rows.flatMap((r) => (r.match.document ? [r.match.document] : []));
-    upcoming.removeAll(playedUpcoming(list, played));
+    const done = playedUpcoming(list, played);
+    upcoming.removeAll(done);
+    forgetPlanned(done);
   }, [list, rows]);
 
   return (
