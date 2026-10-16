@@ -252,6 +252,35 @@ export interface MyAppointment extends Appointment {
   colleague: { displayName: string; role: "watch" | "second"; status: AppointmentStatus } | null;
 }
 
+/** One side of a planned match, as the watch shows it. */
+export interface PlannedSide {
+  name: string;
+  /** One of TEAM_COLOURS. */
+  color: string;
+  /** The captain's shirt number, if known. */
+  captain: number | null;
+}
+
+/**
+ * A match an umpire has set up ahead of time on the website. Their phone picks it up into
+ * Upcoming, to send to the watch at the ground, as if it had been set up there.
+ */
+export interface PlannedMatch {
+  id: string;
+  /** The local day, "2026-10-11". */
+  date: string;
+  /** Local kick-off, "14:00", or null if not known yet. */
+  time: string | null;
+  home: PlannedSide;
+  away: PlannedSide;
+  venue: string | null;
+  competition: string | null;
+  /** Null to use the phone's last setup's. */
+  format: FixtureFormat | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** A day an umpire has said they can, or can't, umpire. */
 export interface AvailabilityDay {
   /** "2026-10-11". */

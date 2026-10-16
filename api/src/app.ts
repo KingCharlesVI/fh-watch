@@ -24,6 +24,7 @@ import { fixtureRoutes } from "./routes/fixtures.js";
 import { importRoutes } from "./routes/import.js";
 import { listRoutes } from "./routes/lists.js";
 import { matchRoutes } from "./routes/matches.js";
+import { plannedMatchRoutes } from "./routes/planned-matches.js";
 import { userRoutes } from "./routes/users.js";
 import { webhookRoutes } from "./routes/webhooks.js";
 
@@ -123,6 +124,7 @@ export async function buildApp(deps: AppDeps, options: { logger?: FastifyBaseLog
       await v1.register(clubRoutes(deps));
       await v1.register(listRoutes(deps));
       await v1.register(matchRoutes(deps));
+      await v1.register(plannedMatchRoutes(deps));
       await v1.register(accessRequestRoutes(deps));
       await v1.register(importRoutes(deps));
       await v1.register(clubUmpireRoutes(deps));
