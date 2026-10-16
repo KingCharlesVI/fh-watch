@@ -1,3 +1,21 @@
+## [1.4.0-beta.24] - 2026-10-16
+
+### 🚀 Features
+
+- *(api)* Umpires plan matches ahead of time for their phone to pick up
+- *(web)* Umpires plan upcoming matches on the website, as on the phone
+- *(phone)* Matches planned on the website join Upcoming
+- *(web)* One dashboard menu for umpiring, club and admin pages
+- *(web)* The dashboard's pages in a dropdown menu on phones and tablets
+- *(web)* Umpiring, Club and Admin menus in the header, and a menu button on phones
+
+### 📚 Documentation
+
+- Planning matches on the website, and the dashboard's menu
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* Version 1.4.0 build 24
 ## [1.3.0-beta.23] - 2026-10-11
 
 ### 🚀 Features
