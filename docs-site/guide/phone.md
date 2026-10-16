@@ -78,7 +78,7 @@ To have nothing to type at the ground, set matches up beforehand under **Upcomin
 
 At the ground, open the match and tap **Send to watch**, as above. It's marked **Sent to watch**, and it leaves the list by itself once the played match comes back from the watch. A match whose day has gone without being played shows its date in amber; edit it or delete it.
 
-Upcoming matches are kept on the phone only, and aren't in backups.
+Matches set up on the phone are kept on the phone only, and aren't in backups. You can also plan them on the website, under **Dashboard → Upcoming**: they join this list next time the app opens, and until you send one, changes made there follow it. See [The website](guide/website.md).
 
 If a club appoints you, **Upcoming** also shows its requests to **Accept** or **Decline**, and matches you're second umpire for. A match you accept as the watch umpire joins the list already set up, marked **Appointed** and showing who you're umpiring with: add the colours and captains, and send it to the watch as usual. Until you send it, it follows any change the club makes; if you delete it, it isn't added again. You're reminded the day before. Appointments are fetched when the app opens and when you come back to it; pull down on **Upcoming** to fetch them now. **Availability**, next to **New match**, shows a month at a time, up to a year ahead: tap a day to say you're free or not, press and hold one to give the hours you can do, and pick the weekdays you're never free. Asking for cover, and taking someone else's over, are on the website. See [Club umpiring](guide/club-umpiring.md).
 

@@ -20,23 +20,29 @@ Register with your email address, in the phone app (**Create an account** on the
 
 Both umpires on a match can edit it; the website keeps every revision. A match's **History**, at the bottom of its page, shows each change: who made it, when, from which app, and what changed (`Score: 2–1 → 2–2`, `Added: H2 15:00 Goal, Reading M1 #7`), as well as when it was published or unpublished.
 
-If clubs appoint you to their fixtures, **Umpiring** has your appointments, availability and season. See [Club umpiring](guide/club-umpiring.md).
+Once you're signed in, **Dashboard** at the top of the page leads to everything you look after, listed down the side (along the top on a phone) under **Umpiring**, **Club** and **Admin**, as your account allows. Under **Umpiring**:
 
-The **Dashboard** lists your matches, with downloads of them all. Filter them by status, dates, club, team, competition and venue: pick a club to choose one of its teams, and type a competition or venue or pick it from the site's lists (any name containing what you type counts). The CSV download has the same filters. A match's **Edit** page has the same fixes as the phone app, for doing them at a desk: link each team to its club team, and type the venue and competition or pick them from the site's lists.
+- **My matches**: your matches, with downloads of them all (below).
+- **Upcoming**: matches you've set up ahead of time (below).
+- **Appointments**, **Availability** and **My season**, if clubs appoint you to their fixtures. See [Club umpiring](guide/club-umpiring.md).
+
+**My matches** lists your matches, with downloads of them all. Filter them by status, dates, club, team, competition and venue: pick a club to choose one of its teams, and type a competition or venue or pick it from the site's lists (any name containing what you type counts). The CSV download has the same filters. A match's **Edit** page has the same fixes as the phone app, for doing them at a desk: link each team to its club team, and type the venue and competition or pick them from the site's lists.
+
+**Upcoming** is for setting matches up at a desk, as under **Upcoming** in the phone app. **Plan a match** takes the day and kick-off, both teams with their colours and captains, the venue, the competition and the format: one of the watch's presets, **Other** for your own periods and breaks, or **As last set up on your phone**. The phone app adds it to its **Upcoming** list next time it opens (or pull down there), ready to send to the watch. Until it's sent, a change made here follows it to the phone; deleting it here takes it off the phone, and deleting it on the phone takes it off here. Matches leave the website's list once their day has gone.
 
 ## For clubs
 
-Club admins keep their club's **teams** up to date from **manage teams** on the **Dashboard** (or **Manage club** on the club's page): add and rename them. Umpires link a match's teams to these, which puts the match on the club's pages, and the phone app offers them as team names when an umpire sets up a match.
+Club admins have **Club** in the dashboard's list: the club's matches, **Fixtures**, **Umpires**, **Teams** and **Webhooks**. They keep the club's **teams** up to date under **Teams** (or **Manage club** on the club's page): add and rename them. Umpires link a match's teams to these, which puts the match on the club's pages, and the phone app offers them as team names when an umpire sets up a match.
 
-Club admins can also organise their club's umpiring from the **Dashboard**: a list of the club's umpires, its fixtures, and who's appointed to each. See [Club umpiring](guide/club-umpiring.md).
+Club admins can also organise their club's umpiring under **Fixtures** and **Umpires**: a list of the club's umpires, its fixtures, and who's appointed to each. See [Club umpiring](guide/club-umpiring.md).
 
-**Webhooks**, also on the **Dashboard**, post the club's results to a Slack, Discord or Microsoft Teams channel, or send them to the club's own website or another system, the moment they're published, and again whenever they change. See [Webhooks](technical/webhooks.md); whoever looks after the receiving end will need it.
+**Webhooks** post the club's results to a Slack, Discord or Microsoft Teams channel, or send them to the club's own website or another system, the moment they're published, and again whenever they change. See [Webhooks](technical/webhooks.md); whoever looks after the receiving end will need it.
 
 Anyone can ask for a new club, or to be a club's admin, from their account page; an admin approves it.
 
 ## For admins
 
-**Admin** (in the account menu) has:
+Admins have **Admin** in the dashboard's list: **All matches**, and **Site admin**, which has:
 
 - **Club requests** and **Testing requests**: approve or turn them down. Both email the person who asked.
 - **Users**: roles, a club admin's club, and accounts that have asked to be deleted.
