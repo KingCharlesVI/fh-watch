@@ -2,7 +2,7 @@
 
 A webhook sends a club's or a competition's results somewhere else as soon as they're published: a Slack, Discord or Microsoft Teams channel, a club's own website, or a league's results table. A channel gets a short message; anything else gets the whole match, signed, so the receiver can be sure it came from here.
 
-- **A club's webhook** hears about every match one of the club's teams plays (once both teams are linked, a match is heard about by both clubs). Its club admins add it from **Dashboard → Webhooks**, and admins from **Admin → Webhooks**.
+- **A club's webhook** hears about every match one of the club's teams plays (once both teams are linked, a match is heard about by both clubs). Its club admins add it from **Club → Webhooks**, and admins from **Admin → Webhooks**.
 - **A competition's webhook** hears about every match whose competition has that name, in any capitals. Only admins add these, for example for a league secretary.
 
 There can be up to 5 for each club or competition. Only published matches are sent: a draft never is.

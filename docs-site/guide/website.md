@@ -20,7 +20,7 @@ Register with your email address, in the phone app (**Create an account** on the
 
 Both umpires on a match can edit it; the website keeps every revision. A match's **History**, at the bottom of its page, shows each change: who made it, when, from which app, and what changed (`Score: 2–1 → 2–2`, `Added: H2 15:00 Goal, Reading M1 #7`), as well as when it was published or unpublished.
 
-Once you're signed in, **Dashboard** at the top of the page leads to everything you look after, listed down the side (in a menu at the top on a phone) under **Umpiring**, **Club** and **Admin**, as your account allows. Under **Umpiring**:
+Once you're signed in, the top of the page has a menu for each part of the site you look after: **Umpiring**, **Club** and **Admin**, as your account allows. On a phone they're all under the ☰ menu. Under **Umpiring**:
 
 - **My matches**: your matches, with downloads of them all (below).
 - **Upcoming**: matches you've set up ahead of time (below).
@@ -32,7 +32,7 @@ Once you're signed in, **Dashboard** at the top of the page leads to everything 
 
 ## For clubs
 
-Club admins have **Club** in the dashboard's list: the club's matches, **Fixtures**, **Umpires**, **Teams** and **Webhooks**. They keep the club's **teams** up to date under **Teams** (or **Manage club** on the club's page): add and rename them. Umpires link a match's teams to these, which puts the match on the club's pages, and the phone app offers them as team names when an umpire sets up a match.
+Club admins have the **Club** menu: the club's matches, **Fixtures**, **Umpires**, **Teams** and **Webhooks**. They keep the club's **teams** up to date under **Teams** (or **Manage club** on the club's page): add and rename them. Umpires link a match's teams to these, which puts the match on the club's pages, and the phone app offers them as team names when an umpire sets up a match.
 
 Club admins can also organise their club's umpiring under **Fixtures** and **Umpires**: a list of the club's umpires, its fixtures, and who's appointed to each. See [Club umpiring](guide/club-umpiring.md).
 
@@ -42,7 +42,7 @@ Anyone can ask for a new club, or to be a club's admin, from their account page;
 
 ## For admins
 
-Admins have **Admin** in the dashboard's list: **All matches**, and **Site admin**, which has:
+Admins have the **Admin** menu, whose **Overview** shows what's waiting. It has:
 
 - **Club requests** and **Testing requests**: approve or turn them down. Both email the person who asked.
 - **Users**: roles, a club admin's club, and accounts that have asked to be deleted.

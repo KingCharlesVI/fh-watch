@@ -6,7 +6,7 @@ Each fixture has a **watch umpire**, who runs the watch app and gets the match s
 
 ## For umpires
 
-Everything is under **Dashboard** on the website, in the list down the side: **Umpiring** for your own, **Club** for a club admin's.
+On the website, everything is in the menus at the top of the page: **Umpiring** for your own, **Club** for a club admin's (on a phone, under the ☰ menu).
 
 ### Appointments
 
@@ -37,7 +37,7 @@ Clubs see this only as "free", "not free" or "not said" for each fixture, when t
 
 ## For club admins
 
-Your club's **Fixtures** and **Umpires** are under **Club** in the dashboard's list.
+Your club's **Fixtures** and **Umpires** are in the **Club** menu.
 
 ### The umpire list
 
