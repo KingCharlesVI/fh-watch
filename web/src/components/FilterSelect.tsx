@@ -12,12 +12,15 @@ export function FilterSelect({
   options,
   placeholder,
   id,
+  onChange,
 }: {
   name: string;
   defaultValue?: string;
   options: { value: string; label: string }[];
   placeholder?: string;
   id?: string;
+  /** For a client component that shows other fields by the choice. */
+  onChange?: (value: string) => void;
 }) {
   return (
     <div className="relative w-full">
@@ -29,6 +32,7 @@ export function FilterSelect({
         name={name}
         defaultValue={defaultValue ?? (placeholder ? "" : undefined)}
         required={placeholder !== undefined}
+        onChange={onChange && ((e) => onChange(e.target.value))}
         className="h-8 w-full appearance-none rounded-lg border border-input bg-transparent py-1 pr-8 pl-2.5 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 invalid:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50"
       >
         {placeholder !== undefined && (

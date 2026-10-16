@@ -10,6 +10,7 @@ export function UmpiringNav({ umpire, clubAdmin }: { umpire: boolean; clubAdmin:
   const links = [
     ...(umpire
       ? [
+          { href: "/upcoming", label: "Upcoming" },
           { href: "/appointments", label: "Appointments" },
           { href: "/availability", label: "Availability" },
           { href: "/season", label: "My season" },

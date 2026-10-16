@@ -32,7 +32,7 @@ export function sections(user: NavUser | null) {
           {
             href: "/appointments",
             label: "Umpiring",
-            match: (p: string) => ["/appointments", "/availability", "/season", "/dashboard/fixtures", "/dashboard/umpires"].some((s) => p.startsWith(s)),
+            match: (p: string) => ["/upcoming", "/appointments", "/availability", "/season", "/dashboard/fixtures", "/dashboard/umpires"].some((s) => p.startsWith(s)),
           },
         ]
       : []),

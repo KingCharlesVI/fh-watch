@@ -21,6 +21,7 @@ export type {
   MatchHistoryEntry,
   MatchSide,
   Page,
+  PlannedMatch,
   Problem,
   Revision,
   ClubTeam as Team,
