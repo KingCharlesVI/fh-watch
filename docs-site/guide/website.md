@@ -20,7 +20,7 @@ Register with your email address, in the phone app (**Create an account** on the
 
 Both umpires on a match can edit it; the website keeps every revision. A match's **History**, at the bottom of its page, shows each change: who made it, when, from which app, and what changed (`Score: 2–1 → 2–2`, `Added: H2 15:00 Goal, Reading M1 #7`), as well as when it was published or unpublished.
 
-Once you're signed in, **Dashboard** at the top of the page leads to everything you look after, listed down the side (along the top on a phone) under **Umpiring**, **Club** and **Admin**, as your account allows. Under **Umpiring**:
+Once you're signed in, **Dashboard** at the top of the page leads to everything you look after, listed down the side (in a menu at the top on a phone) under **Umpiring**, **Club** and **Admin**, as your account allows. Under **Umpiring**:
 
 - **My matches**: your matches, with downloads of them all (below).
 - **Upcoming**: matches you've set up ahead of time (below).

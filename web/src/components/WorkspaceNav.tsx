@@ -1,8 +1,19 @@
 "use client";
 
+import { Check, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { Fragment } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 export interface NavGroup {
@@ -26,7 +37,8 @@ function score(href: string, path: string, view: string | null, defaultView: str
 
 /**
  * Everything a signed-in user manages, by role: one list beside every such page, on phones a
- * row above it. It replaces the links each page used to carry to its neighbours.
+ * menu above it, named for the page you're on. It replaces the links each page used to carry
+ * to its neighbours.
  */
 export function WorkspaceNav({ groups, defaultView }: { groups: NavGroup[]; defaultView?: string }) {
   const path = usePathname();
@@ -35,13 +47,7 @@ export function WorkspaceNav({ groups, defaultView }: { groups: NavGroup[]; defa
   const scores = all.map((i) => score(i.href, path, view, defaultView));
   const best = Math.max(...scores);
   const active = best >= 0 ? all[scores.indexOf(best)]!.href : null;
-  const row = useRef<HTMLDivElement>(null);
-
-  // On phones, the current page's link may be off the end of the row: bring it into view.
-  useEffect(() => {
-    const current = row.current?.querySelector<HTMLElement>("[aria-current=page]");
-    if (current && row.current) row.current.scrollLeft = current.offsetLeft - row.current.offsetLeft - 16;
-  }, [active]);
+  const current = all.find((i) => i.href === active);
 
   const link = (item: { href: string; label: string }, className: string, activeClass: string) => (
     <Link
@@ -60,9 +66,34 @@ export function WorkspaceNav({ groups, defaultView }: { groups: NavGroup[]; defa
 
   return (
     <nav aria-label="Dashboard" className="min-w-0">
-      {/* Phones and tablets: one row that scrolls sideways. */}
-      <div ref={row} className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 lg:hidden">
-        {all.map((item) => link(item, "shrink-0 whitespace-nowrap rounded-md px-3 py-1.5", "bg-card text-foreground shadow-sm ring-1 ring-border"))}
+      {/* Phones and tablets: a menu, by role, named for the page you're on. */}
+      <div className="lg:hidden">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full justify-between bg-card sm:w-64">
+              {current?.label ?? "Dashboard"}
+              <ChevronDown className="text-muted-foreground" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-(--radix-dropdown-menu-trigger-width) min-w-56">
+            {groups.map((g, i) => (
+              <Fragment key={g.title}>
+                {i > 0 && <DropdownMenuSeparator />}
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{g.title}</DropdownMenuLabel>
+                  {g.items.map((item) => (
+                    <DropdownMenuItem key={item.href} asChild className={cn(item.href === active && "font-medium")}>
+                      <Link href={item.href} aria-current={item.href === active ? "page" : undefined}>
+                        {item.label}
+                        {item.href === active && <Check className="ml-auto" />}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
+              </Fragment>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       {/* Wider screens: a list down the side, by role. */}
       <div className="sticky top-20 hidden space-y-5 lg:block">
