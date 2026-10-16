@@ -1,11 +1,10 @@
-import { fixtureWhen, hasRole } from "@fh/shared";
+import { fixtureWhen } from "@fh/shared";
 import { CalendarDays } from "lucide-react";
 import { answerAppointment, askForCover, resetCalendarLink, takeCover } from "@/app/actions/umpiring";
 import { ActionForm } from "@/components/ActionForm";
 import { AppointmentBadge, roleLabel } from "@/components/AppointmentBadge";
 import { CopyButton } from "@/components/CopyButton";
 import { PageHeader } from "@/components/PageHeader";
-import { UmpiringNav } from "@/components/UmpiringNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
@@ -16,7 +15,7 @@ export const metadata = { title: "Appointments" };
 
 /** Your appointments from clubs: answer them, ask for cover, take others' over, and subscribe to them in a calendar. */
 export default async function AppointmentsPage() {
-  const user = await requireUser("/appointments");
+  await requireUser("/appointments");
   const [mine, cover, clubs, calendar] = await Promise.all([
     api<Items<MyAppointment>>("/v1/me/appointments"),
     api<Items<MyAppointment>>("/v1/me/cover-requests"),
@@ -26,7 +25,6 @@ export default async function AppointmentsPage() {
   const asked = mine.items.filter((a) => a.status === "offered");
   const accepted = mine.items.filter((a) => a.status === "accepted");
   const declined = mine.items.filter((a) => a.status === "declined");
-  const clubAdmin = hasRole(user, "club_admin") && !!user.clubId;
 
   return (
     <div className="space-y-6">
@@ -38,7 +36,6 @@ export default async function AppointmentsPage() {
             : "Matches a club has asked you to umpire."
         }
       />
-      <UmpiringNav umpire clubAdmin={clubAdmin} />
 
       {clubs.items.length === 0 && mine.items.length === 0 && (
         <Card>

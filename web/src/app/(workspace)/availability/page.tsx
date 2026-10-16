@@ -1,9 +1,8 @@
-import { hasRole, localDay } from "@fh/shared";
+import { localDay } from "@fh/shared";
 import { markHours, setUnavailableWeekdays } from "@/app/actions/umpiring";
 import { ActionForm } from "@/components/ActionForm";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { PageHeader } from "@/components/PageHeader";
-import { UmpiringNav } from "@/components/UmpiringNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -25,14 +24,13 @@ const WEEKDAYS = [
 
 /** When you can umpire, for your clubs' admins to see when they appoint. */
 export default async function AvailabilityPage() {
-  const user = await requireUser("/availability");
+  await requireUser("/availability");
   const availability = await api<Availability>("/v1/me/availability");
   const today = localDay(new Date());
 
   return (
     <div className="space-y-6">
       <PageHeader title="Availability" description="When you can umpire. Your clubs' admins see it when they choose who to ask." />
-      <UmpiringNav umpire clubAdmin={hasRole(user, "club_admin") && !!user.clubId} />
 
       <Card>
         <CardHeader>

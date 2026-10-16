@@ -1,8 +1,7 @@
-import { fixtureWhen, hasRole, localDay, seasonStart } from "@fh/shared";
+import { fixtureWhen, localDay, seasonStart } from "@fh/shared";
 import { roleLabel } from "@/components/AppointmentBadge";
 import { MatchList } from "@/components/MatchList";
 import { PageHeader } from "@/components/PageHeader";
-import { UmpiringNav } from "@/components/UmpiringNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { dayStartIso } from "@/lib/format";
@@ -28,7 +27,6 @@ export default async function SeasonPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="My season" description={`${startYear}–${String(startYear + 1).slice(2)}, from 1 August.`} />
-      <UmpiringNav umpire clubAdmin={hasRole(user, "club_admin") && !!user.clubId} />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Matches umpired" value={matches.items.length + (matches.nextCursor ? "+" : "")} />

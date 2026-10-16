@@ -42,7 +42,7 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
 export function SiteFooter() {
   return (
     <footer className="border-t bg-card">
-      <div className="mx-auto grid max-w-5xl gap-8 px-4 py-10 sm:grid-cols-[1.4fr_repeat(3,1fr)]">
+      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-[1.4fr_repeat(3,1fr)]">
         <div className="space-y-3">
           <Logo size={28} />
           <p className="max-w-xs text-sm text-muted-foreground">{SITE_DESCRIPTION}</p>
@@ -70,7 +70,7 @@ export function SiteFooter() {
         ))}
       </div>
       <div className="border-t">
-        <div className="mx-auto flex max-w-5xl flex-wrap justify-between gap-2 px-4 py-4 text-xs text-muted-foreground">
+        <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-2 px-4 py-4 text-xs text-muted-foreground">
           <span>
             © {new Date().getFullYear()} {SITE_NAME}
           </span>

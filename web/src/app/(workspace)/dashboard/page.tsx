@@ -54,17 +54,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Dashboard"
+        title={views.find((v) => v.key === view)?.label ?? "Dashboard"}
         description={
-          club ? (
-            <>
-              Club admin for <Link href={`/clubs/${club.slug}`}>{club.name}</Link> · <Link href={`/admin/clubs/${club.id}`}>manage teams</Link> ·{" "}
-              <Link href="/dashboard/fixtures">fixtures</Link> · <Link href="/dashboard/umpires">umpires</Link> ·{" "}
-              <Link href="/dashboard/webhooks">webhooks</Link>
-            </>
-          ) : (
-            `Signed in as ${user.displayName}`
-          )
+          view === "club" && club
+            ? `Matches with ${club.name}'s teams in them.`
+            : view === "all"
+              ? "Every match on the site, drafts included."
+              : view === "mine"
+                ? "Matches you've umpired, drafts included."
+                : `Signed in as ${user.displayName}`
         }
       />
 
@@ -81,16 +79,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       {view && (
         <>
-          {views.length > 1 && (
-            <nav aria-label="Which matches" className="inline-flex rounded-lg bg-muted p-1">
-              {views.map((v) => (
-                <Button key={v.key} size="sm" variant={v.key === view ? "outline" : "ghost"} className={v.key === view ? "bg-background shadow-sm" : ""} asChild>
-                  <Link href={`/dashboard?view=${v.key}`}>{v.label}</Link>
-                </Button>
-              ))}
-            </nav>
-          )}
-
           {drafts && published && <Summary drafts={drafts} published={published} view={view} />}
 
           <Card>

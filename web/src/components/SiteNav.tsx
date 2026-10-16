@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Menu, Shield, UserRound } from "lucide-react";
+import { LogOut, Menu, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logout } from "@/app/actions/auth";
@@ -18,24 +18,17 @@ import { cn } from "@/lib/utils";
 export interface NavUser {
   displayName: string;
   email: string;
-  isAdmin: boolean;
 }
 
-/** The main sections: Matches, Clubs, and the dashboard and umpiring when signed in. */
+/** Where the dashboard's pages are (app/(workspace)): everything a signed-in user manages. */
+const WORKSPACE = ["/dashboard", "/upcoming", "/appointments", "/availability", "/season", "/account", "/admin"];
+
+/** The main sections: Matches and Clubs, and the dashboard when signed in, which lists the rest. */
 export function sections(user: NavUser | null) {
   return [
     { href: "/matches", label: "Matches", match: (p: string) => p === "/matches" || p.startsWith("/matches/") || p.startsWith("/m/") },
     { href: "/clubs", label: "Clubs", match: (p: string) => p.startsWith("/clubs") },
-    ...(user
-      ? [
-          { href: "/dashboard", label: "Dashboard", match: (p: string) => p === "/dashboard" },
-          {
-            href: "/appointments",
-            label: "Umpiring",
-            match: (p: string) => ["/upcoming", "/appointments", "/availability", "/season", "/dashboard/fixtures", "/dashboard/umpires"].some((s) => p.startsWith(s)),
-          },
-        ]
-      : []),
+    ...(user ? [{ href: "/dashboard", label: "Dashboard", match: (p: string) => WORKSPACE.some((w) => p === w || p.startsWith(`${w}/`)) }] : []),
   ];
 }
 
@@ -101,13 +94,6 @@ function AccountItems({ user }: { user: NavUser }) {
           <UserRound /> Your account
         </Link>
       </DropdownMenuItem>
-      {user.isAdmin && (
-        <DropdownMenuItem asChild>
-          <Link href="/admin">
-            <Shield /> Admin
-          </Link>
-        </DropdownMenuItem>
-      )}
       <DropdownMenuSeparator />
       <form action={logout}>
         <DropdownMenuItem asChild>
@@ -152,11 +138,6 @@ export function MobileMenu({ user, docsUrl, githubUrl }: { user: NavUser | null;
             <DropdownMenuItem asChild>
               <Link href="/account">Your account</Link>
             </DropdownMenuItem>
-            {user.isAdmin && (
-              <DropdownMenuItem asChild>
-                <Link href="/admin">Admin</Link>
-              </DropdownMenuItem>
-            )}
             <form action={logout}>
               <DropdownMenuItem asChild>
                 <button type="submit" className="w-full">

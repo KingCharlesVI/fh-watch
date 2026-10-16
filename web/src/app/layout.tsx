@@ -38,7 +38,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             Skip to content
           </a>
           <SiteHeader user={user} />
-          <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-16">
+          <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-16">
             {children}
           </main>
           <SiteFooter />

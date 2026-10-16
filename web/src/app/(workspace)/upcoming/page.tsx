@@ -1,8 +1,7 @@
-import { fixtureWhen, formatPreset, hasRole } from "@fh/shared";
+import { fixtureWhen, formatPreset } from "@fh/shared";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
-import { UmpiringNav } from "@/components/UmpiringNav";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { api } from "@/lib/api";
@@ -13,7 +12,7 @@ export const metadata = { title: "Upcoming" };
 
 /** Matches you've set up ahead of time, from today. Your phone picks them up into its Upcoming list. */
 export default async function UpcomingPage() {
-  const user = await requireUmpire("/upcoming");
+  await requireUmpire("/upcoming");
   const planned = await api<Items<PlannedMatch>>("/v1/me/planned-matches");
 
   return (
@@ -29,7 +28,6 @@ export default async function UpcomingPage() {
           </Button>
         }
       />
-      <UmpiringNav umpire clubAdmin={hasRole(user, "club_admin") && !!user.clubId} />
 
       {planned.items.length === 0 ? (
         <Card className="py-10 text-center text-muted-foreground">

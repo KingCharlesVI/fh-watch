@@ -1,4 +1,3 @@
-import { hasRole } from "@fh/shared";
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -11,11 +10,11 @@ import { AccountMenu, MainNav, MobileMenu, type NavUser } from "./SiteNav";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function SiteHeader({ user }: { user: User | null }) {
-  const navUser: NavUser | null = user ? { displayName: user.displayName, email: user.email, isAdmin: hasRole(user, "admin") } : null;
+  const navUser: NavUser | null = user ? { displayName: user.displayName, email: user.email } : null;
   return (
     <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur supports-[backdrop-filter]:bg-card/70">
-      <div className="mx-auto flex h-14 max-w-5xl items-center gap-4 px-4">
-        <Logo className="text-base sm:text-lg" />
+      <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
+        <Logo className="shrink-0 text-base whitespace-nowrap sm:text-lg" />
         <MainNav user={navUser} />
         <div className="ml-auto flex items-center gap-1">
           {/* Search everything: a box where there's room, otherwise a button to the search page. */}
