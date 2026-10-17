@@ -18,8 +18,12 @@ export interface UpcomingMatch {
   sentAt: string | null;
   /** For a club appointment, the other umpire on it, if there is one. */
   colleague?: MyAppointment["colleague"];
-  /** For a match planned on the website, when the version taken in was last changed there. */
+  /** For a match set up on the phone and since put on the website, its id there. */
+  plannedId?: string;
+  /** For a match on the website, when the version there was last changed. */
   plannedAt?: string;
+  /** Changed on the phone since it was last put on the website. */
+  unsynced?: boolean;
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -45,9 +49,13 @@ export function sortUpcoming(list: readonly UpcomingMatch[]): UpcomingMatch[] {
   return [...list].sort((a, b) => key(a).localeCompare(key(b)));
 }
 
-/** Adds the match, or replaces the one with its id. */
+/**
+ * Adds the match, or replaces the one with its id. One put on the website while it was being
+ * changed keeps its id there, so it isn't put there twice.
+ */
 export function saveUpcoming(list: readonly UpcomingMatch[], match: UpcomingMatch): UpcomingMatch[] {
-  return list.some((u) => u.id === match.id) ? list.map((u) => (u.id === match.id ? match : u)) : [...list, match];
+  if (!list.some((u) => u.id === match.id)) return [...list, match];
+  return list.map((u) => (u.id === match.id ? { ...match, plannedId: match.plannedId ?? u.plannedId } : u));
 }
 
 export function removeUpcoming(list: readonly UpcomingMatch[], id: string): UpcomingMatch[] {

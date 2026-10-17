@@ -37,7 +37,7 @@ export default function UpcomingScreen() {
     const played = rows.flatMap((r) => (r.match.document ? [r.match.document] : []));
     const done = playedUpcoming(list, played);
     upcoming.removeAll(done);
-    forgetPlanned(done);
+    forgetPlanned(list.filter((u) => done.includes(u.id)));
   }, [list, rows]);
 
   return (
