@@ -1,3 +1,16 @@
+## [1.4.0-beta.25] - 2026-10-17
+
+### 🐛 Bug Fixes
+
+- *(phone)* Matches set up on the phone go to the website's Upcoming
+
+### 📚 Documentation
+
+- Matches set up on the phone are on the website's Upcoming too
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* Build bump to 25
 ## [1.4.0-beta.24] - 2026-10-16
 
 ### 🚀 Features
