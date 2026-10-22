@@ -1,6 +1,7 @@
 import { fixtureWhen, formatPreset } from "@fh/shared";
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { DateTile } from "@/components/DateTile";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -34,20 +35,27 @@ export default async function UpcomingPage() {
           <p>No upcoming matches. Plan one, and it&apos;ll be on your phone next time you open the app.</p>
         </Card>
       ) : (
-        <ul className="space-y-2">
+        <ul className="grid gap-3 md:grid-cols-2">
           {planned.items.map((p) => (
-            <li key={p.id}>
-              <Link href={`/upcoming/${p.id}`} className="block text-foreground no-underline hover:no-underline">
-                <Card className="gap-1 px-4 py-3 transition-colors hover:bg-muted/50">
-                  <div className="flex items-center gap-2 font-medium">
-                    <Swatch color={p.home.color} /> {p.home.name} v <Swatch color={p.away.color} /> {p.away.name}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
+            <li key={p.id} className="min-w-0">
+              <Link
+                href={`/upcoming/${p.id}`}
+                className="flex h-full items-center gap-4 rounded-2xl border bg-card p-4 text-foreground no-underline transition-[border-color,box-shadow] hover:border-foreground/15 hover:no-underline hover:shadow-md hover:shadow-black/5"
+              >
+                <DateTile date={p.date} />
+                <span className="min-w-0 flex-1 space-y-1.5">
+                  <span className="flex items-center gap-2 font-semibold">
+                    <Swatch color={p.home.color} /> <span className="truncate">{p.home.name}</span>
+                  </span>
+                  <span className="flex items-center gap-2 font-semibold">
+                    <Swatch color={p.away.color} /> <span className="truncate">{p.away.name}</span>
+                  </span>
+                  <span className="block truncate text-sm text-muted-foreground">
                     {[fixtureWhen(p.date, p.time), p.venue, p.competition, p.format ? (formatPreset(p.format)?.label ?? formatLabel(p.format)) : null]
                       .filter(Boolean)
                       .join(" · ")}
-                  </div>
-                </Card>
+                  </span>
+                </span>
               </Link>
             </li>
           ))}
