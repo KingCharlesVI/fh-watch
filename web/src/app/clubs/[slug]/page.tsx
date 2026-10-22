@@ -1,5 +1,5 @@
 import { canEditTeams } from "@fh/shared";
-import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { ChevronLeft, Settings } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -7,7 +7,6 @@ import { cache } from "react";
 import { ClubBadge } from "@/components/ClubBadge";
 import { MatchList, Pager } from "@/components/MatchList";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { api, apiOrNull } from "@/lib/api";
 import { getCurrentUser } from "@/lib/session";
 import type { ClubWithTeams, Match, Page } from "@/lib/types";
@@ -36,11 +35,11 @@ export default async function ClubPage({ params, searchParams }: { params: Param
         <Link href="/clubs" className="inline-flex items-center gap-1 text-sm text-muted-foreground no-underline hover:text-foreground">
           <ChevronLeft className="size-4" /> Clubs
         </Link>
-        <Card className="flex-row flex-wrap items-center gap-4 px-5 py-5">
-          <ClubBadge name={club.name} logoUrl={club.logoUrl} size="lg" />
+        <div className="flex flex-wrap items-center gap-5 rounded-3xl border bg-card p-6 sm:p-8">
+          <ClubBadge name={club.name} logoUrl={club.logoUrl} size="lg" className="sm:size-20 sm:text-3xl" />
           <div className="min-w-0 flex-1">
-            <h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">{club.name}</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{club.name}</h1>
+            <p className="mt-1 text-muted-foreground">
               {teams.length === 1 ? "1 team" : `${teams.length} teams`}
             </p>
           </div>
@@ -51,24 +50,24 @@ export default async function ClubPage({ params, searchParams }: { params: Param
               </Link>
             </Button>
           )}
-        </Card>
+        </div>
       </div>
 
       <section aria-labelledby="teams" className="space-y-3">
-        <h2 id="teams" className="font-heading text-lg font-semibold">
+        <h2 id="teams" className="text-2xl font-bold tracking-tight">
           Teams
         </h2>
         {teams.length === 0 ? (
           <p className="text-muted-foreground">No teams yet.</p>
         ) : (
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="flex flex-wrap gap-2">
             {teams.map((t) => (
               <li key={t.id}>
-                <Link href={`/clubs/${club.slug}/${t.slug}`} className="group block no-underline hover:no-underline">
-                  <Card className="flex-row items-center justify-between px-4 py-3 transition-colors group-hover:bg-muted/60">
-                    <span className="font-medium text-foreground">{t.name}</span>
-                    <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                  </Card>
+                <Link
+                  href={`/clubs/${club.slug}/${t.slug}`}
+                  className="inline-flex h-10 items-center rounded-full border bg-card px-5 font-medium text-foreground no-underline transition-colors hover:border-foreground/20 hover:bg-muted hover:no-underline"
+                >
+                  {t.name}
                 </Link>
               </li>
             ))}
@@ -77,7 +76,7 @@ export default async function ClubPage({ params, searchParams }: { params: Param
       </section>
 
       <section aria-labelledby="results" className="space-y-3">
-        <h2 id="results" className="font-heading text-lg font-semibold">
+        <h2 id="results" className="text-2xl font-bold tracking-tight">
           Results
         </h2>
         <MatchList matches={matches.items} empty="No matches involving this club yet." />

@@ -1,9 +1,10 @@
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { X } from "lucide-react";
 import Link from "next/link";
+import { FilterPanel } from "@/components/FilterPanel";
 import { MatchFilterFields, type MatchFilterParams, loadMatchFilters } from "@/components/MatchFilters";
 import { MatchList, Pager } from "@/components/MatchList";
 import { PageHeader } from "@/components/PageHeader";
-import { Button } from "@/components/ui/button";
+import { SearchBox } from "@/components/SearchBox";
 import { api } from "@/lib/api";
 import type { Club, Items, Match, Page, TeamWithClub } from "@/lib/types";
 
@@ -41,27 +42,7 @@ export default async function Matches({ searchParams }: { searchParams: Promise<
       <PageHeader title="Results" description="Every published match, newest first." />
 
       <div className="flex flex-wrap items-center gap-3">
-        <form
-          role="search"
-          action="/matches"
-          className="flex h-11 w-full max-w-md items-center gap-2 rounded-full border bg-card pr-1.5 pl-4 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30"
-        >
-          <Search aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-          <label htmlFor="q" className="sr-only">
-            Find a club or team
-          </label>
-          <input
-            id="q"
-            name="q"
-            type="search"
-            placeholder="Find a club or team, e.g. Hawks M1"
-            defaultValue={query}
-            className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
-          <Button type="submit" size="sm">
-            Search
-          </Button>
-        </form>
+        <SearchBox action="/matches" label="Find a club or team" placeholder="Find a club or team, e.g. Hawks M1" defaultValue={query} />
         {chips.map((c) => (
           <Link
             key={c.key}
@@ -99,25 +80,9 @@ export default async function Matches({ searchParams }: { searchParams: Promise<
         </section>
       )}
 
-      <details className="group rounded-2xl border bg-card open:pb-5" open={filtered || undefined}>
-        <summary className="flex cursor-pointer list-none items-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-semibold select-none hover:bg-muted/60 [&::-webkit-details-marker]:hidden">
-          <SlidersHorizontal className="size-4 text-muted-foreground" />
-          Filter by club, competition or venue
-          <span className="ml-auto text-xs font-medium text-muted-foreground group-open:hidden">Show</span>
-          <span className="ml-auto hidden text-xs font-medium text-muted-foreground group-open:inline">Hide</span>
-        </summary>
-        <form aria-label="Filter results" action="/matches" className="flex flex-wrap items-end gap-3 px-5 pt-2">
-          <MatchFilterFields filters={filters} />
-          <div className="flex gap-2">
-            <Button type="submit">Apply</Button>
-            {filtered && (
-              <Button variant="outline" asChild>
-                <Link href="/matches">Clear</Link>
-              </Button>
-            )}
-          </div>
-        </form>
-      </details>
+      <FilterPanel summary="Filter by club, competition or venue" label="Filter results" action="/matches" active={filtered} clearHref="/matches">
+        <MatchFilterFields filters={filters} />
+      </FilterPanel>
 
       <MatchList matches={matches.items} empty={filtered ? "No results match these filters." : "No results have been published yet."} />
       <Pager cursor={matches.nextCursor} params={{ q: query, ...filters.query }} />

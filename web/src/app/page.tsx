@@ -1,7 +1,8 @@
-import { ArrowRight, ChevronRight, CloudUpload, Search, Share2, Watch } from "lucide-react";
+import { ArrowRight, ChevronRight, CloudUpload, Share2, Watch } from "lucide-react";
 import Link from "next/link";
 import { ClubBadge } from "@/components/ClubBadge";
 import { MatchList } from "@/components/MatchList";
+import { SearchBox } from "@/components/SearchBox";
 import { Button } from "@/components/ui/button";
 import { api, cachedPublic } from "@/lib/api";
 import { getCurrentUser } from "@/lib/session";
@@ -42,26 +43,7 @@ export default async function Home() {
         <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
           Scores, cards and goals as they happened on the pitch, for players, clubs and supporters.
         </p>
-        <form
-          role="search"
-          action="/matches"
-          className="mx-auto mt-8 flex h-14 max-w-xl items-center gap-2 rounded-full border bg-card pr-2 pl-5 shadow-lg shadow-black/5 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30"
-        >
-          <Search aria-hidden className="size-5 shrink-0 text-muted-foreground" />
-          <label htmlFor="home-q" className="sr-only">
-            Find your club or team
-          </label>
-          <input
-            id="home-q"
-            name="q"
-            type="search"
-            placeholder="Find your club or team, e.g. Hawks M1"
-            className="h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
-          />
-          <Button type="submit" className="h-10 px-5">
-            Search
-          </Button>
-        </form>
+        <SearchBox action="/matches" size="lg" label="Find your club or team" placeholder="Find your club or team, e.g. Hawks M1" className="mx-auto mt-8" />
       </section>
 
       <div className="grid items-start gap-8 lg:grid-cols-[1fr_20rem]">
