@@ -2,6 +2,7 @@ import Link from "next/link";
 import { DOCS_URL, GITHUB_URL, LANDING_URL, SITE_DESCRIPTION, SITE_NAME, STATUS_URL } from "@/lib/site";
 import { GitHubIcon } from "./GitHubIcon";
 import { Logo } from "./Logo";
+import { ThemeSwitch } from "./ThemeToggle";
 
 interface FooterLink {
   href: string;
@@ -15,7 +16,7 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
   {
     title: "Results",
     links: [
-      { href: "/matches", label: "Matches" },
+      { href: "/matches", label: "Results" },
       { href: "/clubs", label: "Clubs" },
     ],
   },
@@ -41,15 +42,15 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
 
 export function SiteFooter() {
   return (
-    <footer className="border-t bg-card">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-[1.4fr_repeat(3,1fr)]">
-        <div className="space-y-3">
+    <footer className="border-t">
+      <div className="mx-auto grid max-w-6xl grid-cols-3 gap-x-4 gap-y-8 px-4 py-10 sm:px-6 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+        <div className="col-span-3 space-y-3 md:col-span-1">
           <Logo size={28} />
           <p className="max-w-xs text-sm text-muted-foreground">{SITE_DESCRIPTION}</p>
         </div>
         {COLUMNS.map((col) => (
           <nav key={col.title} aria-label={col.title} className="space-y-3 text-sm">
-            <h2 className="font-medium">{col.title}</h2>
+            <h2 className="font-sans font-semibold">{col.title}</h2>
             <ul className="space-y-2">
               {col.links.map((l) => (
                 <li key={l.label}>
@@ -70,11 +71,11 @@ export function SiteFooter() {
         ))}
       </div>
       <div className="border-t">
-        <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-2 px-4 py-4 text-xs text-muted-foreground">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 text-xs text-muted-foreground sm:px-6">
           <span>
-            © {new Date().getFullYear()} {SITE_NAME}
+            © {new Date().getFullYear()} {SITE_NAME} · Results recorded by umpires on the pitch.
           </span>
-          <span>Results recorded by umpires on the pitch.</span>
+          <ThemeSwitch />
         </div>
       </div>
     </footer>

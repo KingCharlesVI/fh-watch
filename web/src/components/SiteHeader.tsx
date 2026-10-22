@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { defaultView, navGroups } from "@/lib/nav";
 import { DOCS_URL, GITHUB_URL } from "@/lib/site";
 import type { User } from "@/lib/types";
-import { GitHubIcon } from "./GitHubIcon";
 import { Logo } from "./Logo";
 import { AccountMenu, MainNav, MobileMenu, type NavUser } from "./SiteNav";
 import { ThemeToggle } from "./ThemeToggle";
@@ -16,8 +15,8 @@ export function SiteHeader({ user }: { user: User | null }) {
   const groups = navGroups(user);
   const view = defaultView(user);
   return (
-    <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur supports-[backdrop-filter]:bg-card/70">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
+    <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-5 px-4 sm:px-6">
         <Logo className="shrink-0 text-base whitespace-nowrap sm:text-lg" />
         {/* The menus mark the page you're on from the address, which a page streams in. */}
         <Suspense>
@@ -30,20 +29,12 @@ export function SiteHeader({ user }: { user: User | null }) {
               Search clubs, teams, competitions, venues and matches
             </label>
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input id="site-search" name="q" type="search" placeholder="Search" className="h-9 w-48 pl-8" />
+            <Input id="site-search" name="q" type="search" placeholder="Search" className="h-9 w-52 rounded-full pl-8" />
           </form>
           <Button variant="ghost" size="icon" asChild className="xl:hidden">
             <Link href="/search" aria-label="Search" title="Search">
               <Search />
             </Link>
-          </Button>
-          <Button variant="ghost" asChild className="hidden text-muted-foreground hover:text-foreground xl:inline-flex">
-            <a href={DOCS_URL}>Docs</a>
-          </Button>
-          <Button variant="ghost" size="icon" asChild className="hidden xl:inline-flex">
-            <a href={GITHUB_URL} aria-label="GitHub repository" title="GitHub">
-              <GitHubIcon />
-            </a>
           </Button>
           <ThemeToggle />
           <AccountMenu user={navUser} />

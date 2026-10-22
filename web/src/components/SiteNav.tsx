@@ -25,7 +25,7 @@ export interface NavUser {
 
 /** The pages anyone can see, before the signed-in user's menus. */
 const SECTIONS = [
-  { href: "/matches", label: "Matches", match: (p: string) => p === "/matches" || p.startsWith("/matches/") || p.startsWith("/m/") },
+  { href: "/matches", label: "Results", match: (p: string) => p === "/matches" || p.startsWith("/matches/") || p.startsWith("/m/") },
   { href: "/clubs", label: "Clubs", match: (p: string) => p.startsWith("/clubs") },
 ];
 
@@ -55,8 +55,8 @@ function useActiveHref(groups: NavGroup[], defaultView: string | undefined): str
 
 const linkClass = (active: boolean) =>
   cn(
-    "rounded-md px-3 py-1.5 text-sm font-medium no-underline transition-colors hover:bg-muted hover:no-underline",
-    active ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
+    "rounded-full px-4 py-1.5 text-sm font-medium no-underline transition-colors hover:no-underline",
+    active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
   );
 
 /** A menu's links, with the page you're on ticked. */
@@ -76,7 +76,7 @@ export function MainNav({ groups, defaultView }: { groups: NavGroup[]; defaultVi
   const path = usePathname();
   const active = useActiveHref(groups, defaultView);
   return (
-    <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
+    <nav aria-label="Main" className="hidden items-center gap-0.5 rounded-full bg-muted p-1 lg:flex">
       {SECTIONS.map((s) => (
         <Link key={s.href} href={s.href} aria-current={s.match(path) ? "page" : undefined} className={linkClass(s.match(path))}>
           {s.label}
@@ -108,7 +108,7 @@ export function AccountMenu({ user }: { user: NavUser | null }) {
         <Button variant="ghost" asChild>
           <Link href="/login">Sign in</Link>
         </Button>
-        <Button asChild>
+        <Button asChild className="bg-foreground text-background hover:bg-foreground/90">
           <Link href="/register">Register</Link>
         </Button>
       </div>

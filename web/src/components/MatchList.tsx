@@ -38,67 +38,68 @@ function byDay(matches: Match[]): { day: string; label: string; matches: Match[]
   return groups;
 }
 
-/** Results like a sports site's: a heading per day, and the scores lined up in one column. */
+/** Results as cards, a heading per day: each team on its own line with its score, the winner in bold. */
 export function MatchList({ matches, manage = false, empty = "No matches yet." }: Props) {
   if (matches.length === 0) {
     return (
-      <Card className="py-10 text-center text-muted-foreground">
+      <Card className="py-12 text-center text-muted-foreground">
         <p>{empty}</p>
       </Card>
     );
   }
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {byDay(matches).map((group) => (
-        <section key={group.day} aria-label={group.label} className="space-y-2">
-          <h2 className="px-1 text-sm font-medium text-muted-foreground">{group.label}</h2>
-          <Card className="gap-0 overflow-hidden py-0">
-            <ul className="divide-y">
-              {group.matches.map((m) => (
-                <li key={m.id}>
-                  <MatchRow match={m} manage={manage} />
-                </li>
-              ))}
-            </ul>
-          </Card>
+        <section key={group.day} aria-label={group.label} className="space-y-3">
+          <h2 className="px-1 font-sans text-sm font-semibold text-muted-foreground">{group.label}</h2>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {group.matches.map((m) => (
+              <li key={m.id} className="min-w-0">
+                <MatchCard match={m} manage={manage} />
+              </li>
+            ))}
+          </ul>
         </section>
       ))}
     </div>
   );
 }
 
-function MatchRow({ match: m, manage }: { match: Match; manage: boolean }) {
+function MatchCard({ match: m, manage }: { match: Match; manage: boolean }) {
   const won = winner(m);
-  const side = (s: "home" | "away") => cn("min-w-0 break-words", won === s ? "font-semibold text-foreground" : won ? "text-muted-foreground" : "text-foreground");
   const shootout = m.home.shootout !== null && m.away.shootout !== null;
+  const details = [m.competition, m.venue].filter(Boolean).join(" · ");
+  const team = (s: "home" | "away") => {
+    const t = m[s];
+    const tone = won === s ? "font-semibold text-foreground" : won ? "text-muted-foreground" : "font-medium text-foreground";
+    return (
+      <span className="flex items-center gap-3">
+        <span className={cn("min-w-0 flex-1 text-[1.05rem] leading-snug break-words", tone)}>{t.name}</span>
+        {shootout && <span className="text-xs text-muted-foreground tabular-nums">({t.shootout})</span>}
+        <span className={cn("w-8 text-right font-heading text-2xl font-extrabold tabular-nums", won && won !== s && "text-muted-foreground")}>{t.score}</span>
+      </span>
+    );
+  };
   return (
     <Link
       href={matchHref(m, manage)}
-      // A fixed width on the right, so the scores line up from row to row; wider for the status badges.
-      className={cn(
-        "grid gap-x-4 gap-y-1.5 px-4 py-3 no-underline transition-colors hover:bg-muted/60 hover:no-underline md:items-center",
-        manage ? "md:grid-cols-[3.5rem_1fr_17rem]" : "md:grid-cols-[3.5rem_1fr_11rem]",
-      )}
+      className="flex h-full flex-col gap-3 rounded-2xl border bg-card p-5 text-foreground no-underline transition-[border-color,box-shadow] hover:border-foreground/15 hover:no-underline hover:shadow-md hover:shadow-black/5"
     >
-      <span className="hidden text-sm text-muted-foreground tabular-nums md:block">{formatTime(m.playedAt)}</span>
-      <span className="grid grid-cols-[1fr_4.5rem_1fr] items-center gap-3">
-        <span className={cn(side("home"), "text-right")}>{m.home.name}</span>
-        <span className="flex flex-col items-center leading-tight">
-          <span className="rounded-md bg-muted px-2 py-0.5 font-heading font-bold text-foreground tabular-nums">
-            {m.home.score}–{m.away.score}
+      <span className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+        <span className="tabular-nums">{formatTime(m.playedAt)}</span>
+        {manage ? (
+          <span className="flex flex-wrap gap-1.5">
+            <StatusBadges match={m} />
           </span>
-          {shootout && (
-            <span className="mt-0.5 text-[0.7rem] text-muted-foreground tabular-nums">
-              {m.home.shootout}–{m.away.shootout} SO
-            </span>
-          )}
-        </span>
-        <span className={side("away")}>{m.away.name}</span>
+        ) : (
+          <span className="font-medium text-foreground">{shootout ? `FT · Shootout ${m.home.shootout}–${m.away.shootout}` : "FT"}</span>
+        )}
       </span>
-      <span className="flex flex-wrap items-center justify-center gap-1.5 text-xs text-muted-foreground md:justify-end">
-        {m.competition && <span className="max-w-full truncate" title={m.competition}>{m.competition}</span>}
-        {manage && <StatusBadges match={m} />}
+      <span className="flex flex-col gap-2">
+        {team("home")}
+        {team("away")}
       </span>
+      {details && <span className="mt-auto truncate border-t pt-3 text-sm text-muted-foreground" title={details}>{details}</span>}
     </Link>
   );
 }
