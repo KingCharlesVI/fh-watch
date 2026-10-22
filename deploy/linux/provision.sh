@@ -90,7 +90,8 @@ for u in fh-api fh-web fh-tunnel; do
 done
 id fh-deploy &>/dev/null || useradd --system --user-group --create-home --home-dir /home/fh-deploy --shell /bin/bash fh-deploy
 install -d -o root -g root -m 755 /opt/fh /opt/fh/bin /etc/fh
-install -d -o fh-deploy -g fh-deploy -m 755 /opt/fh/releases /opt/fh/ms-playwright
+install -d -o root -g root -m 755 /opt/fh/beta
+install -d -o fh-deploy -g fh-deploy -m 755 /opt/fh/releases /opt/fh/beta/releases /opt/fh/ms-playwright
 install -d -o fh-deploy -g fh-deploy -m 700 /home/fh-deploy/.ssh
 install -d -o root -g root -m 700 /var/backups/fh
 
@@ -118,6 +119,7 @@ for db in fh fh_restore_test; do
 done
 
 [[ -f /etc/fh/web.env ]] || cp "$DEPLOY/env/web.env" /etc/fh/web.env
+[[ -f /etc/fh/web-beta.env ]] || cp "$DEPLOY/env/web-beta.env" /etc/fh/web-beta.env
 [[ -f /etc/fh/rclone.conf ]] || touch /etc/fh/rclone.conf
 if [[ -f /etc/fh/fh.env ]]; then
   sed -i "s|^REPO_URL=.*|REPO_URL=$REPO|" /etc/fh/fh.env
@@ -126,7 +128,7 @@ else
     "$DEPLOY/env/fh.env" > /etc/fh/fh.env
 fi
 chown root:fh-api /etc/fh/api.env && chmod 640 /etc/fh/api.env
-chown root:fh-web /etc/fh/web.env && chmod 640 /etc/fh/web.env
+chown root:fh-web /etc/fh/web.env /etc/fh/web-beta.env && chmod 640 /etc/fh/web.env /etc/fh/web-beta.env
 chown root:root /etc/fh/fh.env /etc/fh/rclone.conf && chmod 600 /etc/fh/fh.env /etc/fh/rclone.conf
 
 say "Libraries Chromium needs for PDF reports"

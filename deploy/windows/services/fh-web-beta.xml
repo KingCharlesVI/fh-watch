@@ -1,0 +1,24 @@
+<!--
+  WinSW service definition for the beta website (beta.<domain>, deployed with `fh deploy --beta`; it uses the
+  live API). provision.ps1 fills in the __PLACEHOLDERS__ and installs it next to fh-web-beta.exe in
+  C:\ProgramData\fh\services. After changing it, run provision.ps1 again.
+-->
+<service>
+  <id>fh-web-beta</id>
+  <name>FH Match Centre beta website</name>
+  <description>FH Match Centre beta website on 127.0.0.1:3002.</description>
+  <executable>__NODE__</executable>
+  <arguments>--env-file="__ROOT__\config\web-beta.env" serve.mjs</arguments>
+  <workingdirectory>__ROOT__\beta\current\web</workingdirectory>
+  <env name="NODE_ENV" value="production"/>
+  <env name="TEMP" value="__ROOT__\data\web-beta\tmp"/>
+  <env name="TMP" value="__ROOT__\data\web-beta\tmp"/>
+  <onfailure action="restart" delay="5 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <stoptimeout>20 sec</stoptimeout>
+  <logpath>__ROOT__\logs\web-beta</logpath>
+  <!-- A file a day; `fh backup` (nightly) deletes those over 30 days old, as the privacy policy says. -->
+  <log mode="roll-by-time">
+    <pattern>yyyyMMdd</pattern>
+  </log>
+</service>

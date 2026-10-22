@@ -147,6 +147,18 @@ If they don't answer, it switches back to the previous release and shows the log
 
 A branch name works in place of a tag (e.g. `fh deploy main`), but tags make it clear what's running. The first deploy takes 5–10 minutes; later ones are quicker.
 
+## Beta site
+
+https://beta.fhmatchcentre.com runs the website from a branch, for trying out website changes before they're released. Its own website service, `fh-web-beta` (port 3002), runs alongside the live one but uses the **live API and database**. People sign in with their real accounts and see real data, and anything they change there changes on the live site too. Search engines are asked not to list it.
+
+Deploy a branch to it with `sudo fh deploy --beta website-overhaul` (Linux) or `fh deploy --beta website-overhaul` (Windows). A beta deploy builds only the website: it never runs database migrations or updates the `fh` command, and it leaves the live site alone. Roll back with `fh rollback --beta`; its logs are in `fh logs web-beta`. Two beta releases are kept.
+
+Because beta uses the live API, a branch deployed there must work with the API that's live. If it needs API or database changes, release those to the live site first, then deploy the branch to beta.
+
+**Setting it up (once):** the setup script does it, so on a server set up before beta existed, run the script again from a clone of a commit that has it (it's safe to re-run). It adds `fh-web-beta`, its settings file `web-beta.env`, and the `fh` command that knows about beta. Then run `fh tunnel`, which points beta.fhmatchcentre.com at this machine, and deploy a branch. The beta service starts at boot from its first deploy onwards. Live deploys replace the `fh` command with the release's own, so release this to the live site before deploying an older tag, or `--beta` goes away until you do.
+
+To use another address, change `SITE_URL` in `web-beta.env`, run `fh tunnel`, and deploy to beta again.
+
 ## 4. Create the first admin
 
 1. Register on https://app.fhmatchcentre.com/register.
@@ -216,19 +228,20 @@ Run `fh` commands from an administrator PowerShell on Windows, or with `sudo` on
 | --- | --- |
 | Deploy a release | `fh deploy v0.2.0` |
 | Go back one release | `fh rollback` |
+| Deploy a branch to the beta site, or go back | `fh deploy --beta website-overhaul`, `fh rollback --beta` |
 | What's running, is it healthy | `fh status` |
-| Logs | `fh logs` (all), `fh logs api`, add `-f` to follow |
+| Logs | `fh logs` (all), `fh logs api`, `fh logs web-beta`, add `-f` to follow |
 | Make someone admin | `fh admin someone@example.com` |
 | Back up now | `fh backup` |
 | Restore | `fh restore <file>` |
 | Reconnect the tunnel or repair its DNS records | `fh tunnel` |
 | Restart | Linux: `sudo systemctl restart fh-api fh-web`. Windows: `Restart-Service fh-api, fh-web` |
-| Change settings | Edit `api.env` or `web.env`, then restart that service. `SITE_URL` in `web.env` is built into the website, so deploy again after changing it. |
+| Change settings | Edit `api.env`, `web.env` or `web-beta.env`, then restart that service. `SITE_URL` is built into the website, so deploy again after changing it. |
 | Database shell | Linux: `sudo -u postgres psql fh`. Windows: `& "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres fh` (use your PostgreSQL version) |
 
 A rollback doesn't undo database migrations. Write migrations that the previous release can still run against, for example by adding columns rather than renaming them.
 
-`fh.mjs` itself is updated by each deploy. The service definitions and scripts in `deploy/linux` and `deploy/windows` aren't, so run the setup script again after changing them.
+`fh.mjs` itself is updated by each live deploy (not beta ones). The service definitions and scripts in `deploy/linux` and `deploy/windows` aren't, so run the setup script again after changing them.
 
 ## Moving to another machine
 
@@ -246,9 +259,11 @@ Stop the old tunnel before starting the new one: two machines running the same t
 | What | Linux | Windows |
 | --- | --- | --- |
 | Releases (one folder per deploy) and `current`, the live one | `/opt/fh/releases`, `/opt/fh/current` | `C:\ProgramData\fh\releases`, `C:\ProgramData\fh\current` |
+| Beta site releases and its `current` | `/opt/fh/beta/releases`, `/opt/fh/beta/current` | `C:\ProgramData\fh\beta\releases`, `C:\ProgramData\fh\beta\current` |
 | The `fh` command | `/opt/fh/bin/fh.mjs` (and `/usr/local/bin/fh`) | `C:\ProgramData\fh\bin` |
 | API settings and secrets (database password, JWT secret, SMTP) | `/etc/fh/api.env` | `C:\ProgramData\fh\config\api.env` |
 | Website settings | `/etc/fh/web.env` | `C:\ProgramData\fh\config\web.env` |
+| Beta website settings | `/etc/fh/web-beta.env` | `C:\ProgramData\fh\config\web-beta.env` |
 | Deploy and backup settings | `/etc/fh/fh.env` | `C:\ProgramData\fh\config\fh.env` |
 | Tunnel settings and credentials (written by `fh tunnel`) | `/etc/fh/tunnel.yml`, `/etc/fh/tunnel.json` | `C:\ProgramData\fh\config\tunnel.yml`, `tunnel.json` |
 | Cloudflare sign-in used by `fh tunnel` | `/root/.cloudflared/cert.pem` | `%USERPROFILE%\.cloudflared\cert.pem` |
