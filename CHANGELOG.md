@@ -1,3 +1,12 @@
+## [unreleased]
+
+### ⚙️ Miscellaneous Tasks
+
+- *(fix)* Make fields and lists visible
+
+### 💼 Other
+
+- Update version.json
 ## [2.2.0-beta.26] - 2026-10-23
 
 ### 🚀 Features
