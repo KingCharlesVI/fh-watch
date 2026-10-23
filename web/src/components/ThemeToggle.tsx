@@ -36,7 +36,7 @@ export function ThemeSwitch() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   return (
-    <div role="radiogroup" aria-label="Colour theme" className="inline-flex rounded-full bg-muted p-1">
+    <div role="radiogroup" aria-label="Colour theme" className="inline-flex rounded-md bg-muted p-1">
       {CHOICES.map(({ value, label, icon: Icon }) => {
         const on = mounted && theme === value;
         return (
@@ -47,7 +47,7 @@ export function ThemeSwitch() {
             aria-checked={on}
             onClick={() => setTheme(value)}
             className={cn(
-              "inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+              "inline-flex h-7 items-center gap-1.5 rounded-sm px-3 text-xs font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
               on ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
             )}
           >

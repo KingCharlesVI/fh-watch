@@ -33,7 +33,7 @@ export function FilterSelect({
         defaultValue={defaultValue ?? (placeholder ? "" : undefined)}
         required={placeholder !== undefined}
         onChange={onChange && ((e) => onChange(e.target.value))}
-        className="h-10 w-full appearance-none rounded-xl border border-input bg-card py-1 pr-9 pl-3 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 invalid:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50"
+        className="h-10 w-full appearance-none rounded-md border border-input bg-card py-1 pr-9 pl-3 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 invalid:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50"
       >
         {placeholder !== undefined && (
           <option value="" disabled>

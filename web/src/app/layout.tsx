@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Inter_Tight } from "next/font/google";
+import { Archivo, JetBrains_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { Providers } from "@/components/Providers";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -9,8 +9,9 @@ import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const interTight = Inter_Tight({ subsets: ["latin"], weight: ["600", "700", "800"], variable: "--font-inter-tight" });
+// Variable in width as well as weight: scores and section titles use it condensed, page titles wide.
+const archivo = Archivo({ subsets: ["latin"], axes: ["wdth"], variable: "--font-archivo" });
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-jetbrains-mono" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL ?? "http://localhost:3000"),
@@ -23,8 +24,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4f5f7" },
-    { media: "(prefers-color-scheme: dark)", color: "#0d1012" },
+    { media: "(prefers-color-scheme: light)", color: "#edf0eb" },
+    { media: "(prefers-color-scheme: dark)", color: "#07110c" },
   ],
 };
 
@@ -32,7 +33,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const user = await getCurrentUser();
   return (
     // next-themes sets the theme class before React hydrates.
-    <html lang="en-GB" className={cn("font-sans", inter.variable, interTight.variable)} suppressHydrationWarning>
+    <html lang="en-GB" className={cn("font-sans", archivo.variable, jetbrainsMono.variable)} suppressHydrationWarning>
       <body className="flex min-h-svh flex-col">
         <Providers>
           <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-card focus:px-3 focus:py-2">

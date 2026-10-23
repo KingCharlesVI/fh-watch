@@ -6,6 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { formatLongDateTime, formatTime } from "@/lib/format";
 import type { FullMatch } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { PitchPanel } from "./PitchPanel";
 import { ShareButton } from "./ShareButton";
 
 const TIMELINE_TYPES = new Set<MatchEvent["type"]>(["goal", "card", "penalty_corner", "penalty_stroke", "shootout_attempt", "note"]);
@@ -27,7 +28,7 @@ export function MatchView({ data, downloadBase }: { data: FullMatch; downloadBas
           ["#stats", "Stats"],
           ["#details", "Details"],
         ].map(([href, label]) => (
-          <a key={href} href={href} className="rounded-full border bg-card px-4 py-1.5 text-sm font-medium text-foreground no-underline hover:bg-muted hover:no-underline">
+          <a key={href} href={href} className="rounded-md border bg-card px-4 py-1.5 text-sm font-semibold text-foreground no-underline hover:bg-muted hover:no-underline">
             {label}
           </a>
         ))}
@@ -72,7 +73,7 @@ function textOn(hex: string): string {
 function Section({ id, title, children, className }: { id: string; title: string; children: ReactNode; className?: string }) {
   return (
     <section id={id} aria-labelledby={`${id}-title`} className={cn("scroll-mt-32 lg:scroll-mt-24", className)}>
-      <h2 id={`${id}-title`} className="mb-3 px-1 text-lg font-bold tracking-tight">
+      <h2 id={`${id}-title`} className="section-title mb-4 flex items-center gap-3 text-2xl after:h-px after:flex-1 after:bg-border">
         {title}
       </h2>
       {children}
@@ -89,12 +90,12 @@ function Scoreboard({ data, downloadBase }: { data: FullMatch; downloadBase: str
       <div className="flex min-w-0 flex-col items-center gap-3 text-center">
         <span
           aria-hidden
-          className="flex size-14 items-center justify-center rounded-2xl font-heading text-lg font-bold ring-1 ring-black/10 sm:size-16 sm:text-xl"
+          className="flex size-14 items-center justify-center rounded-lg font-heading text-lg font-extrabold ring-2 ring-white/80 font-stretch-85% sm:size-16 sm:text-xl"
           style={{ background: t.color, color: textOn(t.color) }}
         >
           {initials(t.name)}
         </span>
-        <span className={cn("font-heading text-base leading-tight font-bold wrap-break-word sm:text-2xl", winner && winner !== side && "text-muted-foreground")}>
+        <span className={cn("font-heading text-base leading-tight font-bold wrap-break-word font-stretch-90% sm:text-2xl", winner && winner !== side && "text-pitch-foreground/60")}>
           {t.name}
         </span>
       </div>
@@ -102,27 +103,28 @@ function Scoreboard({ data, downloadBase }: { data: FullMatch; downloadBase: str
   };
   const where = [formatLongDateTime(doc.startedAt), doc.venue].filter(Boolean).join(" · ");
   return (
-    <section aria-label="Score" className="rounded-3xl border bg-card px-4 pt-6 pb-5 sm:px-8 sm:pt-8 sm:pb-6">
+    <PitchPanel label="Score" className="px-4 pt-7 pb-5 sm:px-8 sm:pt-9 sm:pb-6">
       <div className="text-center">
-        {doc.competition && <p className="text-xs font-semibold tracking-[0.08em] text-primary uppercase">{doc.competition}</p>}
-        <p className="mt-1 text-sm text-muted-foreground">{where}</p>
+        {doc.competition && <p className="section-title text-sm text-hivis">{doc.competition}</p>}
+        <p className="mt-2 text-sm text-pitch-foreground/75">{where}</p>
       </div>
 
       <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-8">
         {team("home")}
         <div className="flex flex-col items-center gap-2">
-          <div className="flex items-center gap-2 font-heading text-6xl leading-none font-extrabold tracking-tight tabular-nums sm:gap-4 sm:text-8xl">
-            <span className={cn(winner === "away" && "text-muted-foreground")}>{s.score.home}</span>
-            <span className="text-4xl text-muted-foreground/50 sm:text-6xl">–</span>
-            <span className={cn(winner === "home" && "text-muted-foreground")}>{s.score.away}</span>
+          <div className="font-score flex items-center gap-3 text-8xl sm:gap-5 sm:text-[9.5rem]">
+            <span className={cn(winner === "away" && "text-pitch-foreground/55")}>{s.score.home}</span>
+            <span className="text-5xl text-pitch-foreground/40 sm:text-7xl">–</span>
+            <span className={cn(winner === "home" && "text-pitch-foreground/55")}>{s.score.away}</span>
           </div>
-          <span className="rounded-full bg-primary/12 px-3 py-0.5 text-xs font-bold tracking-wide text-primary uppercase">Full time</span>
+          {/* Stamped on, like the umpire's card. */}
+          <span className="section-title -rotate-2 rounded-sm bg-hivis px-2.5 py-1 text-sm text-hivis-foreground shadow-[0_2px_0_rgb(0_0_0/0.25)]">Full time</span>
         </div>
         {team("away")}
       </div>
 
       {s.shootout && (
-        <p className="mt-4 text-center text-sm text-muted-foreground">
+        <p className="mt-5 text-center text-sm text-pitch-foreground/80">
           Shootout {s.shootout.home}–{s.shootout.away}
           {s.result.decidedBy === "shootout" && s.result.winner && <> · {doc.teams[s.result.winner].name} win</>}
         </p>
@@ -130,22 +132,22 @@ function Scoreboard({ data, downloadBase }: { data: FullMatch; downloadBase: str
 
       <ol aria-label="Score by period" className="mx-auto mt-6 grid max-w-xl gap-2" style={{ gridTemplateColumns: `repeat(${s.periodScores.length}, minmax(0, 1fr))` }}>
         {s.periodScores.map((p) => (
-          <li key={p.period} className="rounded-xl bg-muted py-2 text-center">
-            <span className="block text-xs font-semibold text-muted-foreground">{periodLabel(doc.settings.periods, p.period)}</span>
-            <span className="font-heading text-lg font-bold tabular-nums">
+          <li key={p.period} className="rounded-md border border-white/15 bg-black/15 py-2 text-center">
+            <span className="block text-xs font-semibold text-pitch-foreground/65">{periodLabel(doc.settings.periods, p.period)}</span>
+            <span className="font-score text-2xl">
               {p.home}–{p.away}
             </span>
           </li>
         ))}
       </ol>
 
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-2 border-t pt-5">
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-2 border-t border-white/15 pt-5">
         {match.status === "published" && match.shareUrl && (
-          <ShareButton variant="default" url={match.shareUrl} title={`${doc.teams.home.name} ${s.score.home}–${s.score.away} ${doc.teams.away.name}`} />
+          <ShareButton variant="hivis" url={match.shareUrl} title={`${doc.teams.home.name} ${s.score.home}–${s.score.away} ${doc.teams.away.name}`} />
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline">
+            <Button variant="chalk">
               <Download /> Download
             </Button>
           </DropdownMenuTrigger>
@@ -168,7 +170,7 @@ function Scoreboard({ data, downloadBase }: { data: FullMatch; downloadBase: str
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </section>
+    </PitchPanel>
   );
 }
 
@@ -217,12 +219,12 @@ function Timeline({ data }: { data: FullMatch }) {
   return (
     <Section id="timeline" title="Timeline">
       {sections.length === 0 ? (
-        <p className="rounded-2xl border bg-card px-5 py-8 text-center text-muted-foreground">No goals, cards or notes recorded.</p>
+        <p className="rounded-lg border bg-card px-5 py-8 text-center text-muted-foreground">No goals, cards or notes recorded.</p>
       ) : (
         <div className="space-y-5">
           {sections.map((sec) => (
             <div key={sec.title}>
-              <h3 className="mb-2 px-1 font-sans text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">{sec.title}</h3>
+              <h3 className="section-title mb-2 text-base text-muted-foreground">{sec.title}</h3>
               <ol className="space-y-2">
                 {sec.events.map((e) => {
                   const side = "team" in e ? (e.team as Side) : null;
@@ -233,12 +235,12 @@ function Timeline({ data }: { data: FullMatch }) {
                   return (
                     <li
                       key={e.seq}
-                      className="flex items-center gap-3 rounded-xl border border-l-4 bg-card px-4 py-3"
+                      className="flex items-center gap-3 rounded-md border border-l-[5px] bg-card px-4 py-3"
                       style={{ borderLeftColor: t?.color ?? "var(--border)" } as CSSProperties}
                     >
                       {e.type !== "note" && (
                         <>
-                          <span className="w-11 shrink-0 font-heading text-base font-semibold text-muted-foreground tabular-nums">{time}</span>
+                          <span className="w-12 shrink-0 font-mono text-sm font-semibold text-muted-foreground">{time}</span>
                           <span aria-hidden className="flex w-5 shrink-0 justify-center">
                             <Marker event={e} />
                           </span>
@@ -286,7 +288,7 @@ function Statistics({ data }: { data: FullMatch }) {
 
   return (
     <Section id="stats" title="Stats">
-      <div className="rounded-2xl border bg-card px-5 py-4">
+      <div className="rounded-lg border bg-card px-5 py-4">
         <div className="mb-2 flex justify-between gap-4 text-xs font-semibold text-muted-foreground">
           <span className="truncate">{doc.teams.home.name}</span>
           <span className="truncate text-right">{doc.teams.away.name}</span>
@@ -300,9 +302,9 @@ function Statistics({ data }: { data: FullMatch }) {
               return (
                 <li key={r.label} className="py-3">
                   <div className="grid grid-cols-[3rem_1fr_3rem] items-baseline text-sm">
-                    <span className="font-bold tabular-nums">{r.text?.[0] ?? r.home}</span>
+                    <span className="font-score text-xl">{r.text?.[0] ?? r.home}</span>
                     <span className="text-center text-muted-foreground">{r.label}</span>
-                    <span className="text-right font-bold tabular-nums">{r.text?.[1] ?? r.away}</span>
+                    <span className="font-score text-right text-xl">{r.text?.[1] ?? r.away}</span>
                   </div>
                   <div aria-hidden className="mt-2 flex h-1.5 gap-1">
                     <span className="flex flex-1 justify-end overflow-hidden rounded-full bg-muted">
@@ -335,7 +337,7 @@ function Details({ data }: { data: FullMatch }) {
   ];
   return (
     <Section id="details" title="Details">
-      <dl className="divide-y rounded-2xl border bg-card px-5 text-sm">
+      <dl className="divide-y rounded-lg border bg-card px-5 text-sm">
         {rows.map(([label, value]) => (
           <div key={label} className="flex justify-between gap-4 py-3">
             <dt className="text-muted-foreground">{label}</dt>

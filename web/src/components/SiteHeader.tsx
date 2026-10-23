@@ -15,8 +15,8 @@ export function SiteHeader({ user }: { user: User | null }) {
   const groups = navGroups(user);
   const view = defaultView(user);
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-5 px-4 sm:px-6">
+    <header className="sticky top-0 z-40 border-t-[3px] border-b border-t-pitch bg-card/90 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-4 sm:px-6">
         <Logo className="shrink-0 text-base whitespace-nowrap sm:text-lg" />
         {/* The menus mark the page you're on from the address, which a page streams in. */}
         <Suspense>
@@ -29,7 +29,7 @@ export function SiteHeader({ user }: { user: User | null }) {
               Search clubs, teams, competitions, venues and matches
             </label>
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input id="site-search" name="q" type="search" placeholder="Search" className="h-9 w-52 rounded-full pl-8" />
+            <Input id="site-search" name="q" type="search" placeholder="Search" className="h-9 w-52 bg-background pl-8" />
           </form>
           <Button variant="ghost" size="icon" asChild className="xl:hidden">
             <Link href="/search" aria-label="Search" title="Search">

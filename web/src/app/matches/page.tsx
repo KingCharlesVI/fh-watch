@@ -48,7 +48,7 @@ export default async function Matches({ searchParams }: { searchParams: Promise<
             key={c.key}
             href={without(c.key)}
             aria-label={`Remove filter: ${c.label}`}
-            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-foreground pr-2.5 pl-4 text-sm font-medium text-background no-underline hover:bg-foreground/85 hover:no-underline"
+            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-foreground pr-2.5 pl-4 text-sm font-medium text-background no-underline hover:bg-foreground/85 hover:no-underline"
           >
             {c.label} <X className="size-3.5" />
           </Link>
@@ -56,21 +56,21 @@ export default async function Matches({ searchParams }: { searchParams: Promise<
       </div>
 
       {query && (
-        <section aria-label="Search results" className="rounded-2xl border bg-card p-5">
+        <section aria-label="Search results" className="rounded-lg border bg-card p-5">
           {clubs!.items.length + teams!.items.length === 0 ? (
             <p className="text-muted-foreground">Nothing matches “{query}”.</p>
           ) : (
             <ul className="flex flex-wrap gap-2">
               {clubs!.items.map((c) => (
                 <li key={c.id}>
-                  <Link href={`/clubs/${c.slug}`} className="inline-flex h-9 items-center gap-2 rounded-full border px-4 text-sm font-medium text-foreground no-underline hover:bg-muted hover:no-underline">
+                  <Link href={`/clubs/${c.slug}`} className="inline-flex h-9 items-center gap-2 rounded-md border px-4 text-sm font-medium text-foreground no-underline hover:bg-muted hover:no-underline">
                     {c.name} <span className="text-xs text-muted-foreground">Club</span>
                   </Link>
                 </li>
               ))}
               {teams!.items.map((t) => (
                 <li key={t.id}>
-                  <Link href={`/clubs/${t.club.slug}/${t.slug}`} className="inline-flex h-9 items-center rounded-full border px-4 text-sm font-medium text-foreground no-underline hover:bg-muted hover:no-underline">
+                  <Link href={`/clubs/${t.club.slug}/${t.slug}`} className="inline-flex h-9 items-center rounded-md border px-4 text-sm font-medium text-foreground no-underline hover:bg-muted hover:no-underline">
                     {t.club.name} {t.name}
                   </Link>
                 </li>

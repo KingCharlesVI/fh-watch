@@ -149,10 +149,10 @@ function Section({ title, description, empty, children }: { title: string; descr
   return (
     <section className="space-y-3">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+        <h2 className="section-title text-2xl">{title}</h2>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
-      {empty ? <p className="rounded-2xl border bg-card px-5 py-6 text-center text-muted-foreground">{empty}</p> : <div className="grid gap-3 lg:grid-cols-2">{children}</div>}
+      {empty ? <p className="rounded-lg border bg-card px-5 py-6 text-center text-muted-foreground">{empty}</p> : <div className="grid gap-3 lg:grid-cols-2">{children}</div>}
     </section>
   );
 }

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 /** The phone's share sheet where there is one; otherwise copies the link. */
-export function ShareButton({ url, title, variant = "outline" }: { url: string; title: string; variant?: "default" | "outline" }) {
+export function ShareButton({ url, title, variant = "outline" }: { url: string; title: string; variant?: "default" | "outline" | "hivis" }) {
   const [copied, setCopied] = useState(false);
   return (
     <Button

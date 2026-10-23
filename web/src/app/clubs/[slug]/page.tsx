@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { ClubBadge } from "@/components/ClubBadge";
 import { MatchList, Pager } from "@/components/MatchList";
+import { PitchPanel } from "@/components/PitchPanel";
 import { Button } from "@/components/ui/button";
 import { api, apiOrNull } from "@/lib/api";
 import { getCurrentUser } from "@/lib/session";
@@ -35,26 +36,27 @@ export default async function ClubPage({ params, searchParams }: { params: Param
         <Link href="/clubs" className="inline-flex items-center gap-1 text-sm text-muted-foreground no-underline hover:text-foreground">
           <ChevronLeft className="size-4" /> Clubs
         </Link>
-        <div className="flex flex-wrap items-center gap-5 rounded-3xl border bg-card p-6 sm:p-8">
-          <ClubBadge name={club.name} logoUrl={club.logoUrl} size="lg" className="sm:size-20 sm:text-3xl" />
+        <PitchPanel className="flex flex-wrap items-center gap-5 p-6 sm:p-9 [&>div]:flex [&>div]:w-full [&>div]:flex-wrap [&>div]:items-center [&>div]:gap-5">
+          <ClubBadge name={club.name} logoUrl={club.logoUrl} size="lg" className="rounded-lg ring-2 ring-white/80 sm:size-20 sm:text-3xl" />
           <div className="min-w-0 flex-1">
-            <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{club.name}</h1>
-            <p className="mt-1 text-muted-foreground">
+            <p className="section-title text-sm text-hivis">Club</p>
+            <h1 className="mt-1 text-3xl font-extrabold tracking-tight sm:text-5xl">{club.name}</h1>
+            <p className="mt-1 text-pitch-foreground/75">
               {teams.length === 1 ? "1 team" : `${teams.length} teams`}
             </p>
           </div>
           {user && canEditTeams(user, club.id) && (
-            <Button variant="outline" asChild>
+            <Button variant="chalk" asChild>
               <Link href={`/admin/clubs/${club.id}`}>
                 <Settings /> Manage club
               </Link>
             </Button>
           )}
-        </div>
+        </PitchPanel>
       </div>
 
       <section aria-labelledby="teams" className="space-y-3">
-        <h2 id="teams" className="text-2xl font-bold tracking-tight">
+        <h2 id="teams" className="section-title text-2xl">
           Teams
         </h2>
         {teams.length === 0 ? (
@@ -65,7 +67,7 @@ export default async function ClubPage({ params, searchParams }: { params: Param
               <li key={t.id}>
                 <Link
                   href={`/clubs/${club.slug}/${t.slug}`}
-                  className="inline-flex h-10 items-center rounded-full border bg-card px-5 font-medium text-foreground no-underline transition-colors hover:border-foreground/20 hover:bg-muted hover:no-underline"
+                  className="inline-flex h-10 items-center rounded-md border bg-card px-5 font-semibold text-foreground no-underline transition-colors hover:border-foreground/20 hover:bg-muted hover:no-underline"
                 >
                   {t.name}
                 </Link>
@@ -76,7 +78,7 @@ export default async function ClubPage({ params, searchParams }: { params: Param
       </section>
 
       <section aria-labelledby="results" className="space-y-3">
-        <h2 id="results" className="text-2xl font-bold tracking-tight">
+        <h2 id="results" className="section-title text-2xl">
           Results
         </h2>
         <MatchList matches={matches.items} empty="No matches involving this club yet." />

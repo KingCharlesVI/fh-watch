@@ -51,7 +51,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
       {matches && matches.items.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-2xl font-bold tracking-tight">Matches</h2>
+          <h2 className="section-title text-2xl">Matches</h2>
           <MatchList matches={matches.items} />
           <Pager cursor={matches.nextCursor} params={{ q }} />
         </section>

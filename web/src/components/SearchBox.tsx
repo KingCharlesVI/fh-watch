@@ -29,7 +29,7 @@ export function SearchBox({
       role="search"
       action={action}
       className={cn(
-        "flex w-full items-center gap-2 rounded-full border bg-card focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30",
+        "flex w-full items-center gap-2 rounded-md border bg-card focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30",
         size === "lg" ? "h-14 max-w-xl pr-2 pl-5 shadow-lg shadow-black/5" : "h-11 max-w-md pr-1.5 pl-4",
         className,
       )}

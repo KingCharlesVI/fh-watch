@@ -103,7 +103,7 @@ function Day({
       onClick={onTap}
       aria-label={`${date}: ${label || "not said"}`}
       className={cn(
-        "flex h-16 w-full flex-col items-start justify-between rounded-xl border bg-card px-2 py-1.5 text-left transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-40",
+        "flex h-16 w-full flex-col items-start justify-between rounded-md border bg-card px-2 py-1.5 text-left transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-40",
         tone === "free" && "border-primary/50 bg-primary/12",
         tone === "busy" && "border-destructive/40 bg-destructive/10",
         tone === "usually-busy" && "border-dashed bg-muted/60",

@@ -25,8 +25,8 @@ export function FilterPanel({
   children: ReactNode;
 }) {
   return (
-    <details className="group rounded-2xl border bg-card open:pb-5" open={active || undefined}>
-      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-semibold select-none hover:bg-muted/60 [&::-webkit-details-marker]:hidden">
+    <details className="group rounded-lg border bg-card open:pb-5" open={active || undefined}>
+      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg px-5 py-3.5 text-sm font-semibold select-none hover:bg-muted/60 [&::-webkit-details-marker]:hidden">
         <SlidersHorizontal className="size-4 text-muted-foreground" />
         {summary}
         <span className="ml-auto text-xs font-medium text-muted-foreground group-open:hidden">Show</span>
@@ -50,14 +50,14 @@ export function FilterPanel({
 /** A row of pill links where one is picked, like a segmented control. */
 export function PillLinks({ items, label, className }: { items: { href: string; label: string; active: boolean }[]; label: string; className?: string }) {
   return (
-    <nav aria-label={label} className={cn("inline-flex flex-wrap gap-0.5 rounded-full bg-muted p-1", className)}>
+    <nav aria-label={label} className={cn("inline-flex flex-wrap gap-0.5 rounded-md bg-muted p-1", className)}>
       {items.map((i) => (
         <Link
           key={i.href}
           href={i.href}
           aria-current={i.active ? "page" : undefined}
           className={cn(
-            "rounded-full px-4 py-1.5 text-sm font-medium no-underline transition-colors hover:no-underline",
+            "rounded-sm px-4 py-1.5 text-sm font-semibold no-underline transition-colors hover:no-underline",
             i.active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
           )}
         >

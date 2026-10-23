@@ -55,8 +55,9 @@ function useActiveHref(groups: NavGroup[], defaultView: string | undefined): str
 
 const linkClass = (active: boolean) =>
   cn(
-    "rounded-full px-4 py-1.5 text-sm font-medium no-underline transition-colors hover:no-underline",
-    active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+    // The page you're on is underlined in green along the header's bottom edge.
+    "relative flex h-16 items-center px-3 text-sm font-semibold no-underline transition-colors hover:no-underline after:absolute after:inset-x-3 after:bottom-[-1px] after:h-[3px] after:rounded-t-sm",
+    active ? "text-foreground after:bg-primary" : "text-muted-foreground hover:text-foreground hover:after:bg-border",
   );
 
 /** A menu's links, with the page you're on ticked. */
@@ -76,7 +77,7 @@ export function MainNav({ groups, defaultView }: { groups: NavGroup[]; defaultVi
   const path = usePathname();
   const active = useActiveHref(groups, defaultView);
   return (
-    <nav aria-label="Main" className="hidden items-center gap-0.5 rounded-full bg-muted p-1 lg:flex">
+    <nav aria-label="Main" className="hidden items-stretch self-stretch lg:flex">
       {SECTIONS.map((s) => (
         <Link key={s.href} href={s.href} aria-current={s.match(path) ? "page" : undefined} className={linkClass(s.match(path))}>
           {s.label}

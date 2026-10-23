@@ -40,7 +40,7 @@ export default async function UpcomingPage() {
             <li key={p.id} className="min-w-0">
               <Link
                 href={`/upcoming/${p.id}`}
-                className="flex h-full items-center gap-4 rounded-2xl border bg-card p-4 text-foreground no-underline transition-[border-color,box-shadow] hover:border-foreground/15 hover:no-underline hover:shadow-md hover:shadow-black/5"
+                className="flex h-full items-center gap-4 rounded-lg border bg-card p-4 text-foreground no-underline transition-[border-color,box-shadow] hover:border-foreground/15 hover:no-underline hover:shadow-md hover:shadow-black/5"
               >
                 <DateTile date={p.date} />
                 <span className="min-w-0 flex-1 space-y-1.5">

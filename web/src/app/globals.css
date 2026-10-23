@@ -5,11 +5,20 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    /* Inter for text, Inter Tight for headings and scores (app/layout.tsx loads both). */
-    --font-heading: var(--font-inter-tight);
-    --font-sans: var(--font-inter);
-    /* Inter Tight is tightly spaced already, so "tight" only nudges it. */
-    --tracking-tight: -0.012em;
+    /*
+     * Archivo throughout, at different widths: wide for page titles, condensed for scores and
+     * section titles, normal for text. JetBrains Mono for match-clock times. app/layout.tsx loads both.
+     */
+    --font-heading: var(--font-archivo);
+    --font-sans: var(--font-archivo);
+    --font-mono: var(--font-jetbrains-mono);
+    --tracking-tight: -0.015em;
+    /* The pitch panels (scoreboard, home lead) and their chalk markings, and hi-vis for what's on them. */
+    --color-pitch: var(--pitch);
+    --color-pitch-foreground: var(--pitch-foreground);
+    --color-chalk: var(--chalk);
+    --color-hivis: var(--hivis);
+    --color-hivis-foreground: var(--hivis-foreground);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -51,76 +60,86 @@
 }
 
 /*
- * Clubhouse: a soft grey ground with white cards, pitch green for actions. Dark mode keeps the
- * same structure on near-black, with a brighter green so it reads on the dark cards.
+ * Turf-tinted greys and a deep pitch green, with hi-vis yellow (umpires' shirts) kept for the
+ * pitch panels. Dark mode is the pitch at night. Square-ish corners and hairline rules.
  */
 :root {
-    --background: #f4f5f7;
-    --foreground: #111418;
+    --background: #edf0eb;
+    --foreground: #0e1a14;
     --card: #ffffff;
-    --card-foreground: #111418;
+    --card-foreground: #0e1a14;
     --popover: #ffffff;
-    --popover-foreground: #111418;
-    --primary: #0e7a4b;
+    --popover-foreground: #0e1a14;
+    --primary: #0b6b3a;
     --primary-foreground: #ffffff;
-    --secondary: #edeef1;
-    --secondary-foreground: #111418;
-    --muted: #edeef1;
-    --muted-foreground: #5b636d;
-    --accent: #edeef1;
-    --accent-foreground: #111418;
-    --destructive: #c62828;
-    --border: #e4e6ea;
-    --input: #d9dce1;
-    --ring: #0e7a4b;
-    --chart-1: #0e7a4b;
-    --chart-2: #5b636d;
-    --chart-3: #9aa1aa;
-    --chart-4: #c9cdd3;
-    --chart-5: #111418;
-    --radius: 0.875rem;
+    --secondary: #e2e7e1;
+    --secondary-foreground: #0e1a14;
+    --muted: #e2e7e1;
+    --muted-foreground: #526058;
+    --accent: #e2e7e1;
+    --accent-foreground: #0e1a14;
+    --destructive: #c42b2b;
+    --border: #d3dad2;
+    --input: #c3ccc2;
+    --ring: #0b6b3a;
+    --pitch: #0d4a2c;
+    --pitch-foreground: #f2f7f3;
+    --chalk: rgb(255 255 255 / 20%);
+    --hivis: #dfff3f;
+    --hivis-foreground: #0e1a14;
+    --chart-1: #0b6b3a;
+    --chart-2: #526058;
+    --chart-3: #8e9b93;
+    --chart-4: #c3ccc2;
+    --chart-5: #0e1a14;
+    --radius: 0.375rem;
     --sidebar: #ffffff;
-    --sidebar-foreground: #111418;
-    --sidebar-primary: #0e7a4b;
+    --sidebar-foreground: #0e1a14;
+    --sidebar-primary: #0b6b3a;
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #edeef1;
-    --sidebar-accent-foreground: #111418;
-    --sidebar-border: #e4e6ea;
-    --sidebar-ring: #0e7a4b;
+    --sidebar-accent: #e2e7e1;
+    --sidebar-accent-foreground: #0e1a14;
+    --sidebar-border: #d3dad2;
+    --sidebar-ring: #0b6b3a;
 }
 
 .dark {
-    --background: #0d1012;
-    --foreground: #eef1f3;
-    --card: #161a1e;
-    --card-foreground: #eef1f3;
-    --popover: #1b2025;
-    --popover-foreground: #eef1f3;
-    --primary: #34c77b;
-    --primary-foreground: #052614;
-    --secondary: #22282e;
-    --secondary-foreground: #eef1f3;
-    --muted: #1f2429;
-    --muted-foreground: #9aa4ae;
-    --accent: #22282e;
-    --accent-foreground: #eef1f3;
-    --destructive: #f26d6d;
-    --border: rgb(255 255 255 / 8%);
-    --input: rgb(255 255 255 / 14%);
-    --ring: #34c77b;
-    --chart-1: #34c77b;
-    --chart-2: #9aa4ae;
-    --chart-3: #6b747d;
-    --chart-4: #3a4148;
-    --chart-5: #eef1f3;
-    --sidebar: #161a1e;
-    --sidebar-foreground: #eef1f3;
-    --sidebar-primary: #34c77b;
-    --sidebar-primary-foreground: #052614;
-    --sidebar-accent: #22282e;
-    --sidebar-accent-foreground: #eef1f3;
-    --sidebar-border: rgb(255 255 255 / 8%);
-    --sidebar-ring: #34c77b;
+    --background: #07110c;
+    --foreground: #e6efe9;
+    --card: #0e1a14;
+    --card-foreground: #e6efe9;
+    --popover: #12211a;
+    --popover-foreground: #e6efe9;
+    --primary: #3dd68c;
+    --primary-foreground: #03140b;
+    --secondary: #162720;
+    --secondary-foreground: #e6efe9;
+    --muted: #162720;
+    --muted-foreground: #93a59b;
+    --accent: #162720;
+    --accent-foreground: #e6efe9;
+    --destructive: #f06c6c;
+    --border: rgb(255 255 255 / 9%);
+    --input: rgb(255 255 255 / 15%);
+    --ring: #3dd68c;
+    --pitch: #0b3a23;
+    --pitch-foreground: #f2f7f3;
+    --chalk: rgb(255 255 255 / 16%);
+    --hivis: #dfff3f;
+    --hivis-foreground: #0e1a14;
+    --chart-1: #3dd68c;
+    --chart-2: #93a59b;
+    --chart-3: #5f7067;
+    --chart-4: #2c3d34;
+    --chart-5: #e6efe9;
+    --sidebar: #0e1a14;
+    --sidebar-foreground: #e6efe9;
+    --sidebar-primary: #3dd68c;
+    --sidebar-primary-foreground: #03140b;
+    --sidebar-accent: #162720;
+    --sidebar-accent-foreground: #e6efe9;
+    --sidebar-border: rgb(255 255 255 / 9%);
+    --sidebar-ring: #3dd68c;
 }
 
 @layer base {
@@ -136,9 +155,33 @@
   h1, h2, h3 {
     @apply font-heading;
   }
+  /* Page titles run wide. */
+  h1 {
+    font-stretch: 112%;
+  }
 }
 @layer base {
   a:not([data-slot]) {
     @apply text-primary underline-offset-4 hover:underline;
   }
+}
+
+/*
+ * Section titles, condensed capitals like a matchday programme's. Scores, condensed and heavy
+ * like a scoreboard's. Both lean on Archivo's width axis.
+ */
+@utility section-title {
+  font-family: var(--font-heading);
+  font-stretch: 75%;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+@utility font-score {
+  font-family: var(--font-heading);
+  font-stretch: 68%;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
