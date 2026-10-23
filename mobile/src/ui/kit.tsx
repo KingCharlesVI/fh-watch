@@ -1,7 +1,9 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import type { ComponentProps, ReactNode } from "react";
+import { type ComponentProps, createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
+  Platform,
   Pressable,
   Text as RNText,
   type RefreshControlProps,
@@ -25,17 +27,81 @@ import { type Colors, FONT, FONT_SCORE, FONT_SECTION, FONT_TITLE, radius, space,
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
+/** Anything on screen that can say where it is, e.g. a View or a TextInput. */
+type Measurable = { measureInWindow: (callback: (x: number, y: number, width: number, height: number) => void) => void };
+type Reveal = (target: Measurable | null | undefined) => void;
+
+const RevealContext = createContext<Reveal>(() => {});
+
+/**
+ * Scrolls the screen so `target` (a field, and whatever opens under it) sits above the
+ * keyboard. Does nothing while the keyboard is down.
+ */
+export const useReveal = () => useContext(RevealContext);
+
 export function Screen({ children, refresh }: { children: ReactNode; refresh?: React.ReactElement<RefreshControlProps> }) {
   const c = useColors();
+  const frame = useRef<View>(null);
+  const scroll = useRef<ScrollView>(null);
+  const offset = useRef(0);
+  // Where the keyboard's top edge is on screen, while it's up.
+  const keyboardTop = useRef<number | null>(null);
+  // How much of the screen the keyboard covers: room added under the content, so the last
+  // fields can still scroll up above it. The app is edge to edge, so Android doesn't resize
+  // the window for the keyboard any more.
+  const [covered, setCovered] = useState(0);
+
+  const reveal = useCallback<Reveal>((target) => {
+    const top = keyboardTop.current;
+    if (!target || top == null || !frame.current) return;
+    frame.current.measureInWindow((_x, frameTop) => {
+      target.measureInWindow((_tx, y, _w, height) => {
+        const hidden = y + height + space.md - top;
+        // But not so far that its top goes off the top of the screen.
+        const by = Math.min(hidden, y - frameTop - space.md);
+        if (by > 0) scroll.current?.scrollTo({ y: offset.current + by });
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    const ios = Platform.OS === "ios";
+    const shown = Keyboard.addListener(ios ? "keyboardWillShow" : "keyboardDidShow", (e) => {
+      const top = e.endCoordinates.screenY;
+      keyboardTop.current = top;
+      frame.current?.measureInWindow((_x, y, _w, height) => setCovered(Math.max(0, y + height - top)));
+    });
+    const hidden = Keyboard.addListener(ios ? "keyboardWillHide" : "keyboardDidHide", () => {
+      keyboardTop.current = null;
+      setCovered(0);
+    });
+    return () => {
+      shown.remove();
+      hidden.remove();
+    };
+  }, []);
+
+  // Once there's room, bring up the field being typed in.
+  useEffect(() => {
+    if (covered > 0) requestAnimationFrame(() => reveal(TextInput.State.currentlyFocusedInput()));
+  }, [covered, reveal]);
+
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: c.background }}
-      contentContainerStyle={{ padding: space.lg, gap: space.lg, paddingBottom: space.xl * 2 }}
-      keyboardShouldPersistTaps="handled"
-      refreshControl={refresh}
-    >
-      {children}
-    </ScrollView>
+    <RevealContext.Provider value={reveal}>
+      <View ref={frame} style={{ flex: 1, backgroundColor: c.background }}>
+        <ScrollView
+          ref={scroll}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: space.lg, gap: space.lg, paddingBottom: space.xl * 2 + covered }}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={refresh}
+          onScroll={(e) => (offset.current = e.nativeEvent.contentOffset.y)}
+          scrollEventThrottle={16}
+        >
+          {children}
+        </ScrollView>
+      </View>
+    </RevealContext.Provider>
   );
 }
 
@@ -201,12 +267,19 @@ const buttonLook = (c: Colors) => ({
 
 export function Field({ label, hint, error, ...input }: TextInputProps & { label: string; hint?: string; error?: string }) {
   const c = useColors();
+  const reveal = useReveal();
+  const box = useRef<View>(null);
   return (
-    <View style={{ gap: 6 }}>
+    <View ref={box} style={{ gap: 6 }}>
       <T variant="label">{label}</T>
       <TextInput
         placeholderTextColor={c.muted}
         {...input}
+        onFocus={(e) => {
+          input.onFocus?.(e);
+          // Moving between fields with the keyboard already up.
+          reveal(box.current);
+        }}
         style={[
           styles.input,
           { color: c.text, borderColor: error ? c.danger : c.input, backgroundColor: c.card },

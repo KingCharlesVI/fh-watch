@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, View } from "react-native";
+import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ApiError, errorMessage } from "@/core/api";
 import { api } from "@/services";
@@ -39,36 +39,34 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <Screen>
-          <View style={{ alignItems: "center", gap: space.sm, marginTop: space.xl * 2, marginBottom: space.lg }}>
-            <Ionicons name="stopwatch-outline" size={48} color={c.primary} />
-            <T variant="title">FH Match Centre</T>
-            <T variant="muted" style={{ textAlign: "center" }}>
-              Matches from your watch, checked and shared from here.
-            </T>
-          </View>
-          {expired && <Banner tone="warn" icon="time-outline" title="You've been signed out">Sign in again. Matches on this phone are kept.</Banner>}
-          <HeaderPanel>
-            <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />
-            <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" textContentType="password" onSubmitEditing={submit} />
-            {error && !unverified && <Banner tone="danger" icon="alert-circle-outline" title={error} />}
-            {unverified && (
-              <Banner
-                tone="warn"
-                icon="mail-outline"
-                title={error ?? ""}
-                action={<Button title={resent ? "Email sent" : "Send the email again"} variant="ghost" small onPress={resend} disabled={resent} />}
-              >
-                Follow the link in the email we sent you, then sign in.
-              </Banner>
-            )}
-            <Button title="Sign in" onPress={submit} loading={busy} disabled={!email || !password} />
-          </HeaderPanel>
-          <Button title="Create an account" variant="ghost" onPress={() => router.push("/register")} />
-          <Button title="Forgotten your password?" variant="ghost" onPress={() => router.push("/forgot-password")} />
-        </Screen>
-      </KeyboardAvoidingView>
+      <Screen>
+        <View style={{ alignItems: "center", gap: space.sm, marginTop: space.xl * 2, marginBottom: space.lg }}>
+          <Ionicons name="stopwatch-outline" size={48} color={c.primary} />
+          <T variant="title">FH Match Centre</T>
+          <T variant="muted" style={{ textAlign: "center" }}>
+            Matches from your watch, checked and shared from here.
+          </T>
+        </View>
+        {expired && <Banner tone="warn" icon="time-outline" title="You've been signed out">Sign in again. Matches on this phone are kept.</Banner>}
+        <HeaderPanel>
+          <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />
+          <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" textContentType="password" onSubmitEditing={submit} />
+          {error && !unverified && <Banner tone="danger" icon="alert-circle-outline" title={error} />}
+          {unverified && (
+            <Banner
+              tone="warn"
+              icon="mail-outline"
+              title={error ?? ""}
+              action={<Button title={resent ? "Email sent" : "Send the email again"} variant="ghost" small onPress={resend} disabled={resent} />}
+            >
+              Follow the link in the email we sent you, then sign in.
+            </Banner>
+          )}
+          <Button title="Sign in" onPress={submit} loading={busy} disabled={!email || !password} />
+        </HeaderPanel>
+        <Button title="Create an account" variant="ghost" onPress={() => router.push("/register")} />
+        <Button title="Forgotten your password?" variant="ghost" onPress={() => router.push("/forgot-password")} />
+      </Screen>
     </SafeAreaView>
   );
 }
