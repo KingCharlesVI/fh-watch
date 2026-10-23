@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ApiError, errorMessage } from "@/core/api";
 import { api } from "@/services";
 import { useAuth } from "@/state/auth";
-import { Banner, Button, Card, Field, Ionicons, Screen, T } from "@/ui/kit";
+import { Banner, Button, Field, HeaderPanel, Ionicons, Screen, T } from "@/ui/kit";
 import { space, useColors } from "@/ui/theme";
 
 export default function LoginScreen() {
@@ -49,7 +49,7 @@ export default function LoginScreen() {
             </T>
           </View>
           {expired && <Banner tone="warn" icon="time-outline" title="You've been signed out">Sign in again. Matches on this phone are kept.</Banner>}
-          <Card>
+          <HeaderPanel>
             <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />
             <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" textContentType="password" onSubmitEditing={submit} />
             {error && !unverified && <Banner tone="danger" icon="alert-circle-outline" title={error} />}
@@ -64,7 +64,7 @@ export default function LoginScreen() {
               </Banner>
             )}
             <Button title="Sign in" onPress={submit} loading={busy} disabled={!email || !password} />
-          </Card>
+          </HeaderPanel>
           <Button title="Create an account" variant="ghost" onPress={() => router.push("/register")} />
           <Button title="Forgotten your password?" variant="ghost" onPress={() => router.push("/forgot-password")} />
         </Screen>

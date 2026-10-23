@@ -11,7 +11,8 @@ import { ONLINE } from "@/config";
 import { useSyncTriggers, useUploadReminders, useWatchInbox } from "@/state/sync";
 import { useUpdateChecks } from "@/state/updates";
 import { takeNewEntries } from "@/state/whats-new";
-import { FONT, useColors } from "@/ui/theme";
+import { useHeaderOptions } from "@/ui/header";
+import { useColors } from "@/ui/theme";
 
 export default function RootLayout() {
   const scheme = useColorScheme();
@@ -34,6 +35,7 @@ export default function RootLayout() {
 function Navigator() {
   const { status } = useAuth();
   const c = useColors();
+  const header = useHeaderOptions();
   const signedIn = status === "signedIn";
   // Alpha has no accounts: the app is always open, and watch matches come straight in.
   const open = !ONLINE || signedIn;
@@ -70,10 +72,7 @@ function Navigator() {
   return (
     <Stack
       screenOptions={{
-        headerTintColor: c.text,
-        headerTitleStyle: { color: c.text, fontFamily: FONT, fontWeight: "600" },
-        headerStyle: { backgroundColor: c.card },
-        headerShadowVisible: false,
+        ...header,
         contentStyle: { backgroundColor: c.background },
       }}
     >

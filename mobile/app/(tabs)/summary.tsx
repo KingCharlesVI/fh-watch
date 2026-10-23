@@ -5,7 +5,7 @@ import { formatDistance } from "@/core/fitness";
 import { type Period, inPeriod, seasonLabel, umpireSummary } from "@/core/umpire-summary";
 import { useMatches } from "@/state/sync";
 import { Card, Empty, Row, Screen, Swatch, T, Tabs, Text } from "@/ui/kit";
-import { CARD_COLOURS, radius, space, useColors } from "@/ui/theme";
+import { CARD_COLOURS, FONT_SCORE, radius, space, useColors } from "@/ui/theme";
 
 /** The umpire's own numbers, from the matches on this phone, by season. */
 export default function SummaryScreen() {
@@ -126,8 +126,8 @@ function Stat({ label, value }: { label: string; value: number | string }) {
 }
 
 const styles = StyleSheet.create({
-  tile: { flex: 1, borderWidth: 1, borderRadius: radius.xl, padding: space.md, gap: 2 },
-  tileValue: { fontSize: 28, fontWeight: "700", fontVariant: ["tabular-nums"] },
+  tile: { flex: 1, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: space.md, gap: 4 },
+  tileValue: { fontFamily: FONT_SCORE, fontSize: 34, lineHeight: 36, fontVariant: ["tabular-nums"] },
   number: { fontSize: 16, fontWeight: "600", fontVariant: ["tabular-nums"] },
   track: { height: 6, borderRadius: 3, overflow: "hidden" },
   bar: { height: 6, borderRadius: 3 },

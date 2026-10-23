@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   week: { flexDirection: "row" },
   heading: { flex: 1, textAlign: "center", fontSize: 12, fontWeight: "500" },
   cell: { flex: 1, aspectRatio: 1, padding: 2 },
-  day: { flex: 1, alignItems: "center", justifyContent: "center", borderRadius: 999 },
+  day: { flex: 1, alignItems: "center", justifyContent: "center", borderRadius: radius.sm },
   dot: { width: 4, height: 4, borderRadius: 2, position: "absolute", bottom: 6 },
   legend: { flexDirection: "row", flexWrap: "wrap", columnGap: space.md, rowGap: space.xs, paddingTop: space.xs },
   key: { flexDirection: "row", alignItems: "center", gap: 6 },
