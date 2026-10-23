@@ -89,6 +89,14 @@ class Prefs(context: Context) {
         set(value) = prefs.edit().putString("setup", StorageJson.encodeToString(Setup.serializer(), value)).apply()
 
     /**
+     * When the last setup came from the phone and hasn't been opened yet (epoch ms), or 0.
+     * So one sent while the app wasn't open still opens when it is.
+     */
+    var phoneSetupAt: Long
+        get() = prefs.getLong("phoneSetupAt", 0)
+        set(value) = prefs.edit().putLong("phoneSetupAt", value).apply()
+
+    /**
      * Whether the Timing page has an on-screen Start/Stop button. Off by default: time
      * is started and stopped with the side button. For watches without a usable one.
      */

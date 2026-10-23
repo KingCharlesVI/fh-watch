@@ -1,111 +1,170 @@
 import { type MatchEvent, describeEvent, eventTime, periodLabel } from "@fh/shared";
-import { Download, FileJson, FileSpreadsheet, FileText, MapPin, Trophy, Users } from "lucide-react";
-import { Fragment } from "react";
+import { Download, FileJson, FileSpreadsheet, FileText } from "lucide-react";
+import type { CSSProperties, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatLongDateTime } from "@/lib/format";
-import type { FullMatch } from "@/lib/types";
+import { cachedPublic } from "@/lib/api";
+import { formatLongDateTime, formatTime } from "@/lib/format";
+import type { FullMatch, Items, TeamWithClub } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { HeaderPanel } from "./HeaderPanel";
 import { ShareButton } from "./ShareButton";
 
-const TIMELINE_TYPES = new Set<MatchEvent["type"]>(["goal", "card", "penalty_stroke", "shootout_attempt", "note"]);
-const CARD_COLOURS = { green: "bg-green-600", yellow: "bg-yellow-400", red: "bg-red-600" } as const;
+const TIMELINE_TYPES = new Set<MatchEvent["type"]>(["goal", "card", "penalty_corner", "penalty_stroke", "shootout_attempt", "note"]);
 
 type Side = "home" | "away";
 
-/** A match: the scoreboard, then the timeline beside the scores by period and the statistics. */
+/**
+ * A match: the scoreboard with the score by period, then the timeline, statistics and details.
+ * On a phone they follow one another, with links to jump between them; on a wider screen the
+ * timeline sits beside the statistics and details.
+ */
 export function MatchView({ data, downloadBase }: { data: FullMatch; downloadBase: string }) {
-  const { match, document: doc } = data;
   return (
     <article className="space-y-6">
       <Scoreboard data={data} downloadBase={downloadBase} />
-      <div className="grid items-start gap-6 lg:grid-cols-[1.35fr_1fr]">
+      <nav aria-label="Match sections" className="sticky top-16 z-30 -mx-4 flex gap-2 bg-background/90 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
+        {[
+          ["#timeline", "Timeline"],
+          ["#stats", "Stats"],
+          ["#details", "Details"],
+        ].map(([href, label]) => (
+          <a key={href} href={href} className="rounded-md border bg-card px-4 py-1.5 text-sm font-semibold text-foreground no-underline hover:bg-muted hover:no-underline">
+            {label}
+          </a>
+        ))}
+      </nav>
+      <div className="grid items-start gap-6 lg:grid-cols-[1.5fr_1fr]">
         <Timeline data={data} />
         <div className="space-y-6">
-          <PeriodScores data={data} />
           <Statistics data={data} />
-          <Card>
-            <CardHeader>
-              <CardTitle>Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <Detail icon={Users} label="Umpires">
-                {match.umpires.length ? match.umpires.map((u) => u.name).join(" and ") : "Not recorded"}
-              </Detail>
-              {doc.venue && (
-                <Detail icon={MapPin} label="Venue">
-                  {doc.venue}
-                </Detail>
-              )}
-              {doc.competition && (
-                <Detail icon={Trophy} label="Competition">
-                  {doc.competition}
-                </Detail>
-              )}
-            </CardContent>
-          </Card>
+          <Details data={data} />
         </div>
       </div>
     </article>
   );
 }
 
-function Detail({ icon: Icon, label, children }: { icon: typeof Users; label: string; children: React.ReactNode }) {
+/** "Quarter 2", "Half 1", "Period 3". */
+function periodName(periods: number, period: number): string {
+  return `${periods === 4 ? "Quarter" : periods === 2 ? "Half" : "Period"} ${period}`;
+}
+
+/** Up to two letters for a team's badge: "Oxford Hawks M1" → "OH", "Reading M1" → "RE". */
+function initials(name: string): string {
+  const words = name.split(/\s+/).filter((w) => /^\p{L}/u.test(w) && !/\d/.test(w));
+  if (words.length === 0) return name.slice(0, 2).toUpperCase();
+  if (words.length === 1) return words[0]!.slice(0, 2).toUpperCase();
+  return (words[0]![0]! + words[1]![0]!).toUpperCase();
+}
+
+/** Black or white, whichever reads better on a team's colour. */
+function textOn(hex: string): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return "#ffffff";
+  const n = Number.parseInt(m[1]!, 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  });
+  const lum = 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+  return lum > 0.4 ? "#111418" : "#ffffff";
+}
+
+function Section({ id, title, children, className }: { id: string; title: string; children: ReactNode; className?: string }) {
   return (
-    <div className="flex gap-3">
-      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-      <div>
-        <div className="text-muted-foreground">{label}</div>
-        <div>{children}</div>
-      </div>
-    </div>
+    <section id={id} aria-labelledby={`${id}-title`} className={cn("scroll-mt-32 lg:scroll-mt-24", className)}>
+      <h2 id={`${id}-title`} className="section-title mb-4 flex items-center gap-3 text-2xl after:h-px after:flex-1 after:bg-border">
+        {title}
+      </h2>
+      {children}
+    </section>
   );
 }
 
-function Scoreboard({ data, downloadBase }: { data: FullMatch; downloadBase: string }) {
+/**
+ * Each linked team's club logo, from the cached list of every team. An unlinked team, a club
+ * without a logo, or the list not loading leaves that side on its initials.
+ */
+async function clubLogos(doc: FullMatch["document"]): Promise<Record<Side, string | null>> {
+  const ids = { home: doc.teams.home.teamId, away: doc.teams.away.teamId };
+  if (!ids.home && !ids.away) return { home: null, away: null };
+  const teams = await cachedPublic<Items<TeamWithClub>>("/v1/teams").catch(() => null);
+  const logo = (id: string | null) => (id && teams?.items.find((t) => t.id === id)?.club.logoUrl) || null;
+  return { home: logo(ids.home), away: logo(ids.away) };
+}
+
+async function Scoreboard({ data, downloadBase }: { data: FullMatch; downloadBase: string }) {
   const { match, document: doc, summary: s } = data;
-  const { home, away } = doc.teams;
   const winner = s.result.winner;
+  const logos = await clubLogos(doc);
   const team = (side: Side) => {
     const t = doc.teams[side];
+    const logo = logos[side];
     return (
-      <div className={cn("flex min-w-0 flex-col gap-2", side === "home" ? "items-end text-right" : "items-start text-left")}>
-        <span aria-hidden className="h-1.5 w-10 rounded-full border border-black/10" style={{ background: t.color }} />
-        <span className={cn("font-heading text-lg leading-tight font-semibold wrap-break-word sm:text-2xl", winner && winner !== side && "text-muted-foreground")}>
+      <div className="flex min-w-0 flex-col items-center gap-3 text-center">
+        {logo ? (
+          // Logos are drawn for a white background, so they get one in dark mode too.
+          <img src={logo} alt="" aria-hidden className="size-14 rounded-lg bg-white object-contain p-1.5 ring-1 ring-border sm:size-16" />
+        ) : (
+          <span
+            aria-hidden
+            className="flex size-14 items-center justify-center rounded-lg font-heading text-lg font-extrabold ring-1 ring-border font-stretch-85% sm:size-16 sm:text-xl"
+            style={{ background: t.color, color: textOn(t.color) }}
+          >
+            {initials(t.name)}
+          </span>
+        )}
+        <span className={cn("font-heading text-base leading-tight font-bold wrap-break-word font-stretch-90% sm:text-2xl", winner && winner !== side && "text-muted-foreground")}>
           {t.name}
         </span>
       </div>
     );
   };
+  const where = [formatLongDateTime(doc.startedAt), doc.venue].filter(Boolean).join(" · ");
   return (
-    <Card className="overflow-hidden py-0">
-      <div className="border-b bg-muted/40 px-4 py-2 text-center text-sm text-muted-foreground">
-        {[formatLongDateTime(doc.startedAt), doc.competition].filter(Boolean).join(" · ")}
+    <HeaderPanel label="Score" className="px-4 pt-7 pb-5 sm:px-8 sm:pt-9 sm:pb-6">
+      <div className="text-center">
+        {doc.competition && <p className="section-title text-sm text-primary">{doc.competition}</p>}
+        <p className="mt-2 text-sm text-muted-foreground">{where}</p>
       </div>
-      <CardContent className="py-6 sm:py-8">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 sm:gap-8">
-          {team("home")}
-          <div className="flex flex-col items-center gap-1">
-            <div className="flex items-center gap-3 font-heading text-5xl font-extrabold tabular-nums sm:text-6xl">
-              <span>{s.score.home}</span>
-              <span className="text-muted-foreground/60">–</span>
-              <span>{s.score.away}</span>
-            </div>
-            <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Full time</span>
+
+      <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-8">
+        {team("home")}
+        <div className="flex flex-col items-center gap-2">
+          <div className="font-score flex items-center gap-3 text-8xl sm:gap-5 sm:text-[9.5rem]">
+            <span className={cn(winner === "away" && "text-muted-foreground/70")}>{s.score.home}</span>
+            <span className="text-5xl text-muted-foreground/50 sm:text-7xl">–</span>
+            <span className={cn(winner === "home" && "text-muted-foreground/70")}>{s.score.away}</span>
           </div>
-          {team("away")}
+          {/* Stamped on, like the umpire's card. */}
+          <span className="section-title -rotate-2 rounded-sm bg-foreground px-2.5 py-1 text-sm text-background">Full time</span>
         </div>
-        {s.shootout && (
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Shootout {s.shootout.home}–{s.shootout.away}
-            {s.result.decidedBy === "shootout" && s.result.winner && <> · {doc.teams[s.result.winner].name} win</>}
-          </p>
+        {team("away")}
+      </div>
+
+      {s.shootout && (
+        <p className="mt-5 text-center text-sm text-muted-foreground">
+          Shootout {s.shootout.home}–{s.shootout.away}
+          {s.result.decidedBy === "shootout" && s.result.winner && <> · {doc.teams[s.result.winner].name} win</>}
+        </p>
+      )}
+
+      <ol aria-label="Score by period" className="mx-auto mt-6 grid max-w-xl gap-2" style={{ gridTemplateColumns: `repeat(${s.periodScores.length}, minmax(0, 1fr))` }}>
+        {s.periodScores.map((p) => (
+          <li key={p.period} className="rounded-md border bg-background py-2 text-center">
+            <span className="block text-xs font-semibold text-muted-foreground">{periodLabel(doc.settings.periods, p.period)}</span>
+            <span className="font-score text-2xl">
+              {p.home}–{p.away}
+            </span>
+          </li>
+        ))}
+      </ol>
+
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-2 border-t pt-5">
+        {match.status === "published" && match.shareUrl && (
+          <ShareButton variant="default" url={match.shareUrl} title={`${doc.teams.home.name} ${s.score.home}–${s.score.away} ${doc.teams.away.name}`} />
         )}
-      </CardContent>
-      <div className="flex flex-wrap items-center justify-center gap-2 border-t px-4 py-3">
-        {match.status === "published" && match.shareUrl && <ShareButton url={match.shareUrl} title={`${home.name} ${s.score.home}–${s.score.away} ${away.name}`} />}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline">
@@ -131,129 +190,101 @@ function Scoreboard({ data, downloadBase }: { data: FullMatch; downloadBase: str
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </Card>
+    </HeaderPanel>
   );
 }
 
-/** Events in two columns, home on the left and away on the right, with the time between and a divider per period. */
+/** Hockey's card shapes: a green triangle, a yellow rectangle, a red circle. */
+function Marker({ event: e }: { event: MatchEvent }) {
+  if (e.type === "goal") return <span className="size-3 rounded-full bg-foreground" />;
+  if (e.type === "card") {
+    if (e.color === "green") return <span className="h-3.5 w-4 bg-green-600 [clip-path:polygon(50%_0,100%_100%,0_100%)]" />;
+    if (e.color === "yellow") return <span className="h-4 w-3 rounded-xs bg-yellow-400" />;
+    return <span className="size-3.5 rounded-full bg-red-600" />;
+  }
+  if (e.type === "penalty_corner") return <span className="text-[0.65rem] font-bold text-muted-foreground">PC</span>;
+  if (e.type === "penalty_stroke") return <span className="text-[0.65rem] font-bold text-muted-foreground">PS</span>;
+  if (e.type === "shootout_attempt") return <span className={cn("size-3 rounded-full", e.scored ? "bg-foreground" : "border-2 border-muted-foreground")} />;
+  return null;
+}
+
+function eventTitle(e: MatchEvent): string {
+  switch (e.type) {
+    case "goal":
+      return e.method === "pc" ? "Goal from a penalty corner" : e.method === "ps" ? "Goal from a penalty stroke" : "Goal";
+    case "shootout_attempt":
+      return e.forfeit ? "Forfeited" : e.scored ? "Scored" : "Missed";
+    default:
+      return describeEvent(e, { periods: 0 });
+  }
+}
+
+/** One card per event, under a heading per period, edged in the team's colour. */
 function Timeline({ data }: { data: FullMatch }) {
   const { document: doc, summary: s } = data;
-  const events = s.timeline.filter((e) => TIMELINE_TYPES.has(e.type));
+  // A scored stroke shows as its goal ("Goal from a penalty stroke"), so only missed strokes are listed.
+  const events = s.timeline.filter((e) => TIMELINE_TYPES.has(e.type) && !(e.type === "penalty_stroke" && e.scored));
   const inShootout = (e: MatchEvent) => e.type === "shootout_attempt" || (e.type === "card" && e.shootout === true);
   const sectionOf = (e: MatchEvent) =>
-    inShootout(e) ? "Shootout" : "period" in e && e.period !== undefined ? periodLabel(doc.settings.periods, e.period) : "";
+    inShootout(e) ? "Shootout" : "period" in e && e.period !== undefined ? periodName(doc.settings.periods, e.period) : "Notes";
+
+  const sections: { title: string; events: MatchEvent[] }[] = [];
+  for (const e of events) {
+    const title = sectionOf(e);
+    const last = sections.at(-1);
+    if (last?.title === title) last.events.push(e);
+    else sections.push({ title, events: [e] });
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Timeline</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {events.length === 0 ? (
-          <p className="text-muted-foreground">No goals, cards or notes recorded.</p>
-        ) : (
-          <>
-            <div className="mb-3 grid grid-cols-[1fr_3rem_1fr] gap-2 text-xs font-medium text-muted-foreground sm:grid-cols-[1fr_4rem_1fr]">
-              <span className="truncate text-right">{doc.teams.home.name}</span>
-              <span />
-              <span className="truncate">{doc.teams.away.name}</span>
+    <Section id="timeline" title="Timeline">
+      {sections.length === 0 ? (
+        <p className="rounded-lg border bg-card px-5 py-8 text-center text-muted-foreground">No goals, cards or notes recorded.</p>
+      ) : (
+        <div className="space-y-5">
+          {sections.map((sec) => (
+            <div key={sec.title}>
+              <h3 className="section-title mb-2 text-base text-muted-foreground">{sec.title}</h3>
+              <ol className="space-y-2">
+                {sec.events.map((e) => {
+                  const side = "team" in e ? (e.team as Side) : null;
+                  const t = side ? doc.teams[side] : null;
+                  const time = e.type === "shootout_attempt" ? `R${e.round}` : inShootout(e) ? "" : eventTime(e, doc.settings).split(" ").at(-1);
+                  const player = "player" in e && e.player !== undefined ? `#${e.player}` : null;
+                  const who = [t?.name, player].filter(Boolean).join(" · ");
+                  return (
+                    <li
+                      key={e.seq}
+                      className="flex items-center gap-3 rounded-md border border-l-[5px] bg-card px-4 py-3"
+                      style={{ borderLeftColor: t?.color ?? "var(--border)" } as CSSProperties}
+                    >
+                      {e.type !== "note" && (
+                        <>
+                          <span className="w-12 shrink-0 font-mono text-sm font-semibold text-muted-foreground">{time}</span>
+                          <span aria-hidden className="flex w-5 shrink-0 justify-center">
+                            <Marker event={e} />
+                          </span>
+                        </>
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className={cn("block text-sm", e.type === "note" ? "text-muted-foreground" : "font-semibold", e.type === "shootout_attempt" && !e.scored && "text-muted-foreground")}>
+                          {eventTitle(e)}
+                        </span>
+                        {who && <span className="block text-sm text-muted-foreground">{who}</span>}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
             </div>
-            <ol className="space-y-1">
-              {events.map((e, i) => {
-                const section = sectionOf(e);
-                const newSection = section && section !== (i > 0 ? sectionOf(events[i - 1]!) : "");
-                const side = "team" in e ? (e.team as Side) : null;
-                // A shootout card has no time of its own: it's under the Shootout divider.
-                const time = e.type === "shootout_attempt" ? `R${e.round}` : inShootout(e) ? "" : eventTime(e, doc.settings).split(" ").at(-1);
-                return (
-                  <Fragment key={e.seq}>
-                    {newSection && (
-                      <li aria-hidden className="flex items-center gap-3 pt-3 pb-1 text-xs font-medium text-muted-foreground first:pt-0">
-                        <span className="h-px flex-1 bg-border" />
-                        {section}
-                        <span className="h-px flex-1 bg-border" />
-                      </li>
-                    )}
-                    {side === null ? (
-                      <li className="rounded-md bg-muted/60 px-3 py-2 text-center text-sm text-muted-foreground">
-                        {time && <span className="tabular-nums">{time} · </span>}
-                        {describeEvent(e, doc.settings)}
-                      </li>
-                    ) : (
-                      <li className="grid grid-cols-[1fr_3rem_1fr] items-center gap-2 py-1 sm:grid-cols-[1fr_4rem_1fr]">
-                        <span className="text-right">{side === "home" && <EventLabel event={e} align="right" />}</span>
-                        <span className="text-center text-sm text-muted-foreground tabular-nums">{time}</span>
-                        <span>{side === "away" && <EventLabel event={e} align="left" />}</span>
-                      </li>
-                    )}
-                  </Fragment>
-                );
-              })}
-            </ol>
-          </>
-        )}
-      </CardContent>
-    </Card>
+          ))}
+        </div>
+      )}
+    </Section>
   );
 }
 
-/** The marker (a card, a ball) stays beside the words, which wrap on a narrow screen. */
-function EventLabel({ event: e, align }: { event: MatchEvent; align: "left" | "right" }) {
-  const player = "player" in e && e.player !== undefined ? `#${e.player}` : null;
-  // The round is in the middle column already.
-  const text = e.type === "shootout_attempt" ? (e.forfeit ? "Forfeited" : e.scored ? "Scored" : "Missed") : describeEvent(e, { periods: 0 });
-  return (
-    <span className={cn("inline-flex items-start gap-1.5 text-sm", align === "right" && "flex-row-reverse text-right")}>
-      {e.type === "card" && <span aria-hidden className={cn("mt-[3px] inline-block h-3.5 w-2.5 shrink-0 rounded-xs", CARD_COLOURS[e.color])} />}
-      {e.type === "goal" && <span aria-hidden className="mt-[5px] inline-block size-2.5 shrink-0 rounded-full bg-foreground" />}
-      <span>
-        <span className={cn(e.type === "goal" && "font-semibold", e.type === "shootout_attempt" && !e.scored && "text-muted-foreground")}>{text}</span>
-        {player && <span className="text-muted-foreground"> {player}</span>}
-      </span>
-    </span>
-  );
-}
-
-function PeriodScores({ data }: { data: FullMatch }) {
-  const { document: doc, summary: s } = data;
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Score by period</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Team</TableHead>
-              {s.periodScores.map((p) => (
-                <TableHead key={p.period} className="text-center">
-                  {periodLabel(doc.settings.periods, p.period)}
-                </TableHead>
-              ))}
-              <TableHead className="text-center">Total</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {(["home", "away"] as const).map((side) => (
-              <TableRow key={side}>
-                <TableCell className="font-medium whitespace-normal">{doc.teams[side].name}</TableCell>
-                {s.periodScores.map((p) => (
-                  <TableCell key={p.period} className="text-center tabular-nums">
-                    {p[side]}
-                  </TableCell>
-                ))}
-                <TableCell className="text-center font-bold tabular-nums">{s.score[side]}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  );
-}
-
-/** Each statistic as the two teams' numbers either side of a bar split between them, in their colours. */
+/** Each statistic recorded, as the two teams' numbers either side of bars in their colours. */
 function Statistics({ data }: { data: FullMatch }) {
   const { document: doc, summary: s } = data;
   const rows: { label: string; home: number; away: number; text?: [string, string] }[] = [];
@@ -267,40 +298,73 @@ function Statistics({ data }: { data: FullMatch }) {
       text: [`${s.penaltyStrokes.home.awarded} (${s.penaltyStrokes.home.scored})`, `${s.penaltyStrokes.away.awarded} (${s.penaltyStrokes.away.scored})`],
     });
   }
-  rows.push({ label: "Green cards", home: s.cards.home.green, away: s.cards.away.green });
-  rows.push({ label: "Yellow cards", home: s.cards.home.yellow, away: s.cards.away.yellow });
-  rows.push({ label: "Red cards", home: s.cards.home.red, away: s.cards.away.red });
+  for (const [color, label] of [
+    ["green", "Green cards"],
+    ["yellow", "Yellow cards"],
+    ["red", "Red cards"],
+  ] as const) {
+    if (s.cards.home[color] + s.cards.away[color] > 0) rows.push({ label, home: s.cards.home[color], away: s.cards.away[color] });
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Statistics</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {rows.map((r) => {
-          const total = r.home + r.away;
-          const homeShare = total === 0 ? 50 : (r.home / total) * 100;
-          return (
-            <div key={r.label} className="space-y-1.5">
-              <div className="grid grid-cols-[3rem_1fr_3rem] items-baseline text-sm">
-                <span className="font-semibold tabular-nums">{r.text?.[0] ?? r.home}</span>
-                <span className="text-center text-muted-foreground">{r.label}</span>
-                <span className="text-right font-semibold tabular-nums">{r.text?.[1] ?? r.away}</span>
-              </div>
-              <div className="flex h-1.5 gap-1 overflow-hidden rounded-full" aria-hidden>
-                {total === 0 ? (
-                  <span className="flex-1 rounded-full bg-muted" />
-                ) : (
-                  <>
-                    <span className="rounded-full" style={{ width: `${homeShare}%`, background: doc.teams.home.color }} />
-                    <span className="flex-1 rounded-full" style={{ background: doc.teams.away.color }} />
-                  </>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </CardContent>
-    </Card>
+    <Section id="stats" title="Stats">
+      <div className="rounded-lg border bg-card px-5 py-4">
+        <div className="mb-2 flex justify-between gap-4 text-xs font-semibold text-muted-foreground">
+          <span className="truncate">{doc.teams.home.name}</span>
+          <span className="truncate text-right">{doc.teams.away.name}</span>
+        </div>
+        {rows.length === 0 ? (
+          <p className="py-3 text-center text-sm text-muted-foreground">No cards given.</p>
+        ) : (
+          <ul className="divide-y">
+            {rows.map((r) => {
+              const max = Math.max(r.home, r.away, 1);
+              return (
+                <li key={r.label} className="py-3">
+                  <div className="grid grid-cols-[3rem_1fr_3rem] items-baseline text-sm">
+                    <span className="font-score text-xl">{r.text?.[0] ?? r.home}</span>
+                    <span className="text-center text-muted-foreground">{r.label}</span>
+                    <span className="font-score text-right text-xl">{r.text?.[1] ?? r.away}</span>
+                  </div>
+                  <div aria-hidden className="mt-2 flex h-1.5 gap-1">
+                    <span className="flex flex-1 justify-end overflow-hidden rounded-full bg-muted">
+                      <span className="rounded-full" style={{ width: `${(r.home / max) * 100}%`, background: doc.teams.home.color }} />
+                    </span>
+                    <span className="flex flex-1 overflow-hidden rounded-full bg-muted">
+                      <span className="rounded-full" style={{ width: `${(r.away / max) * 100}%`, background: doc.teams.away.color }} />
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </Section>
+  );
+}
+
+function Details({ data }: { data: FullMatch }) {
+  const { match, document: doc } = data;
+  const { periods, periodLengthSec } = doc.settings;
+  const rows: [string, string][] = [
+    ["Umpires", match.umpires.length ? match.umpires.map((u) => u.name).join(" and ") : "Not recorded"],
+    ...(doc.venue ? [["Venue", doc.venue] as [string, string]] : []),
+    ...(doc.competition ? [["Competition", doc.competition] as [string, string]] : []),
+    ["Format", `${periods} × ${Math.round(periodLengthSec / 60)} min`],
+    ["Started", formatTime(doc.startedAt)],
+    ...(doc.endedAt ? [["Final whistle", formatTime(doc.endedAt)] as [string, string]] : []),
+  ];
+  return (
+    <Section id="details" title="Details">
+      <dl className="divide-y rounded-lg border bg-card px-5 text-sm">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex justify-between gap-4 py-3">
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="text-right font-medium">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </Section>
   );
 }

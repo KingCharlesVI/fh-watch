@@ -45,11 +45,11 @@ export function AvailabilityCalendar({ today, availability }: { today: string; a
 
   return (
     <div className="overflow-x-auto" aria-busy={pending}>
-      <table className="w-full min-w-[34rem] table-fixed border-separate border-spacing-1 text-sm">
+      <table className="w-full min-w-[34rem] table-fixed border-separate border-spacing-1.5 text-sm">
         <thead>
           <tr>
             {WEEKDAYS.map((d) => (
-              <th key={d} className="font-medium text-muted-foreground">
+              <th key={d} className="pb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 {d}
               </th>
             ))}
@@ -63,6 +63,7 @@ export function AvailabilityCalendar({ today, availability }: { today: string; a
                   <Day
                     date={date}
                     past={date < today}
+                    isToday={date === today}
                     marked={days.get(date)}
                     neverFree={availability.unavailableWeekdays.includes(weekdayOf(date))}
                     onTap={() => tap(date)}
@@ -77,7 +78,21 @@ export function AvailabilityCalendar({ today, availability }: { today: string; a
   );
 }
 
-function Day({ date, past, marked, neverFree, onTap }: { date: string; past: boolean; marked?: AvailabilityDay; neverFree: boolean; onTap: () => void }) {
+function Day({
+  date,
+  past,
+  isToday,
+  marked,
+  neverFree,
+  onTap,
+}: {
+  date: string;
+  past: boolean;
+  isToday: boolean;
+  marked?: AvailabilityDay;
+  neverFree: boolean;
+  onTap: () => void;
+}) {
   const [, m, d] = date.split("-").map(Number);
   const label = marked ? (marked.available ? (marked.from || marked.to ? `${marked.from ?? ""}–${marked.to ?? ""}` : "Free") : "Not free") : neverFree ? "Not free" : "";
   const tone = marked ? (marked.available ? "free" : "busy") : neverFree ? "usually-busy" : "unknown";
@@ -88,14 +103,15 @@ function Day({ date, past, marked, neverFree, onTap }: { date: string; past: boo
       onClick={onTap}
       aria-label={`${date}: ${label || "not said"}`}
       className={cn(
-        "flex h-14 w-full flex-col items-start justify-between rounded-md border px-1.5 py-1 text-left transition-colors disabled:opacity-40",
-        tone === "free" && "border-primary bg-primary/10",
+        "flex h-16 w-full flex-col items-start justify-between rounded-md border bg-card px-2 py-1.5 text-left transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-40",
+        tone === "free" && "border-primary/50 bg-primary/12",
         tone === "busy" && "border-destructive/40 bg-destructive/10",
-        tone === "usually-busy" && "border-dashed bg-muted/50",
+        tone === "usually-busy" && "border-dashed bg-muted/60",
         tone === "unknown" && "hover:bg-muted",
+        isToday && "ring-2 ring-foreground/70",
       )}
     >
-      <span className="text-xs text-muted-foreground">
+      <span className={cn("text-xs font-semibold", isToday ? "text-foreground" : "text-muted-foreground")}>
         {d}
         {d === 1 ? ` ${MONTHS[m! - 1]}` : ""}
       </span>

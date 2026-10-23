@@ -1,3 +1,23 @@
+## [2.2.0-beta.26] - 2026-10-23
+
+### 🚀 Features
+
+- *(deploy)* A beta website at beta.fhmatchcentre.com, deployed from a branch
+- *(web)* Clubhouse redesign, first pass
+- *(web)* Clubhouse redesign for the dashboard, clubs, search and sign-in
+- *(web)* Clubhouse redesign for upcoming, appointments and availability
+- *(web)* Clubhouse redesign for the admin overview
+- *(web)* A pitchside identity instead of the stock look
+- *(mobile)* The website's pitchside look
+
+### 🐛 Bug Fixes
+
+- *(wear)* A match sent from Upcoming opens on the watch
+
+### 💼 Other
+
+- Mobile optimisations
+- Update version.json
 ## [1.4.0-beta.25] - 2026-10-17
 
 ### 🐛 Bug Fixes

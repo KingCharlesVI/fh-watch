@@ -6,6 +6,8 @@ Also serves the app's privacy policy at `/privacy`, the public address Google Pl
 
 `/changelog` is the repository's own `CHANGELOG.md`, read and parsed when the site is built (`src/changelog.ts`), so a release that updates it updates the page on the next deploy. Nothing to edit, and if the file can't be read the page points at the GitHub releases instead.
 
+`/blog` is built the same way from the Markdown files in [`blog/`](blog/README.md), one per post, and the three newest also show on the front page. To post, add a file there and push it to `main`; that folder's README has the format.
+
 ## Editing
 
 Almost everything that changes lives in [`src/content.ts`](src/content.ts):

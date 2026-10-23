@@ -1,7 +1,7 @@
 import { summarizeMatch } from "@fh/shared";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, RefreshControl, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, RefreshControl, StyleSheet, TextInput, type TextStyle, View } from "react-native";
 import { errorMessage } from "@/core/api";
 import { matchesSearch } from "@/core/match-search";
 import { overdueUploads } from "@/core/upload-reminders";
@@ -12,8 +12,9 @@ import { sync } from "@/services";
 import { drainWatchInbox } from "@/services/watch";
 import { type MatchRow, useMatches } from "@/state/sync";
 import { useUpdates } from "@/state/updates";
-import { Banner, Button, Empty, Ionicons, Screen, Tabs, Text } from "@/ui/kit";
-import { FONT, radius, space, useColors } from "@/ui/theme";
+import { clockTime } from "@/core/upcoming";
+import { Banner, Button, Empty, Ionicons, List, Score, Screen, SectionTitle, Tabs, Text } from "@/ui/kit";
+import { FONT, FONT_MONO, radius, space, useColors } from "@/ui/theme";
 
 type Tab = "new" | "saved" | "drafts" | "published";
 
@@ -30,7 +31,6 @@ const inTab = (row: MatchRow, tab: Tab) => {
 
 export default function MatchesScreen() {
   const { rows, loaded } = useMatches();
-  const c = useColors();
   const [tab, setTab] = useState<Tab>("new");
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,14 +72,17 @@ export default function MatchesScreen() {
               : "Matches you've opened are kept here, on this phone."}
         </Empty>
       )}
-      {shown.length > 0 && (
-        // One bordered list with dividers, like the website's match lists.
-        <View style={[styles.list, { borderColor: c.border, backgroundColor: c.card }]}>
-          {shown.map((r, i) => (
-            <MatchItem key={r.match.id} row={r} first={i === 0} />
-          ))}
+      {byDay(shown).map((group) => (
+        // A heading per day, then one bordered list with dividers, like the website's results.
+        <View key={group.label} style={{ gap: space.sm }}>
+          <SectionTitle>{group.label}</SectionTitle>
+          <List>
+            {group.rows.map((r) => (
+              <MatchItem key={r.match.id} row={r} />
+            ))}
+          </List>
         </View>
-      )}
+      ))}
     </Screen>
   );
 }
@@ -88,7 +91,7 @@ export default function MatchesScreen() {
 function SearchField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const c = useColors();
   return (
-    <View style={[styles.search, { borderColor: c.input }]}>
+    <View style={[styles.search, { borderColor: c.input, backgroundColor: c.card }]}>
       <Ionicons name="search-outline" size={18} color={c.muted} />
       <TextInput
         value={value}
@@ -148,34 +151,68 @@ function UploadReminder({ rows }: { rows: MatchRow[] }) {
   );
 }
 
-function MatchItem({ row, first }: { row: MatchRow; first: boolean }) {
+const playedAt = (m: MatchRow["match"]) => m.document?.startedAt ?? m.server?.playedAt ?? m.receivedAt;
+
+/** Rows grouped by the day they were played, in the order they come. */
+function byDay(rows: MatchRow[]): { label: string; rows: MatchRow[] }[] {
+  const groups: { label: string; rows: MatchRow[] }[] = [];
+  for (const r of rows) {
+    const label = formatDate(playedAt(r.match));
+    const last = groups.at(-1);
+    if (last?.label === label) last.rows.push(r);
+    else groups.push({ label, rows: [r] });
+  }
+  return groups;
+}
+
+/**
+ * A result as the website shows it on a phone: the teams stacked, each level with its number in
+ * a small vertical scoreboard on the right, the winner's in green.
+ */
+function MatchItem({ row }: { row: MatchRow }) {
   const c = useColors();
   const m = row.match;
   const doc = m.document;
   const home = doc?.teams.home.name ?? m.server?.home.name ?? "Home";
   const away = doc?.teams.away.name ?? m.server?.away.name ?? "Away";
   const score = doc ? summarizeMatch(doc).score : m.server ? { home: m.server.home.score, away: m.server.away.score } : null;
-  const played = doc?.startedAt ?? m.server?.playedAt ?? m.receivedAt;
+  const won = score && score.home !== score.away ? (score.home > score.away ? "home" : "away") : null;
+  const details = [doc?.competition, doc?.venue].filter(Boolean).join(" · ");
+  const name = (side: "home" | "away"): TextStyle => (won === side ? { fontWeight: "700" } : won ? { color: c.muted } : { fontWeight: "600" });
+  const digit = (side: "home" | "away") => (won === side ? c.primary : won ? c.muted : c.text);
 
   return (
     // A plain Pressable: with Link asChild, a style function is dropped and the row loses its layout.
     <Pressable
       accessibilityRole="link"
+      accessibilityLabel={score ? `${home} ${score.home}, ${away} ${score.away}` : `${home} v ${away}`}
       onPress={() => router.push(`/match/${m.id}`)}
-      style={({ pressed }) => [styles.item, !first && { borderTopWidth: 1, borderTopColor: c.border }, pressed && { backgroundColor: c.subtle }]}
+      style={({ pressed }) => [styles.item, pressed && { backgroundColor: c.subtle }]}
     >
       <View style={styles.itemTop}>
-        <Text style={{ color: c.muted, fontSize: 14 }}>{formatDate(played)}</Text>
-        {!m.seen && <View style={[styles.dot, { backgroundColor: c.primary }]} accessibilityLabel="New" />}
+        <Text style={{ fontFamily: FONT_MONO, fontWeight: "600", fontSize: 12, color: c.muted }}>{clockTime(new Date(playedAt(m)))}</Text>
+        <View style={{ flex: 1, flexDirection: "row", justifyContent: "flex-end", alignItems: "center", gap: space.sm }}>
+          {details !== "" && (
+            <Text style={{ color: c.muted, fontSize: 12, flexShrink: 1 }} numberOfLines={1}>
+              {details}
+            </Text>
+          )}
+          {!m.seen && <View style={[styles.dot, { backgroundColor: c.primary }]} accessibilityLabel="New" />}
+        </View>
       </View>
       <View style={styles.teams}>
-        <Text style={[styles.team, score && score.home > score.away && styles.winner]} numberOfLines={1}>
-          {home}
-        </Text>
-        <Text style={styles.score}>{score ? `${score.home}–${score.away}` : "–"}</Text>
-        <Text style={[styles.team, { textAlign: "right" }, score && score.away > score.home && styles.winner]} numberOfLines={1}>
-          {away}
-        </Text>
+        <View style={styles.names}>
+          <Text style={[styles.team, name("home")]} numberOfLines={1}>
+            {home}
+          </Text>
+          <Text style={[styles.team, name("away")]} numberOfLines={1}>
+            {away}
+          </Text>
+        </View>
+        <View style={[styles.board, { backgroundColor: c.subtle }]}>
+          <Score color={digit("home")}>{score ? score.home : "–"}</Score>
+          <Score color={digit("away")}>{score ? score.away : "–"}</Score>
+        </View>
       </View>
       <StatusBadges match={m} state={row.state} />
     </Pressable>
@@ -183,14 +220,13 @@ function MatchItem({ row, first }: { row: MatchRow; first: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  list: { borderWidth: 1, borderRadius: radius.xl, overflow: "hidden" },
-  search: { flexDirection: "row", alignItems: "center", gap: space.sm, borderWidth: 1, borderRadius: radius.lg, paddingHorizontal: space.md },
+  search: { flexDirection: "row", alignItems: "center", gap: space.sm, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space.md },
   searchInput: { flex: 1, paddingVertical: 10, fontSize: 16, fontFamily: FONT },
-  item: { paddingHorizontal: space.lg, paddingVertical: space.md, gap: 6 },
-  itemTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  item: { paddingHorizontal: space.lg, paddingVertical: space.md, gap: space.sm },
+  itemTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space.md },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  teams: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  team: { flex: 1, fontSize: 16 },
-  winner: { fontWeight: "600" },
-  score: { fontSize: 17, fontWeight: "700", fontVariant: ["tabular-nums"] },
+  teams: { flexDirection: "row", alignItems: "stretch", gap: space.lg },
+  names: { flex: 1, justifyContent: "space-around", gap: space.sm },
+  team: { fontSize: 17 },
+  board: { minWidth: 40, alignItems: "flex-end", justifyContent: "space-around", paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.sm, gap: 4 },
 });

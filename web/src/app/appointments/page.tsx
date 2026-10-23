@@ -4,6 +4,7 @@ import { answerAppointment, askForCover, resetCalendarLink, takeCover } from "@/
 import { ActionForm } from "@/components/ActionForm";
 import { AppointmentBadge, roleLabel } from "@/components/AppointmentBadge";
 import { CopyButton } from "@/components/CopyButton";
+import { DateTile } from "@/components/DateTile";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -148,10 +149,10 @@ function Section({ title, description, empty, children }: { title: string; descr
   return (
     <section className="space-y-3">
       <div>
-        <h2 className="text-lg font-semibold">{title}</h2>
+        <h2 className="section-title text-2xl">{title}</h2>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
-      {empty ? <p className="text-muted-foreground">{empty}</p> : <div className="space-y-2">{children}</div>}
+      {empty ? <p className="rounded-lg border bg-card px-5 py-6 text-center text-muted-foreground">{empty}</p> : <div className="grid gap-3 lg:grid-cols-2">{children}</div>}
     </section>
   );
 }
@@ -160,15 +161,18 @@ function Section({ title, description, empty, children }: { title: string; descr
 function AppointmentCard({ a, whose, children }: { a: MyAppointment; whose?: string; children?: React.ReactNode }) {
   const f = a.fixture;
   return (
-    <Card className="gap-2 px-4 py-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div>
-          <div className="font-medium">
-            {f.home.name} v {f.away.name}
+    <Card className="gap-3 px-4 py-4">
+      <div className="flex items-start gap-4">
+        <DateTile date={f.date} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="font-semibold">
+              {f.home.name} v {f.away.name}
+            </div>
+            <AppointmentBadge appointment={a} />
           </div>
           <div className="text-sm text-muted-foreground">{[fixtureWhen(f.date, f.time), f.venue, f.competition].filter(Boolean).join(" · ")}</div>
         </div>
-        <AppointmentBadge appointment={a} />
       </div>
       <div className="text-sm">
         {whose ? `${whose} place: ` : ""}

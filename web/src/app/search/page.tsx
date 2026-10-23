@@ -1,10 +1,8 @@
-import { Search } from "lucide-react";
 import Link from "next/link";
 import { MatchList, Pager } from "@/components/MatchList";
 import { PageHeader } from "@/components/PageHeader";
-import { Button } from "@/components/ui/button";
+import { SearchBox } from "@/components/SearchBox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
 import type { Club, Competition, Items, Match, Page, TeamWithClub, Venue } from "@/lib/types";
 
@@ -31,15 +29,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     <div className="space-y-6">
       <PageHeader title="Search" description="Clubs, teams, competitions, venues and matches." />
 
-      <form role="search" action="/search" className="flex max-w-lg gap-2">
-        <label htmlFor="search-page-q" className="sr-only">
-          Search
-        </label>
-        <Input id="search-page-q" name="q" type="search" placeholder="e.g. Hawks M1, Division 2, Banbury Road" defaultValue={q} autoFocus={!q} />
-        <Button type="submit">
-          <Search /> Search
-        </Button>
-      </form>
+      <SearchBox action="/search" label="Search" placeholder="e.g. Hawks M1, Division 2, Banbury Road" defaultValue={q} autoFocus={!q} />
 
       {q && !found && <p className="text-muted-foreground">Nothing matches “{q}”.</p>}
 
@@ -61,7 +51,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
       {matches && matches.items.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Matches</h2>
+          <h2 className="section-title text-2xl">Matches</h2>
           <MatchList matches={matches.items} />
           <Pager cursor={matches.nextCursor} params={{ q }} />
         </section>

@@ -64,24 +64,46 @@ const config: ExpoConfig = {
     ["expo-notifications", { color: "#1f6f43" }],
     "expo-sharing",
     [
-      // Geist, the website's typeface. One family with four weights, so fontWeight works on Android too.
+      // The website's type: Archivo for text, in four weights (one family, so fontWeight works on
+      // Android too), and cut at the site's other widths for scores, section titles and page
+      // titles; JetBrains Mono for clock times. Static cuts of the variable fonts (see theme.ts).
       "expo-font",
       {
         android: {
           fonts: [
             {
-              fontFamily: "Geist",
+              fontFamily: "Archivo",
               fontDefinitions: [
-                { path: "./assets/fonts/Geist_400Regular.ttf", weight: 400 },
-                { path: "./assets/fonts/Geist_500Medium.ttf", weight: 500 },
-                { path: "./assets/fonts/Geist_600SemiBold.ttf", weight: 600 },
-                { path: "./assets/fonts/Geist_700Bold.ttf", weight: 700 },
+                { path: "./assets/fonts/Archivo_400Regular.ttf", weight: 400 },
+                { path: "./assets/fonts/Archivo_500Medium.ttf", weight: 500 },
+                { path: "./assets/fonts/Archivo_600SemiBold.ttf", weight: 600 },
+                { path: "./assets/fonts/Archivo_700Bold.ttf", weight: 700 },
+              ],
+            },
+            { fontFamily: "ArchivoScore", fontDefinitions: [{ path: "./assets/fonts/ArchivoScore_800ExtraBold.ttf", weight: 800 }] },
+            { fontFamily: "ArchivoSection", fontDefinitions: [{ path: "./assets/fonts/ArchivoSection_800ExtraBold.ttf", weight: 800 }] },
+            { fontFamily: "ArchivoTitle", fontDefinitions: [{ path: "./assets/fonts/ArchivoTitle_800ExtraBold.ttf", weight: 800 }] },
+            {
+              fontFamily: "JetBrainsMono",
+              fontDefinitions: [
+                { path: "./assets/fonts/JetBrainsMono_500Medium.ttf", weight: 500 },
+                { path: "./assets/fonts/JetBrainsMono_600SemiBold.ttf", weight: 600 },
               ],
             },
           ],
         },
         ios: {
-          fonts: ["./assets/fonts/Geist_400Regular.ttf", "./assets/fonts/Geist_500Medium.ttf", "./assets/fonts/Geist_600SemiBold.ttf", "./assets/fonts/Geist_700Bold.ttf"],
+          fonts: [
+            "./assets/fonts/Archivo_400Regular.ttf",
+            "./assets/fonts/Archivo_500Medium.ttf",
+            "./assets/fonts/Archivo_600SemiBold.ttf",
+            "./assets/fonts/Archivo_700Bold.ttf",
+            "./assets/fonts/ArchivoScore_800ExtraBold.ttf",
+            "./assets/fonts/ArchivoSection_800ExtraBold.ttf",
+            "./assets/fonts/ArchivoTitle_800ExtraBold.ttf",
+            "./assets/fonts/JetBrainsMono_500Medium.ttf",
+            "./assets/fonts/JetBrainsMono_600SemiBold.ttf",
+          ],
         },
       },
     ],

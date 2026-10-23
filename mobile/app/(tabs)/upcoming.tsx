@@ -11,14 +11,13 @@ import { answerAppointment, refreshAppointments, useAppointments } from "@/state
 import { forgetPlanned } from "@/state/planned";
 import { useMatches } from "@/state/sync";
 import { upcoming, useUpcoming } from "@/state/upcoming";
-import { Badge, Button, Card, Empty, Row, Screen, Swatch, T, Text } from "@/ui/kit";
+import { Badge, Button, Card, DateTile, Empty, Ionicons, List, Row, Screen, Swatch, T, Text } from "@/ui/kit";
 import { radius, space, useColors } from "@/ui/theme";
 
 /** Matches set up ahead of time, soonest first, to send to the watch at the ground. */
 export default function UpcomingScreen() {
   const list = useUpcoming();
   const { rows } = useMatches();
-  const c = useColors();
   const today = new Date();
   const shown = list ? sortUpcoming(list) : [];
   const { items: appointments } = useAppointments();
@@ -74,53 +73,60 @@ export default function UpcomingScreen() {
         </Empty>
       )}
       {shown.length > 0 && (
-        <View style={[styles.list, { borderColor: c.border, backgroundColor: c.card }]}>
-          {shown.map((u, i) => (
-            <UpcomingItem key={u.id} match={u} today={today} first={i === 0} />
+        <List>
+          {shown.map((u) => (
+            <UpcomingItem key={u.id} match={u} today={today} />
           ))}
-        </View>
+        </List>
       )}
     </Screen>
   );
 }
 
-function UpcomingItem({ match: u, today, first }: { match: UpcomingMatch; today: Date; first: boolean }) {
+/** Like the website's Upcoming: the day as a calendar leaf, then the teams stacked with their colours. */
+function UpcomingItem({ match: u, today }: { match: UpcomingMatch; today: Date }) {
   const c = useColors();
   const s = u.setup;
   const format = presetOf(s)?.label ?? `${s.periods} × ${s.periodMinutes} min`;
+  const past = isPast(u, today);
   return (
     <Pressable
       accessibilityRole="link"
       onPress={() => router.push(`/upcoming/${u.id}`)}
-      style={({ pressed }) => [styles.item, !first && { borderTopWidth: 1, borderTopColor: c.border }, pressed && { backgroundColor: c.subtle }]}
+      style={({ pressed }) => [styles.item, pressed && { backgroundColor: c.subtle }]}
     >
-      <View style={styles.itemTop}>
-        <Text style={{ color: isPast(u, today) ? c.warn : c.muted, fontSize: 14 }}>{whenLabel(u, today) ?? "No date"}</Text>
-        <View style={{ flexDirection: "row", gap: space.xs }}>
-          {isAppointmentUpcoming(u) && <Badge label="Appointed" icon="ribbon-outline" />}
-          {u.sentAt && <Badge label="Sent to watch" icon="watch-outline" />}
+      {u.date ? (
+        <DateTile date={u.date} />
+      ) : (
+        <View style={[styles.noDate, { backgroundColor: c.subtle }]}>
+          <Ionicons name="calendar-clear-outline" size={20} color={c.muted} />
         </View>
-      </View>
-      <View style={styles.teams}>
-        <Swatch color={s.homeColor} />
-        <Text style={styles.team} numberOfLines={1}>
-          {s.homeName.trim() || "Home"}
-        </Text>
-        <Text style={{ color: c.muted }}>v</Text>
-        <Text style={[styles.team, { textAlign: "right" }]} numberOfLines={1}>
-          {s.awayName.trim() || "Away"}
-        </Text>
-        <Swatch color={s.awayColor} />
-      </View>
-      <Text style={{ color: c.muted, fontSize: 14 }} numberOfLines={1}>
-        {[format, s.competition?.trim(), s.venue?.trim()].filter(Boolean).join(" · ")}
-      </Text>
-      {u.colleague && (
-        <Text style={{ color: c.muted, fontSize: 14 }} numberOfLines={1}>
-          With {u.colleague.displayName}
-          {u.colleague.status === "offered" ? " (asked)" : ""}
-        </Text>
       )}
+      <View style={{ flex: 1, gap: 6 }}>
+        {(["home", "away"] as const).map((side) => (
+          <View key={side} style={styles.team}>
+            <Swatch color={s[`${side}Color`]} />
+            <Text style={{ flex: 1, fontSize: 16, fontWeight: "600" }} numberOfLines={1}>
+              {s[`${side}Name`].trim() || (side === "home" ? "Home" : "Away")}
+            </Text>
+          </View>
+        ))}
+        <Text style={{ color: past ? c.warn : c.muted, fontSize: 14 }} numberOfLines={1}>
+          {[whenLabel(u, today) ?? "No date", s.venue?.trim(), s.competition?.trim(), format].filter(Boolean).join(" · ")}
+        </Text>
+        {u.colleague && (
+          <Text style={{ color: c.muted, fontSize: 14 }} numberOfLines={1}>
+            With {u.colleague.displayName}
+            {u.colleague.status === "offered" ? " (asked)" : ""}
+          </Text>
+        )}
+        {(isAppointmentUpcoming(u) || u.sentAt) && (
+          <View style={{ flexDirection: "row", gap: space.xs }}>
+            {isAppointmentUpcoming(u) && <Badge label="Appointed" icon="ribbon-outline" />}
+            {u.sentAt && <Badge label="Sent to watch" icon="watch-outline" />}
+          </View>
+        )}
+      </View>
     </Pressable>
   );
 }
@@ -197,9 +203,7 @@ function AppointmentCard({ a, today, title, answer }: { a: MyAppointment; today:
 }
 
 const styles = StyleSheet.create({
-  list: { borderWidth: 1, borderRadius: radius.xl, overflow: "hidden" },
-  item: { paddingHorizontal: space.lg, paddingVertical: space.md, gap: 6 },
-  itemTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  teams: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  team: { flex: 1, fontSize: 16 },
+  item: { flexDirection: "row", alignItems: "center", gap: space.lg, padding: space.lg },
+  noDate: { width: 56, height: 64, alignItems: "center", justifyContent: "center", borderRadius: radius.md },
+  team: { flexDirection: "row", alignItems: "center", gap: space.sm },
 });

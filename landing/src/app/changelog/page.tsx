@@ -115,6 +115,9 @@ export default function Changelog() {
             <a href="/" className="hover:text-foreground">
               Home
             </a>
+            <a href="/blog" className="hover:text-foreground">
+              Blog
+            </a>
             <a href="/support" className="hover:text-foreground">
               Support
             </a>

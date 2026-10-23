@@ -20,7 +20,7 @@ export default async function AdminPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Admin" />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Tile href="/admin/requests" icon={<Inbox />} title="Club requests" count={requests.items.length}>
           {requests.items.length ? "Waiting for review" : "Nothing waiting"}
         </Tile>
@@ -59,13 +59,13 @@ export default async function AdminPage() {
 function Tile({ href, icon, title, count, children }: { href: string; icon: ReactNode; title: string; count?: number; children: ReactNode }) {
   return (
     <Link href={href} className="text-foreground no-underline hover:no-underline">
-      <Card className="h-full transition-colors hover:bg-muted/50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 [&_svg]:size-4 [&_svg]:text-muted-foreground">
-            {icon}
-            {title}
-            {!!count && <Badge className="ml-auto">{count}</Badge>}
-          </CardTitle>
+      <Card className="h-full transition-[border-color,box-shadow] hover:border-foreground/15 hover:shadow-md hover:shadow-black/5">
+        <CardHeader className="gap-3">
+          <span className="flex items-center justify-between">
+            <span className="inline-flex size-10 items-center justify-center rounded-full bg-primary/12 text-primary [&_svg]:size-5">{icon}</span>
+            {!!count && <Badge>{count}</Badge>}
+          </span>
+          <CardTitle>{title}</CardTitle>
           <CardDescription>{children}</CardDescription>
         </CardHeader>
       </Card>

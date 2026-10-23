@@ -1,7 +1,7 @@
 import { hasRole } from "@fh/shared";
-import { CircleCheck, Download, FilePen, Filter, Hourglass, Link2Off } from "lucide-react";
+import { CircleCheck, Download, FilePen, Hourglass, Link2Off } from "lucide-react";
 import Link from "next/link";
-import { FilterSelect } from "@/components/FilterSelect";
+import { FilterPanel, PillLinks } from "@/components/FilterPanel";
 import { MatchFilterFields, type MatchFilterParams, loadMatchFilters } from "@/components/MatchFilters";
 import { MatchList, Pager } from "@/components/MatchList";
 import { PageHeader } from "@/components/PageHeader";
@@ -50,6 +50,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     view ? api<Page<Match>>("/v1/matches", { query: { ...scope, status: "published", limit: 100 } }) : null,
   ]);
   const exportQuery = new URLSearchParams(Object.entries(filters).filter((e): e is [string, string] => !!e[1]));
+  // The page's own filters, as they appear in its address.
+  const own = { view, status, from: sp.from, to: sp.to, ...(view === "club" ? { ...picked.query, clubId: undefined } : picked.query) };
+  const href = (changes: Partial<typeof own>) => {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries({ ...own, ...changes })) if (v) q.set(k, v);
+    return `/dashboard?${q}`;
+  };
+  const narrowed = !!(sp.from || sp.to || Object.entries(picked.query).some(([k, v]) => v && !(view === "club" && k === "clubId")));
 
   return (
     <div className="space-y-6">
@@ -63,6 +71,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               : view === "mine"
                 ? "Matches you've umpired, drafts included."
                 : `Signed in as ${user.displayName}`
+        }
+        actions={
+          view && (
+            <Button variant="outline" asChild>
+              <a href={`/dashboard/export?${exportQuery.toString()}`}>
+                <Download /> Download CSV
+              </a>
+            </Button>
+          )
         }
       />
 
@@ -81,50 +98,36 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <>
           {drafts && published && <Summary drafts={drafts} published={published} view={view} />}
 
-          <Card>
-            <CardContent>
-              <form aria-label="Filter matches" className="flex flex-wrap items-end gap-3">
-                <input type="hidden" name="view" value={view} />
-                <Field className="w-40">
-                  <FieldLabel>Status</FieldLabel>
-                  <FilterSelect
-                    name="status"
-                    defaultValue={status ?? "any"}
-                    options={[
-                      { value: "any", label: "Any" },
-                      { value: "draft", label: "Draft" },
-                      { value: "published", label: "Published" },
-                    ]}
-                  />
-                </Field>
-                <Field className="w-44">
-                  <FieldLabel htmlFor="from">From</FieldLabel>
-                  <Input id="from" type="date" name="from" defaultValue={sp.from} />
-                </Field>
-                <Field className="w-44">
-                  <FieldLabel htmlFor="to">To</FieldLabel>
-                  <Input id="to" type="date" name="to" defaultValue={sp.to} />
-                </Field>
-                <MatchFilterFields filters={picked} />
-                <div className="flex gap-2">
-                  <Button type="submit" variant="secondary">
-                    <Filter /> Filter
-                  </Button>
-                  <Button variant="outline" asChild>
-                    <a href={`/dashboard/export?${exportQuery.toString()}`}>
-                      <Download /> CSV
-                    </a>
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+          <PillLinks
+            label="Status"
+            items={[
+              { href: href({ status: undefined }), label: "All", active: !status },
+              { href: href({ status: "draft" }), label: "Drafts", active: status === "draft" },
+              { href: href({ status: "published" }), label: "Published", active: status === "published" },
+            ]}
+          />
+
+          <FilterPanel
+            summary="Filter by date, club, competition or venue"
+            label="Filter matches"
+            active={narrowed}
+            clearHref={href({ from: undefined, to: undefined, clubId: undefined, teamId: undefined, competition: undefined, venue: undefined })}
+          >
+            <input type="hidden" name="view" value={view} />
+            {status && <input type="hidden" name="status" value={status} />}
+            <Field className="w-44">
+              <FieldLabel htmlFor="from">From</FieldLabel>
+              <Input id="from" type="date" name="from" defaultValue={sp.from} />
+            </Field>
+            <Field className="w-44">
+              <FieldLabel htmlFor="to">To</FieldLabel>
+              <Input id="to" type="date" name="to" defaultValue={sp.to} />
+            </Field>
+            <MatchFilterFields filters={picked} />
+          </FilterPanel>
 
           <MatchList matches={matches!.items} manage empty="No matches match these filters." />
-          <Pager
-            cursor={matches!.nextCursor}
-            params={{ view, status, from: sp.from, to: sp.to, ...(view === "club" ? { ...picked.query, clubId: undefined } : picked.query) }}
-          />
+          <Pager cursor={matches!.nextCursor} params={own} />
         </>
       )}
     </div>

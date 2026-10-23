@@ -1,10 +1,9 @@
-import { ChevronRight, Search } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { ClubBadge } from "@/components/ClubBadge";
 import { PageHeader } from "@/components/PageHeader";
-import { Button } from "@/components/ui/button";
+import { SearchBox } from "@/components/SearchBox";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
 import type { Club, Items } from "@/lib/types";
 
@@ -16,15 +15,7 @@ export default async function ClubsPage({ searchParams }: { searchParams: Promis
   return (
     <div className="space-y-6">
       <PageHeader title="Clubs" description="Every club with teams on FH Match Centre, and their results." />
-      <form role="search" className="flex max-w-lg gap-2">
-        <label htmlFor="q" className="sr-only">
-          Find a club
-        </label>
-        <Input id="q" name="q" type="search" placeholder="Find a club" defaultValue={q} />
-        <Button type="submit">
-          <Search /> Search
-        </Button>
-      </form>
+      <SearchBox label="Find a club" placeholder="Find a club" defaultValue={q} />
       {clubs.items.length === 0 ? (
         <Card className="py-10 text-center text-muted-foreground">
           <p>{q ? `No clubs match “${q}”.` : "No clubs yet."}</p>

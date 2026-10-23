@@ -36,6 +36,17 @@ export default async function AvailabilityPage() {
         <CardHeader>
           <CardTitle>The next 12 weeks</CardTitle>
           <CardDescription>Tap a day once if you&apos;re free, twice if you&apos;re not, and again to unmark it.</CardDescription>
+          <ul aria-label="Key" className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs text-muted-foreground">
+            <li className="flex items-center gap-1.5">
+              <span aria-hidden className="size-3 rounded-sm border border-primary/50 bg-primary/12" /> Free
+            </li>
+            <li className="flex items-center gap-1.5">
+              <span aria-hidden className="size-3 rounded-sm border border-destructive/40 bg-destructive/10" /> Not free
+            </li>
+            <li className="flex items-center gap-1.5">
+              <span aria-hidden className="size-3 rounded-sm border border-dashed bg-muted/60" /> A weekday you&apos;re never free
+            </li>
+          </ul>
         </CardHeader>
         <CardContent>
           {/* Keyed by what's saved, so it starts again from the server's after any change (e.g. hours set below). */}
