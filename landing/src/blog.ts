@@ -1,22 +1,11 @@
-import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
 import { marked } from "marked";
+import { SITE } from "@/content";
 
 /**
- * The blog: one Markdown file per post in landing/blog/, read when the site is built.
- * The file name is the address (blog/first-match.md is /blog/first-match), and a few
- * lines of front matter at the top say the rest:
- *
- *   ---
- *   title: Our first match on the watch
- *   date: 2026-10-23
- *   summary: One or two sentences for the list of posts and for search engines.
- *   author: The FH Match Centre team
- *   draft: true
- *   ---
- *
- * `title` and `date` are needed; `summary`, `author` and `draft` aren't. A draft is left
- * out of the built site, so a post can be committed before it's finished.
+ * The blog. Admins upload each post as a Markdown file on the website (Admin → Blog), and
+ * the API keeps them (api/src/routes/blog.ts); these pages read them from it as they're
+ * opened, so a post is out without redeploying this site. Only published posts are served
+ * here: drafts stay in admin.
  */
 
 export interface PostMeta {
@@ -24,64 +13,51 @@ export interface PostMeta {
   title: string;
   /** ISO date, e.g. 2026-10-23. */
   date: string;
-  summary?: string;
-  author?: string;
+  summary: string | null;
+  author: string | null;
 }
 
 export interface Post extends PostMeta {
-  /** The post's body, as HTML. */
-  html: string;
+  /** The post's body, in Markdown. */
+  body: string;
 }
 
-/** Where the posts are, built from this folder or from the repository root. */
-const CANDIDATES = [join(process.cwd(), "blog"), join(process.cwd(), "landing", "blog")];
+const ENDPOINT = SITE.appUrl ? `${SITE.appUrl}/v1/blog/posts` : null;
 
-/** Simple `key: value` lines between two `---` lines; quotes around a value are optional. */
-function parseFrontMatter(source: string): { data: Record<string, string>; body: string } {
-  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(source);
-  if (!match) return { data: {}, body: source };
-  const data: Record<string, string> = {};
-  for (const line of match[1]!.split(/\r?\n/)) {
-    const pair = /^([A-Za-z]+):\s*(.*?)\s*$/.exec(line);
-    if (pair) data[pair[1]!.toLowerCase()] = pair[2]!.replace(/^(["'])(.*)\1$/, "$2");
-  }
-  return { data, body: source.slice(match[0].length) };
+/** Every published post, newest first. Throws if the API can't be reached. */
+export async function fetchPosts(): Promise<PostMeta[]> {
+  if (!ENDPOINT) return [];
+  const res = await fetch(ENDPOINT);
+  if (!res.ok) throw new Error(`The blog answered ${res.status}.`);
+  return ((await res.json()) as { items: PostMeta[] }).items;
 }
 
-function parsePost(slug: string, source: string): Post | null {
-  const { data, body } = parseFrontMatter(source);
-  if (data.draft === "true") return null;
-  if (!data.title || !/^\d{4}-\d{2}-\d{2}$/.test(data.date ?? "")) {
-    throw new Error(`blog/${slug}.md needs a title and a date (YYYY-MM-DD) in its front matter.`);
-  }
-  return {
-    slug,
-    title: data.title,
-    date: data.date!,
-    summary: data.summary || undefined,
-    author: data.author || undefined,
-    html: marked.parse(body, { async: false }),
-  };
+/** One post, or null when there's no such post. Throws if the API can't be reached. */
+export async function fetchPost(slug: string): Promise<Post | null> {
+  if (!ENDPOINT) return null;
+  const res = await fetch(`${ENDPOINT}/${encodeURIComponent(slug)}`);
+  if (res.status === 404 || res.status === 400) return null;
+  if (!res.ok) throw new Error(`The blog answered ${res.status}.`);
+  return (await res.json()) as Post;
 }
 
-/** Every published post, newest first; an empty list when there's no blog folder. */
-export function readPosts(): Post[] {
-  for (const dir of CANDIDATES) {
-    let files: string[];
-    try {
-      files = readdirSync(dir).filter((f) => f.endsWith(".md") && f.toLowerCase() !== "readme.md");
-    } catch {
-      continue; // Try the next place.
-    }
-    return files
-      .map((f) => parsePost(f.slice(0, -3), readFileSync(join(dir, f), "utf8")))
-      .filter((p): p is Post => p !== null)
-      .sort((a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title));
-  }
-  return [];
-}
+/** Written by the site's admins, so the HTML is theirs to trust. */
+export const postHtml = (post: Post) => marked.parse(post.body, { async: false });
 
-export const readPost = (slug: string) => readPosts().find((p) => p.slug === slug);
+/**
+ * A post's address. On Vercel, /blog/<slug> is rewritten to the one page that shows any
+ * post (vercel.json); `next dev` has no rewrites, so there it's asked for by name.
+ */
+export const postHref = (slug: string) =>
+  process.env.NODE_ENV === "development" ? `/blog/post?slug=${encodeURIComponent(slug)}` : `/blog/${slug}`;
+
+/** Which post the page at this address shows: /blog/<slug>, or /blog/post?slug=<slug>. */
+export function slugFromLocation(location: Location): string | null {
+  const asked = new URLSearchParams(location.search).get("slug");
+  if (asked) return asked;
+  const path = /^\/blog\/([^/]+)\/?$/.exec(location.pathname)?.[1];
+  return path && path !== "post" ? decodeURIComponent(path) : null;
+}
 
 const DATE = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 

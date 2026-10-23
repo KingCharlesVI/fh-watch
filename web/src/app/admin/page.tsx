@@ -1,4 +1,4 @@
-import { Building2, ClipboardList, FileUp, History, Inbox, MapPin, Trophy, UserPlus, Users, Webhook } from "lucide-react";
+import { Building2, ClipboardList, FileUp, History, Inbox, MapPin, Newspaper, Trophy, UserPlus, Users, Webhook } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PageHeader } from "@/components/PageHeader";
@@ -44,6 +44,9 @@ export default async function AdminPage() {
         </Tile>
         <Tile href="/dashboard?view=all" icon={<ClipboardList />} title="All matches">
           Drafts included
+        </Tile>
+        <Tile href="/admin/blog" icon={<Newspaper />} title="Blog">
+          Posts on the landing page, uploaded as Markdown
         </Tile>
         <Tile href="/admin/webhooks" icon={<Webhook />} title="Webhooks">
           Results sent to leagues&apos; and clubs&apos; own systems

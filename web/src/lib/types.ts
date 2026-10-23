@@ -2,6 +2,8 @@
 export type {
   Club,
   AccessRequest,
+  BlogPost,
+  BlogPostSummary,
   AuditEntry,
   Appointment,
   Availability,

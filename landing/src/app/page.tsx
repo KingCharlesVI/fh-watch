@@ -1,6 +1,6 @@
 import { ArrowRight, ArrowUpRight, Check, FileText, Flag, Globe, Hand, LifeBuoy, Smartphone, Timer, Vibrate, Watch, WifiOff } from "lucide-react";
-import { readPosts, showPostDate } from "@/blog";
 import { AccessRequestForm } from "@/components/AccessRequestForm";
+import { LatestPosts } from "@/components/BlogPosts";
 import {
   ApkInstructions,
   Button,
@@ -52,7 +52,6 @@ export default function Home() {
   const current = DOWNLOADS.find((d) => d.stage === CURRENT_STAGE)!;
   // Finished stages are history: the stepper tells that story, so the cards don't.
   const open = DOWNLOADS.filter((d) => stageStatus(d.stage) !== "done");
-  const posts = readPosts().slice(0, 3);
   return (
     <>
       <header className="sticky top-0 z-10 border-b bg-background/85 backdrop-blur">
@@ -224,28 +223,7 @@ export default function Home() {
           <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
         </Section>
 
-        {/* The newest posts; the section stays away until there's one to show. */}
-        {posts.length > 0 && (
-          <Section id="blog" eyebrow="Blog" title="Latest news">
-            <div className="grid gap-6 md:grid-cols-3">
-              {posts.map((post) => (
-                <a key={post.slug} href={`/blog/${post.slug}`} className="group flex flex-col rounded-xl border bg-card p-5 transition-colors hover:border-primary">
-                  <time dateTime={post.date} className="text-sm text-muted-foreground">
-                    {showPostDate(post.date)}
-                  </time>
-                  <h3 className="mt-2 font-semibold group-hover:text-primary">{post.title}</h3>
-                  {post.summary && <p className="mt-1.5 text-sm text-muted-foreground">{post.summary}</p>}
-                  <span className="mt-auto inline-flex items-center gap-1 pt-4 text-sm font-medium text-primary">
-                    Read <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-                  </span>
-                </a>
-              ))}
-            </div>
-            <a href="/blog" className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-              All posts <ArrowRight className="size-3.5" />
-            </a>
-          </Section>
-        )}
+        <LatestPosts />
 
         <CtaBand title="Try it on your next match" intro={`The ${current.title.toLowerCase()} is open to umpires now. It takes a watch, a phone and about five minutes to set up.`}>
           <Button href="#download">Get the {current.title.toLowerCase()}</Button>

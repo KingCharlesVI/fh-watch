@@ -5,7 +5,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { LISTS_TAG, api } from "@/lib/api";
 import { type FormState, formError, optionalText, text } from "@/lib/forms";
-import type { Club, ClubRequest, Team, Venue as NamedItem } from "@/lib/types";
+import type { BlogPost, Club, ClubRequest, Team, Venue as NamedItem } from "@/lib/types";
 
 const done = (ok: string, ...paths: string[]): FormState => {
   for (const p of paths) revalidatePath(p);
@@ -307,6 +307,40 @@ export async function reviewAccessRequest(_: FormState, fd: FormData): Promise<F
     return formError(err);
   }
   return done(decision === "approve" ? "Approved, and emailed." : "Denied, and emailed.", "/admin/access-requests", "/admin");
+}
+
+// ---- Blog ----
+
+/** "First Match.md" → "first-match": a file's name is its post's address unless one's given. */
+const slugFromFileName = (name: string) =>
+  name
+    .replace(/\.(md|markdown)$/i, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+export async function uploadBlogPost(_: FormState, fd: FormData): Promise<FormState> {
+  const file = fd.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose the post's Markdown file." };
+  if (!/\.(md|markdown)$/i.test(file.name)) return { error: "The post must be a Markdown file, ending .md." };
+  const slug = optionalText(fd, "slug") ?? slugFromFileName(file.name);
+  let post: BlogPost;
+  try {
+    post = await api<BlogPost>(`/v1/blog/posts/${encodeURIComponent(slug)}`, { method: "PUT", body: { markdown: await file.text() } });
+  } catch (err) {
+    return formError(err);
+  }
+  // Uploading to a slug that has a post replaces it.
+  return done(`${post.draft ? "Saved as a draft" : "Published"}: “${post.title}”.`, "/admin/blog", "/admin");
+}
+
+export async function deleteBlogPost(_: FormState, fd: FormData): Promise<FormState> {
+  try {
+    await api(`/v1/blog/posts/${encodeURIComponent(text(fd, "slug"))}`, { method: "DELETE" });
+  } catch (err) {
+    return formError(err);
+  }
+  return done("Deleted.", "/admin/blog");
 }
 
 // ---- Club requests ----

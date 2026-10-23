@@ -183,6 +183,25 @@ export interface AccessRequest {
   reviewedAt: string | null;
 }
 
+/** A post on the landing page's blog, without its text: what the list of posts shows. */
+export interface BlogPostSummary {
+  /** Its address: "first-match" is /blog/first-match on the landing page. */
+  slug: string;
+  title: string;
+  /** ISO date, e.g. 2026-10-23: the one it's shown with. */
+  date: string;
+  summary: string | null;
+  author: string | null;
+  /** Only admins see drafts. */
+  draft: boolean;
+  updatedAt: string;
+}
+
+/** A blog post with its text, in Markdown. */
+export interface BlogPost extends BlogPostSummary {
+  body: string;
+}
+
 /** How a fixture is played, sent to the watch with its setup. */
 export interface FixtureFormat {
   periods: number;

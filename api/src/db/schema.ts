@@ -342,6 +342,32 @@ export const accessRequests = pgTable(
   ],
 );
 
+/**
+ * A post on the landing page's blog, uploaded as a Markdown file from the website's admin
+ * pages. The landing page reads them from the API as it's visited, so a post is out as
+ * soon as it's uploaded.
+ */
+export const blogPosts = pgTable(
+  "blog_posts",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    /** Its address: "first-match" is /blog/first-match on the landing page. */
+    slug: text().notNull().unique(),
+    title: text().notNull(),
+    /** The date it's shown with, not when it was uploaded. */
+    date: date({ mode: "string" }).notNull(),
+    summary: text(),
+    author: text(),
+    /** Kept off the blog until it's uploaded again without `draft: true`. */
+    draft: boolean().notNull().default(false),
+    /** The post itself, in Markdown, without its front matter. */
+    body: text().notNull(),
+    createdAt: createdAt(),
+    updatedAt: createdAt(),
+  },
+  (t) => [index().on(t.draft, t.date)],
+);
+
 export const matches = pgTable(
   "matches",
   {

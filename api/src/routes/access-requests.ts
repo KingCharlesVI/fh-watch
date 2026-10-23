@@ -1,12 +1,13 @@
 import type { AccessRequest } from "@fh/shared";
 import { and, desc, eq } from "drizzle-orm";
-import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyBaseLogger, FastifyRequest } from "fastify";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { requireRole } from "../auth.js";
 import { accessRequests } from "../db/schema.js";
 import type { AppDeps } from "../deps.js";
 import { HttpError, conflict, notFound } from "../lib/errors.js";
+import { allowLanding } from "../lib/landing.js";
 import { RateLimiter } from "../lib/rate-limit.js";
 import { audit } from "../services/audit.js";
 import { type EmailBlock, type EmailContent, composeEmail } from "../services/email.js";
@@ -274,15 +275,3 @@ export const accessRequestRoutes =
       },
     );
   };
-
-/**
- * Lets the landing page's form post here, and no other site. Returns false for any
- * other origin; a request with no origin at all (curl, the phone app) is left alone.
- */
-function allowLanding(deps: AppDeps, origin: string | undefined, reply: FastifyReply): boolean {
-  reply.header("vary", "origin");
-  if (!origin) return true;
-  if (!deps.config.formOrigins.includes(origin)) return false;
-  reply.header("access-control-allow-origin", origin);
-  return true;
-}

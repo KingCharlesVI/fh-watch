@@ -15,6 +15,7 @@ import { RateLimiter } from "./lib/rate-limit.js";
 import { accessRequestRoutes } from "./routes/access-requests.js";
 import { auditRoutes } from "./routes/audit.js";
 import { authRoutes } from "./routes/auth.js";
+import { blogRoutes } from "./routes/blog.js";
 import { appointmentRoutes } from "./routes/appointments.js";
 import { availabilityRoutes } from "./routes/availability.js";
 import { calendarRoutes } from "./routes/calendar.js";
@@ -134,6 +135,7 @@ export async function buildApp(deps: AppDeps, options: { logger?: FastifyBaseLog
       await v1.register(calendarRoutes(deps));
       await v1.register(auditRoutes(deps));
       await v1.register(webhookRoutes(deps));
+      await v1.register(blogRoutes(deps));
     },
     { prefix: "/v1" },
   );

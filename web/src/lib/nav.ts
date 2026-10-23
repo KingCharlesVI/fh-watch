@@ -53,6 +53,7 @@ export function navGroups(user: User | null): NavGroup[] {
         { href: "/admin/venues", label: "Venues" },
         { href: "/admin/competitions", label: "Competitions" },
         { href: "/admin/import", label: "Import" },
+        { href: "/admin/blog", label: "Blog" },
         { href: "/admin/webhooks", label: "Webhooks" },
         { href: "/admin/audit", label: "Audit log" },
       ],
