@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { ClubBadge } from "@/components/ClubBadge";
 import { MatchList, Pager } from "@/components/MatchList";
-import { PitchPanel } from "@/components/PitchPanel";
+import { HeaderPanel } from "@/components/HeaderPanel";
 import { Button } from "@/components/ui/button";
 import { api, apiOrNull } from "@/lib/api";
 import { getCurrentUser } from "@/lib/session";
@@ -36,23 +36,23 @@ export default async function ClubPage({ params, searchParams }: { params: Param
         <Link href="/clubs" className="inline-flex items-center gap-1 text-sm text-muted-foreground no-underline hover:text-foreground">
           <ChevronLeft className="size-4" /> Clubs
         </Link>
-        <PitchPanel className="flex flex-wrap items-center gap-5 p-6 sm:p-9 [&>div]:flex [&>div]:w-full [&>div]:flex-wrap [&>div]:items-center [&>div]:gap-5">
-          <ClubBadge name={club.name} logoUrl={club.logoUrl} size="lg" className="rounded-lg ring-2 ring-white/80 sm:size-20 sm:text-3xl" />
+        <HeaderPanel className="flex flex-wrap items-center gap-5 p-6 sm:p-9">
+          <ClubBadge name={club.name} logoUrl={club.logoUrl} size="lg" className="rounded-lg ring-1 ring-border sm:size-20 sm:text-3xl" />
           <div className="min-w-0 flex-1">
-            <p className="section-title text-sm text-hivis">Club</p>
+            <p className="section-title text-sm text-primary">Club</p>
             <h1 className="mt-1 text-3xl font-extrabold tracking-tight sm:text-5xl">{club.name}</h1>
-            <p className="mt-1 text-pitch-foreground/75">
+            <p className="mt-1 text-muted-foreground">
               {teams.length === 1 ? "1 team" : `${teams.length} teams`}
             </p>
           </div>
           {user && canEditTeams(user, club.id) && (
-            <Button variant="chalk" asChild>
+            <Button variant="outline" asChild>
               <Link href={`/admin/clubs/${club.id}`}>
                 <Settings /> Manage club
               </Link>
             </Button>
           )}
-        </PitchPanel>
+        </HeaderPanel>
       </div>
 
       <section aria-labelledby="teams" className="space-y-3">

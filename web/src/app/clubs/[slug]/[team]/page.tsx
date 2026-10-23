@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { ClubBadge } from "@/components/ClubBadge";
 import { MatchList, Pager, matchHref } from "@/components/MatchList";
-import { PitchPanel } from "@/components/PitchPanel";
+import { HeaderPanel } from "@/components/HeaderPanel";
 import { api, apiOrNull } from "@/lib/api";
 import { formatDate, scoreline } from "@/lib/format";
 import { type Outcome, teamRecord } from "@/lib/record";
@@ -51,11 +51,11 @@ export default async function TeamPage({ params, searchParams }: { params: Param
         <Link href={`/clubs/${club.slug}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground no-underline hover:text-foreground">
           <ChevronLeft className="size-4" /> {club.name}
         </Link>
-        <PitchPanel className="p-6 sm:p-9 [&>div]:flex [&>div]:flex-wrap [&>div]:items-center [&>div]:gap-5">
-          <ClubBadge name={club.name} logoUrl={club.logoUrl} size="lg" className="rounded-lg ring-2 ring-white/80 sm:size-20 sm:text-3xl" />
+        <HeaderPanel className="flex flex-wrap items-center gap-5 p-6 sm:p-9">
+          <ClubBadge name={club.name} logoUrl={club.logoUrl} size="lg" className="rounded-lg ring-1 ring-border sm:size-20 sm:text-3xl" />
           <div className="min-w-0 flex-1">
             <p className="section-title text-sm">
-              <Link href={`/clubs/${club.slug}`} className="text-hivis hover:text-hivis">
+              <Link href={`/clubs/${club.slug}`} className="text-primary">
                 {club.name}
               </Link>
             </p>
@@ -65,7 +65,7 @@ export default async function TeamPage({ params, searchParams }: { params: Param
           </div>
           {record && record.form.length > 0 && (
             <div className="space-y-1.5">
-              <div className="section-title text-sm text-pitch-foreground/70">Form</div>
+              <div className="section-title text-sm text-muted-foreground">Form</div>
               <ol className="flex gap-1.5" aria-label="Last results, newest first">
                 {record.form.map(({ outcome, match: m }) => (
                   <li key={m.id}>
@@ -81,7 +81,7 @@ export default async function TeamPage({ params, searchParams }: { params: Param
               </ol>
             </div>
           )}
-        </PitchPanel>
+        </HeaderPanel>
       </div>
 
       {record && record.played > 0 && (

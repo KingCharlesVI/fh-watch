@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /** One click between light and dark. The icon follows the theme class, so it's right before hydration too. */
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme();
   return (
     <Button
       variant="ghost"
       size="icon"
+      className={className}
       aria-label="Switch between light and dark"
       title="Light or dark"
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}

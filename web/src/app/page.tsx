@@ -2,7 +2,7 @@ import { ArrowRight, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { ClubBadge } from "@/components/ClubBadge";
 import { MatchList, matchHref } from "@/components/MatchList";
-import { PitchPanel } from "@/components/PitchPanel";
+import { HeaderPanel } from "@/components/HeaderPanel";
 import { SearchBox } from "@/components/SearchBox";
 import { Button } from "@/components/ui/button";
 import { api, cachedPublic } from "@/lib/api";
@@ -20,7 +20,7 @@ const STEPS = [
   { where: "On here", text: "Results, cards and timelines for every club and team, to share with a link or a QR code, or download as a report." },
 ];
 
-/** The front page: the latest result on the pitch with a search, then the latest results and the clubs, then how it works. */
+/** The front page: the latest result with a search, then the latest results and the clubs, then how it works. */
 export default async function Home() {
   const [user, latest, clubs] = await Promise.all([
     getCurrentUser(),
@@ -30,19 +30,19 @@ export default async function Home() {
   const [lead, ...rest] = latest.items;
   return (
     <div className="space-y-14 pb-4">
-      <PitchPanel label="Field hockey results" className="px-5 py-8 sm:px-10 sm:py-12">
-        <div className="grid items-center gap-10 lg:grid-cols-[1.15fr_1fr]">
+      <HeaderPanel label="Field hockey results" className="px-5 py-8 sm:px-10 sm:py-12">
+        <div className="grid grid-cols-1 items-center gap-8 sm:gap-10 lg:grid-cols-[1.15fr_1fr]">
           <div className="min-w-0">
-            <p className="section-title text-sm text-hivis">Field hockey results</p>
+            <p className="section-title text-sm text-primary">Field hockey results</p>
             <h1 className="mt-3 text-4xl leading-[1.02] font-extrabold text-balance sm:text-6xl">Straight from the umpire&apos;s watch.</h1>
-            <p className="mt-4 max-w-md text-pitch-foreground/80">Every score, card and goal as it was recorded on the pitch, for players, clubs and supporters.</p>
-            <SearchBox action="/matches" size="lg" label="Find your club or team" placeholder="Find your club or team, e.g. Hawks M1" className="mt-7 border-transparent text-foreground" />
+            <p className="mt-4 max-w-md text-muted-foreground">Every score, card and goal as it was recorded on the pitch, for players, clubs and supporters.</p>
+            <SearchBox action="/matches" size="lg" label="Find your club or team" placeholder="Find your club or team, e.g. Hawks M1" className="mt-7 bg-background" />
           </div>
           {lead && <LeadResult match={lead} />}
         </div>
-      </PitchPanel>
+      </HeaderPanel>
 
-      <div className="grid items-start gap-10 lg:grid-cols-[1fr_19rem]">
+      <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[1fr_19rem]">
         <section aria-labelledby="latest" className="min-w-0 space-y-5">
           <div className="flex items-end justify-between gap-4">
             <h2 id="latest" className="section-title text-3xl">
@@ -122,34 +122,34 @@ export default async function Home() {
   );
 }
 
-/** The newest result, as a scoreboard on the pitch. */
+/** The newest result, as a scoreboard. */
 function LeadResult({ match: m }: { match: Match }) {
   const shootout = m.home.shootout !== null && m.away.shootout !== null;
   const homeWon = m.home.score > m.away.score || (m.home.score === m.away.score && shootout && m.home.shootout! > m.away.shootout!);
   const awayWon = m.away.score > m.home.score || (m.home.score === m.away.score && shootout && m.away.shootout! > m.home.shootout!);
   const row = (t: Match["home"], won: boolean) => (
     <span className="flex items-center gap-4">
-      <span className={cn("min-w-0 flex-1 text-lg leading-tight font-bold font-stretch-92% sm:text-xl", !won && "text-pitch-foreground/65")}>{t.name}</span>
-      {shootout && <span className="font-mono text-xs text-pitch-foreground/60">({t.shootout})</span>}
-      <span className={cn("font-score w-14 text-right text-6xl", won ? "text-hivis" : "text-pitch-foreground/65")}>{t.score}</span>
+      <span className={cn("min-w-0 flex-1 text-lg leading-tight font-bold font-stretch-92% sm:text-xl", !won && "text-muted-foreground")}>{t.name}</span>
+      {shootout && <span className="font-mono text-xs text-muted-foreground">({t.shootout})</span>}
+      <span className={cn("font-score w-14 text-right text-6xl", won ? "text-primary" : "text-muted-foreground")}>{t.score}</span>
     </span>
   );
   return (
     <Link
       href={matchHref(m)}
-      className="group block rounded-lg border border-white/20 bg-black/25 p-5 text-pitch-foreground no-underline backdrop-blur-sm hover:border-white/40 hover:no-underline sm:p-6"
+      className="group block rounded-lg border bg-background p-5 text-foreground no-underline transition-colors hover:border-foreground/25 hover:no-underline sm:p-6"
     >
       <span className="flex items-center justify-between gap-3 text-xs">
-        <span className="section-title text-sm text-pitch-foreground/70">Latest result</span>
-        <span className="section-title -rotate-2 rounded-sm bg-hivis px-2 py-0.5 text-xs text-hivis-foreground">Full time</span>
+        <span className="section-title text-sm text-muted-foreground">Latest result</span>
+        <span className="section-title -rotate-2 rounded-sm bg-foreground px-2 py-0.5 text-xs text-background">Full time</span>
       </span>
       <span className="mt-4 flex flex-col gap-3">
         {row(m.home, homeWon)}
         {row(m.away, awayWon)}
       </span>
-      <span className="mt-5 flex items-center justify-between gap-3 border-t border-white/15 pt-4 text-sm text-pitch-foreground/75">
+      <span className="mt-5 flex items-center justify-between gap-3 border-t pt-4 text-sm text-muted-foreground">
         <span className="min-w-0 truncate">{[formatDay(m.playedAt), m.competition].filter(Boolean).join(" · ")}</span>
-        <span className="inline-flex shrink-0 items-center gap-1 font-semibold text-pitch-foreground group-hover:text-hivis">
+        <span className="inline-flex shrink-0 items-center gap-1 font-semibold text-foreground group-hover:text-primary">
           Match <ArrowRight className="size-4" />
         </span>
       </span>

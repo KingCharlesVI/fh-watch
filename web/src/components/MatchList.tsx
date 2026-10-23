@@ -40,7 +40,7 @@ function byDay(matches: Match[]): { day: string; label: string; matches: Match[]
 
 /**
  * Results like a newspaper's results table: a heading per day, then one row per match with the
- * score in a small scoreboard, the winner's number in hi-vis.
+ * score in a small scoreboard, the winner's number in green.
  */
 export function MatchList({ matches, manage = false, empty = "No matches yet." }: Props) {
   if (matches.length === 0) {
@@ -70,13 +70,13 @@ export function MatchList({ matches, manage = false, empty = "No matches yet." }
 
 /** The two scores as a scoreboard shows them, with the shootout under it when there was one. */
 function ScoreBox({ match: m, won }: { match: Match; won: "home" | "away" | null }) {
-  const digit = (s: "home" | "away") => cn(won === s ? "text-hivis" : won ? "text-pitch-foreground/60" : "text-pitch-foreground");
+  const digit = (s: "home" | "away") => cn(won === s ? "text-primary" : won ? "text-muted-foreground" : "text-foreground");
   const shootout = m.home.shootout !== null && m.away.shootout !== null;
   return (
     <span className="flex flex-col items-center gap-1">
-      <span className="font-score inline-flex items-center gap-1.5 rounded-sm bg-pitch px-2.5 py-1.5 text-2xl">
+      <span className="font-score inline-flex items-center gap-1.5 rounded-sm bg-muted px-2.5 py-1.5 text-2xl">
         <span className={digit("home")}>{m.home.score}</span>
-        <span className="text-base text-pitch-foreground/40">–</span>
+        <span className="text-base text-muted-foreground/50">–</span>
         <span className={digit("away")}>{m.away.score}</span>
       </span>
       {shootout && (
@@ -84,6 +84,27 @@ function ScoreBox({ match: m, won }: { match: Match; won: "home" | "away" | null
           SO {m.home.shootout}–{m.away.shootout}
         </span>
       )}
+    </span>
+  );
+}
+
+/**
+ * On a phone, the two scores stacked on the right like a vertical scoreboard, each level with its
+ * team's name: one grid cell per team, so the shaded cells join into one board.
+ */
+function ScoreCell({ match: m, side, won }: { match: Match; side: "home" | "away"; won: "home" | "away" | null }) {
+  const t = m[side];
+  const shootout = m.home.shootout !== null && m.away.shootout !== null;
+  return (
+    <span
+      className={cn(
+        "font-score flex items-center justify-end gap-1.5 self-stretch bg-muted px-2.5 text-2xl md:hidden",
+        side === "home" ? "rounded-t-sm pt-1.5" : "rounded-b-sm pb-1.5",
+        won === side ? "text-primary" : won ? "text-muted-foreground" : "text-foreground",
+      )}
+    >
+      {shootout && <span className="font-mono text-[0.68rem] font-semibold text-muted-foreground">({t.shootout})</span>}
+      {t.score}
     </span>
   );
 }
@@ -96,9 +117,9 @@ function MatchRow({ match: m, manage }: { match: Match; manage: boolean }) {
   return (
     <Link
       href={matchHref(m, manage)}
-      className="group grid gap-x-4 gap-y-2 px-4 py-3.5 text-foreground no-underline transition-colors hover:bg-muted/50 hover:no-underline md:grid-cols-[3.5rem_1fr_minmax(0,13rem)] md:items-center"
+      className="group grid grid-cols-1 gap-x-4 gap-y-2.5 px-4 py-3.5 text-foreground no-underline transition-colors hover:bg-muted/50 hover:no-underline md:grid-cols-[3.5rem_1fr_minmax(0,13rem)] md:items-center"
     >
-      <span className="flex items-center justify-between gap-2 md:contents">
+      <span className="flex min-w-0 items-center justify-between gap-3 md:contents">
         <span className="font-mono text-xs font-semibold text-muted-foreground md:order-1">{formatTime(m.playedAt)}</span>
         <span className="flex min-w-0 flex-wrap items-center justify-end gap-1.5 text-xs text-muted-foreground md:order-3">
           {details && (
@@ -109,10 +130,15 @@ function MatchRow({ match: m, manage }: { match: Match; manage: boolean }) {
           {manage && <StatusBadges match={m} />}
         </span>
       </span>
-      <span className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-4 md:order-2">
-        <span className={cn(side("home"), "text-right text-[1.05rem]")}>{m.home.name}</span>
-        <ScoreBox match={m} won={won} />
-        <span className={cn(side("away"), "text-[1.05rem]")}>{m.away.name}</span>
+      {/* A phone stacks the teams over each other, beside their scores; wider screens put them either side of the scoreboard. */}
+      <span className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 md:order-2 md:grid-cols-[1fr_auto_1fr] md:gap-4">
+        <span className={cn(side("home"), "py-1 text-[1.05rem] md:py-0 md:text-right")}>{m.home.name}</span>
+        <ScoreCell match={m} side="home" won={won} />
+        <span className="hidden md:block">
+          <ScoreBox match={m} won={won} />
+        </span>
+        <span className={cn(side("away"), "py-1 text-[1.05rem] md:py-0")}>{m.away.name}</span>
+        <ScoreCell match={m} side="away" won={won} />
       </span>
     </Link>
   );

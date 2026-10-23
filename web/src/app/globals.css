@@ -13,12 +13,9 @@
     --font-sans: var(--font-archivo);
     --font-mono: var(--font-jetbrains-mono);
     --tracking-tight: -0.015em;
-    /* The pitch panels (scoreboard, home lead) and their chalk markings, and hi-vis for what's on them. */
+    /* Deep pitch green: the header's top edge and the page panels'. */
     --color-pitch: var(--pitch);
     --color-pitch-foreground: var(--pitch-foreground);
-    --color-chalk: var(--chalk);
-    --color-hivis: var(--hivis);
-    --color-hivis-foreground: var(--hivis-foreground);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -60,8 +57,7 @@
 }
 
 /*
- * Turf-tinted greys and a deep pitch green, with hi-vis yellow (umpires' shirts) kept for the
- * pitch panels. Dark mode is the pitch at night. Square-ish corners and hairline rules.
+ * Turf-tinted greys and a deep pitch green. Dark mode is the pitch at night. Square-ish corners and hairline rules.
  */
 :root {
     --background: #edf0eb;
@@ -84,9 +80,6 @@
     --ring: #0b6b3a;
     --pitch: #0d4a2c;
     --pitch-foreground: #f2f7f3;
-    --chalk: rgb(255 255 255 / 20%);
-    --hivis: #dfff3f;
-    --hivis-foreground: #0e1a14;
     --chart-1: #0b6b3a;
     --chart-2: #526058;
     --chart-3: #8e9b93;
@@ -124,9 +117,6 @@
     --ring: #3dd68c;
     --pitch: #0b3a23;
     --pitch-foreground: #f2f7f3;
-    --chalk: rgb(255 255 255 / 16%);
-    --hivis: #dfff3f;
-    --hivis-foreground: #0e1a14;
     --chart-1: #3dd68c;
     --chart-2: #93a59b;
     --chart-3: #5f7067;
@@ -148,6 +138,9 @@
     }
   body {
     @apply bg-background text-foreground antialiased;
+    /* On a phone: no grey flash on tap, and nothing wide enough to let the page slide sideways. */
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: clip;
     }
   html {
     @apply font-sans;

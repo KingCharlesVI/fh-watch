@@ -6,7 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { formatLongDateTime, formatTime } from "@/lib/format";
 import type { FullMatch } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { PitchPanel } from "./PitchPanel";
+import { HeaderPanel } from "./HeaderPanel";
 import { ShareButton } from "./ShareButton";
 
 const TIMELINE_TYPES = new Set<MatchEvent["type"]>(["goal", "card", "penalty_corner", "penalty_stroke", "shootout_attempt", "note"]);
@@ -90,12 +90,12 @@ function Scoreboard({ data, downloadBase }: { data: FullMatch; downloadBase: str
       <div className="flex min-w-0 flex-col items-center gap-3 text-center">
         <span
           aria-hidden
-          className="flex size-14 items-center justify-center rounded-lg font-heading text-lg font-extrabold ring-2 ring-white/80 font-stretch-85% sm:size-16 sm:text-xl"
+          className="flex size-14 items-center justify-center rounded-lg font-heading text-lg font-extrabold ring-1 ring-border font-stretch-85% sm:size-16 sm:text-xl"
           style={{ background: t.color, color: textOn(t.color) }}
         >
           {initials(t.name)}
         </span>
-        <span className={cn("font-heading text-base leading-tight font-bold wrap-break-word font-stretch-90% sm:text-2xl", winner && winner !== side && "text-pitch-foreground/60")}>
+        <span className={cn("font-heading text-base leading-tight font-bold wrap-break-word font-stretch-90% sm:text-2xl", winner && winner !== side && "text-muted-foreground")}>
           {t.name}
         </span>
       </div>
@@ -103,28 +103,28 @@ function Scoreboard({ data, downloadBase }: { data: FullMatch; downloadBase: str
   };
   const where = [formatLongDateTime(doc.startedAt), doc.venue].filter(Boolean).join(" · ");
   return (
-    <PitchPanel label="Score" className="px-4 pt-7 pb-5 sm:px-8 sm:pt-9 sm:pb-6">
+    <HeaderPanel label="Score" className="px-4 pt-7 pb-5 sm:px-8 sm:pt-9 sm:pb-6">
       <div className="text-center">
-        {doc.competition && <p className="section-title text-sm text-hivis">{doc.competition}</p>}
-        <p className="mt-2 text-sm text-pitch-foreground/75">{where}</p>
+        {doc.competition && <p className="section-title text-sm text-primary">{doc.competition}</p>}
+        <p className="mt-2 text-sm text-muted-foreground">{where}</p>
       </div>
 
       <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-8">
         {team("home")}
         <div className="flex flex-col items-center gap-2">
           <div className="font-score flex items-center gap-3 text-8xl sm:gap-5 sm:text-[9.5rem]">
-            <span className={cn(winner === "away" && "text-pitch-foreground/55")}>{s.score.home}</span>
-            <span className="text-5xl text-pitch-foreground/40 sm:text-7xl">–</span>
-            <span className={cn(winner === "home" && "text-pitch-foreground/55")}>{s.score.away}</span>
+            <span className={cn(winner === "away" && "text-muted-foreground/70")}>{s.score.home}</span>
+            <span className="text-5xl text-muted-foreground/50 sm:text-7xl">–</span>
+            <span className={cn(winner === "home" && "text-muted-foreground/70")}>{s.score.away}</span>
           </div>
           {/* Stamped on, like the umpire's card. */}
-          <span className="section-title -rotate-2 rounded-sm bg-hivis px-2.5 py-1 text-sm text-hivis-foreground shadow-[0_2px_0_rgb(0_0_0/0.25)]">Full time</span>
+          <span className="section-title -rotate-2 rounded-sm bg-foreground px-2.5 py-1 text-sm text-background">Full time</span>
         </div>
         {team("away")}
       </div>
 
       {s.shootout && (
-        <p className="mt-5 text-center text-sm text-pitch-foreground/80">
+        <p className="mt-5 text-center text-sm text-muted-foreground">
           Shootout {s.shootout.home}–{s.shootout.away}
           {s.result.decidedBy === "shootout" && s.result.winner && <> · {doc.teams[s.result.winner].name} win</>}
         </p>
@@ -132,8 +132,8 @@ function Scoreboard({ data, downloadBase }: { data: FullMatch; downloadBase: str
 
       <ol aria-label="Score by period" className="mx-auto mt-6 grid max-w-xl gap-2" style={{ gridTemplateColumns: `repeat(${s.periodScores.length}, minmax(0, 1fr))` }}>
         {s.periodScores.map((p) => (
-          <li key={p.period} className="rounded-md border border-white/15 bg-black/15 py-2 text-center">
-            <span className="block text-xs font-semibold text-pitch-foreground/65">{periodLabel(doc.settings.periods, p.period)}</span>
+          <li key={p.period} className="rounded-md border bg-background py-2 text-center">
+            <span className="block text-xs font-semibold text-muted-foreground">{periodLabel(doc.settings.periods, p.period)}</span>
             <span className="font-score text-2xl">
               {p.home}–{p.away}
             </span>
@@ -141,13 +141,13 @@ function Scoreboard({ data, downloadBase }: { data: FullMatch; downloadBase: str
         ))}
       </ol>
 
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-2 border-t border-white/15 pt-5">
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-2 border-t pt-5">
         {match.status === "published" && match.shareUrl && (
-          <ShareButton variant="hivis" url={match.shareUrl} title={`${doc.teams.home.name} ${s.score.home}–${s.score.away} ${doc.teams.away.name}`} />
+          <ShareButton variant="default" url={match.shareUrl} title={`${doc.teams.home.name} ${s.score.home}–${s.score.away} ${doc.teams.away.name}`} />
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="chalk">
+            <Button variant="outline">
               <Download /> Download
             </Button>
           </DropdownMenuTrigger>
@@ -170,7 +170,7 @@ function Scoreboard({ data, downloadBase }: { data: FullMatch; downloadBase: str
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </PitchPanel>
+    </HeaderPanel>
   );
 }
 

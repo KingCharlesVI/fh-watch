@@ -18,10 +18,6 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
-        // For the pitch panels: umpire's-shirt yellow on the turf.
-        hivis: "bg-hivis font-semibold text-hivis-foreground hover:bg-hivis/85",
-        // A quiet outline that reads on the dark turf.
-        chalk: "border-white/30 bg-white/5 text-pitch-foreground hover:bg-white/12 aria-expanded:bg-white/12",
       },
       size: {
         default:
