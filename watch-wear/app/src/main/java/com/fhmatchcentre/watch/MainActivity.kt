@@ -41,6 +41,7 @@ import com.fhmatchcentre.watch.ui.SetupScreen
 import com.fhmatchcentre.watch.ui.ShootoutScreen
 import com.fhmatchcentre.watch.ui.SummaryScreen
 import com.fhmatchcentre.watch.ui.WatchTheme
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -175,6 +176,14 @@ private fun WatchNav(services: Services, ambient: Boolean) {
     LaunchedEffect(Unit) {
         controller.finished.collect { id -> nav.navigate("summary/$id") { popUpTo("home") } }
     }
+    // A setup from the phone opens the setup screen with it, to check and start, from any
+    // screen: Setup on phone, or sent from Upcoming without it. Never over a match.
+    LaunchedEffect(Unit) {
+        services.phoneSetup.filterNotNull().collect {
+            services.phoneSetupOpened()
+            if (controller.active.value == null) nav.navigate("setup") { popUpTo("home") }
+        }
+    }
 
     AppScaffold(timeText = { if (!ambient) TimeText() }) {
         SwipeDismissableNavHost(navController = nav, startDestination = "home") {
@@ -189,9 +198,9 @@ private fun WatchNav(services: Services, ambient: Boolean) {
                 )
             }
             composable("setup") { SetupScreen(services) { nav.navigate("match") { popUpTo("home") } } }
-            // Waits for the phone; its setup then opens on the watch's setup screen to check and start.
+            // Waits for the phone; its setup then opens on the watch's setup screen (above).
             composable("phone-setup") {
-                PhoneSetupScreen(services, onReceived = { nav.navigate("setup") { popUpTo("home") } }, onSetUpHere = { nav.navigate("setup") { popUpTo("home") } })
+                PhoneSetupScreen(services, onSetUpHere = { nav.navigate("setup") { popUpTo("home") } })
             }
             composable("match") {
                 MatchScreen(

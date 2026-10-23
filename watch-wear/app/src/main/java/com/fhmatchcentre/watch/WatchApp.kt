@@ -27,11 +27,23 @@ class Services(app: Application) {
     val updater = WatchUpdater(app)
 
     /**
-     * A setup that just arrived from the phone (Setup on phone), until the watch's
-     * setup screen opens with it. It's also saved as the last setup, so it isn't lost
-     * if the app wasn't waiting for it.
+     * A setup that just arrived from the phone (Setup on phone, or sent from Upcoming), until
+     * the watch's setup screen opens with it, from whatever screen the app is on. It's also
+     * saved as the last setup, so it isn't lost if the app wasn't open.
      */
     val phoneSetup = MutableStateFlow<Setup?>(null)
+
+    fun receivedFromPhone(setup: Setup) {
+        prefs.lastSetup = setup
+        prefs.phoneSetupAt = System.currentTimeMillis()
+        phoneSetup.value = setup
+    }
+
+    /** The setup screen has opened with it, or a match was on: it's done. */
+    fun phoneSetupOpened() {
+        phoneSetup.value = null
+        prefs.phoneSetupAt = 0
+    }
 }
 
 class WatchApp : Application() {
@@ -41,6 +53,9 @@ class WatchApp : Application() {
     override fun onCreate() {
         super.onCreate()
         services = Services(this)
+        // A setup sent while the app wasn't running opens when it's next opened, if that's soon.
+        val sentAt = services.prefs.phoneSetupAt
+        if (sentAt > 0 && System.currentTimeMillis() - sentAt < PHONE_SETUP_KEPT_MS) services.phoneSetup.value = services.prefs.lastSetup
         services.scope.launch {
             // Synced matches are kept for 30 days, then deleted.
             services.db.matches().deleteSyncedBefore(System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000)
@@ -48,5 +63,9 @@ class WatchApp : Application() {
         }
         // So the phone can say when there's a newer watch app. Without a phone paired, it waits.
         services.scope.launch { runCatching { services.sync.announceVersion() } }
+    }
+
+    companion object {
+        private const val PHONE_SETUP_KEPT_MS = 30L * 60 * 1000
     }
 }

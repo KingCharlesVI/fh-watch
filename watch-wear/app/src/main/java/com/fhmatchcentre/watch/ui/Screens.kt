@@ -32,8 +32,6 @@ import androidx.wear.remote.interactions.RemoteActivityHelper
 import com.google.android.gms.wearable.Wearable
 import com.fhmatchcentre.watch.sync.WatchSync
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.concurrent.Executors
@@ -77,21 +75,14 @@ fun HomeScreen(services: Services, onNewMatch: () -> Unit, onPhoneSetup: () -> U
 
 /**
  * Setup on phone: opens the phone app's setup screen, then waits for the setup it
- * sends. When it arrives, the watch's setup screen opens with it, to check and start.
+ * sends. When it arrives, the watch's setup screen opens with it (WatchNav), to check and start.
  */
 @Composable
-fun PhoneSetupScreen(services: Services, onReceived: () -> Unit, onSetUpHere: () -> Unit) {
+fun PhoneSetupScreen(services: Services, onSetUpHere: () -> Unit) {
     val context = LocalContext.current
     var status by remember { mutableStateOf(PhoneSetupStatus.OPENING) }
     var attempt by remember { mutableStateOf(0) }
 
-    LaunchedEffect(Unit) {
-        // Only a setup that arrives from now on: clear one left over from before.
-        services.phoneSetup.value = null
-        services.phoneSetup.filterNotNull().first()
-        services.phoneSetup.value = null
-        onReceived()
-    }
     LaunchedEffect(attempt) {
         status = PhoneSetupStatus.OPENING
         status = openOnPhone(context, services)
