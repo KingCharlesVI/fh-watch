@@ -3,8 +3,9 @@ import { Download, FileJson, FileSpreadsheet, FileText } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { cachedPublic } from "@/lib/api";
 import { formatLongDateTime, formatTime } from "@/lib/format";
-import type { FullMatch } from "@/lib/types";
+import type { FullMatch, Items, TeamWithClub } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { HeaderPanel } from "./HeaderPanel";
 import { ShareButton } from "./ShareButton";
@@ -81,20 +82,39 @@ function Section({ id, title, children, className }: { id: string; title: string
   );
 }
 
-function Scoreboard({ data, downloadBase }: { data: FullMatch; downloadBase: string }) {
+/**
+ * Each linked team's club logo, from the cached list of every team. An unlinked team, a club
+ * without a logo, or the list not loading leaves that side on its initials.
+ */
+async function clubLogos(doc: FullMatch["document"]): Promise<Record<Side, string | null>> {
+  const ids = { home: doc.teams.home.teamId, away: doc.teams.away.teamId };
+  if (!ids.home && !ids.away) return { home: null, away: null };
+  const teams = await cachedPublic<Items<TeamWithClub>>("/v1/teams").catch(() => null);
+  const logo = (id: string | null) => (id && teams?.items.find((t) => t.id === id)?.club.logoUrl) || null;
+  return { home: logo(ids.home), away: logo(ids.away) };
+}
+
+async function Scoreboard({ data, downloadBase }: { data: FullMatch; downloadBase: string }) {
   const { match, document: doc, summary: s } = data;
   const winner = s.result.winner;
+  const logos = await clubLogos(doc);
   const team = (side: Side) => {
     const t = doc.teams[side];
+    const logo = logos[side];
     return (
       <div className="flex min-w-0 flex-col items-center gap-3 text-center">
-        <span
-          aria-hidden
-          className="flex size-14 items-center justify-center rounded-lg font-heading text-lg font-extrabold ring-1 ring-border font-stretch-85% sm:size-16 sm:text-xl"
-          style={{ background: t.color, color: textOn(t.color) }}
-        >
-          {initials(t.name)}
-        </span>
+        {logo ? (
+          // Logos are drawn for a white background, so they get one in dark mode too.
+          <img src={logo} alt="" aria-hidden className="size-14 rounded-lg bg-white object-contain p-1.5 ring-1 ring-border sm:size-16" />
+        ) : (
+          <span
+            aria-hidden
+            className="flex size-14 items-center justify-center rounded-lg font-heading text-lg font-extrabold ring-1 ring-border font-stretch-85% sm:size-16 sm:text-xl"
+            style={{ background: t.color, color: textOn(t.color) }}
+          >
+            {initials(t.name)}
+          </span>
+        )}
         <span className={cn("font-heading text-base leading-tight font-bold wrap-break-word font-stretch-90% sm:text-2xl", winner && winner !== side && "text-muted-foreground")}>
           {t.name}
         </span>
