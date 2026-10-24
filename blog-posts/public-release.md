@@ -1,97 +1,65 @@
 ---
-title: FH Match Centre 2.0 is here
+title: FH Matchcentre public release!
 date: 2026-10-27
-summary: Today FH Match Centre leaves testing. Version 2.0.0 is out for every umpire, with no invitation needed.
-author: The FH Match Centre team
-draft: true
+summary: Today FH Matchcentre leaves testing with version 2.0.0 available to the public.
+author: Charlie Geday (KCVI)
+draft: false
 ---
 
-<!--
-OUTLINE: replace each section's notes with the text. Remove `draft: true` before the final upload.
-Shape borrowed from the Dorico 6 announcement: news first, then the story, then features
-grouped by where you use them, then how to get it, then thanks.
--->
+Today is a big day for me. It's the public release of a project which I've been dreaming up for the best part of three years. When I started umpiring field hockey matches, I came across an excellent (and popular) tool called MatchGear, created by the venerable Martijn van Kekem. This was my eye-opening moment for what could be done with the fusing of software and the sport I love; it already had a very strong foundation (props to Martijn, without him none of this would be possible), but I found myself wishing it had a few more features. So I started working on this project over the summer and, slowly but surely, I've created what I think is a fully comprehensive - but intuitive - system for umpiring field hockey.
 
-<!-- Opening, no heading: two or three sentences. -->
-- The news in the first line: 2.0.0 is out today, for everyone, on Wear OS and Apple Watch, with the phone app and the website.
-- What it is in one sentence: a match-management app for field hockey umpires, on the watch they already wear.
-- Hero image: watch and phone side by side, mid-match (the landing page's screenshots in `public/screens/` would do).
-- Optional: a short video of a match being run on the watch.
+Without further ado, here is a rundown of everything you can expect:
 
 ## How we got here
 
-- Alpha (0.x, late September): the Wear OS app and a first phone app, tested by a handful of umpires.
-- Beta (1.x, October): Apple Watch and iPhone, the website at app.fhmatchcentre.com, clubs and fixtures.
-- What the testers changed: one or two concrete examples (e.g. the side button for the clock, red card reports).
-- Why it's "2.0" and not "1.0", in a line, if anyone will ask.
+- Alpha (0.x): WearOS app and android app, tested by myself
+- Beta (1.x): Introduction of Apple support and the website/api
+- Public Release (2.x): While it's unusual to have a public release on verion 2.0, I see everything that came before as stepping stones and technology testing, so version 2.0 puts all this into practice.
 
-## On the watch
+## Watch
 
-- Timing: quarters or halves of any length, breaks that lead into the next period and wait for the whistle.
-- The side button stops and starts the clock without looking (Galaxy Watch 4 and later).
-- Goals and green, yellow and red cards with shirt numbers; haptics for time left, time up and suspensions ending.
-- The FIH shootout: the taking order, an 8-second timer, cards and forfeits.
-- The umpire's workout recorded during the match.
-- Works without a phone or a signal during the match.
-- Screenshot: the match screen, and the shootout screen.
+There's an app for both android (WearOS) and apple (WatchOS) smartwatches!
 
-## On the phone
+- Timing: Quarters or halves of any length. Breaks between. Fully customiseable. Physical side button (where available) stops and starts the clock.
+- Goals: With shirt numbers and goal type (field/PC/PS)
+- Cards: With shirt numbers. Haptics. Track multiple suspensions at once without leaving the timing screen.
+- Shootout support: As per FIH procedures
+- Workout tracking: Track heart rate, steps taken and distance covered over the course of a match.
 
-- Matches sync from the watch; fix mistakes and change shirt numbers afterwards.
-- Set up matches ahead in Upcoming and send them to the watch at the ground, picking teams, venues and competitions from the lists.
-- Share the match report in one tap; export to PDF, CSV or JSON.
-- Red card reports for England Hockey.
-- A season summary of your umpiring, and workouts saved to Health Connect / Health.
-- Mark when you can umpire, and see who you're umpiring with.
-- Screenshot: a finished match, and Upcoming.
+## Phone
 
-## On the website
+Supports both android and apple devices!
 
-- Publish a match and share it by link or QR code: scoreboard, timeline and stats.
-- Club and team pages, with logos, record and form.
-- Search across clubs, teams, competitions, venues and matches.
-- Plan upcoming matches on the website as well as on the phone.
-- The new pitchside look, on the website and in the app.
-- Screenshot: a published match page.
+- Matches sync from watch connected via bluetooth.
+- Pre-set matches in Upcoming and then send them to the watch on the day.
+- Share match report via QR code, URL, PDF, CSV or JSON.
+- Red Card Reports for England Hockey
+- Season summary of your umpiring
+- Umpiring availability (see Clubs and Leagues system)
 
-## For clubs and leagues
+## Website
 
-- Club umpire lists with levels, and a minimum level per competition.
-- Fixtures added one by one or from a spreadsheet.
-- Appointing umpires, who accept, decline or ask for cover.
-- Webhooks that send results to a league's or club's own system.
-- Who this is for and how a club gets set up (the club request on the website).
+- Publish a match and share it.
+- Club and team pages show results and details.
+- Fully functional search across all publically-available data.
+- Plan upcoming matches.
 
-## And more besides
+## CLubs and leagues
 
-- A quick list of smaller things: what's new after each update, a server status check in Settings, reporting a bug from the app, password reset in the app.
-- Link to the [changelog](/changelog) for everything, release by release.
+- Club umpire management system: Track umpires, their progression and availability. Appoint umpires to matches and automatically send the match to their phone for setup on the watch.
+- Webhooks for sending results to external systems.
 
 ## How to get it
 
-<!-- Check each link and whether it's free before publishing. -->
-- Android and Wear OS: Google Play (install the watch app from the Play Store on the watch too). APKs on GitHub for anyone who prefers them.
-- iPhone and Apple Watch: App Store / TestFlight (say which is true on the day).
-- The website: app.fhmatchcentre.com, with an account that works in the app too.
-- Testers: what happens to their beta builds and their matches (do they carry over, do they need to reinstall?).
-- Price: free? Say it plainly either way.
-
-## What you need
-
-<!-- The Dorico post left this out and its comments asked for it. -->
-- Watches: Wear OS version and Apple watchOS version supported; which features need which watch (e.g. the side button).
-- Phones: Android and iOS versions.
-- An account is only needed to publish matches and for club features.
-
-## What's next
-
-- Two or three things on the way, with a link to the project board.
-- How to ask for a feature or report a problem (the [support page](/support)).
+- Android and WearOS: APKs on GitHub.
+- iPhone and Apple Watch: App Store.
+- Website: app.fhmatchcentre.com
 
 ## Thank you
 
-- The testers by name, if they're happy to be named; the clubs and leagues who helped.
-- One line inviting feedback.
+Thank you to all those who have provided testing and/or feedback on this project.
+If you have any feedback of your own following this public release, please head to fhmatchcentre.com/support for more information.
 
-<!-- Closing call to action: a button-style link to the download section of the front page. -->
-[Get FH Match Centre](/#download)
+All the Best,
+Charlie
+(KCVI)
