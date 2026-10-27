@@ -1,3 +1,13 @@
+## [2.2.0-beta.28] - 2026-10-27
+
+### ⚙️ Miscellaneous Tasks
+
+- *(feat)* Blog posts on api
+- *(blog)* Public Release blog post
+
+### 💼 Other
+
+- Create public-release.md
 ## [unreleased]
 
 ### ⚙️ Miscellaneous Tasks
