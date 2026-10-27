@@ -1,5 +1,6 @@
-import { ArrowUpRight, Check, FileText, Flag, Globe, Hand, LifeBuoy, Smartphone, Timer, Vibrate, Watch, WifiOff } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, FileText, Flag, Globe, Hand, LifeBuoy, Smartphone, Timer, Vibrate, Watch, WifiOff } from "lucide-react";
 import { AccessRequestForm } from "@/components/AccessRequestForm";
+import { LatestPosts } from "@/components/BlogPosts";
 import {
   ApkInstructions,
   Button,
@@ -67,6 +68,9 @@ export default function Home() {
             </a>
             <a href="#faq" className="hidden hover:text-foreground sm:inline">
               FAQ
+            </a>
+            <a href="/blog" className="hover:text-foreground">
+              Blog
             </a>
             <a href={SITE.docsUrl} className="hover:text-foreground">
               Docs
@@ -219,6 +223,8 @@ export default function Home() {
           <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
         </Section>
 
+        <LatestPosts />
+
         <CtaBand title="Try it on your next match" intro={`The ${current.title.toLowerCase()} is open to umpires now. It takes a watch, a phone and about five minutes to set up.`}>
           <Button href="#download">Get the {current.title.toLowerCase()}</Button>
           <Button href={SITE.docsUrl} variant="outline">
@@ -240,6 +246,9 @@ export default function Home() {
             )}
             <a href={SITE.docsUrl} className="hover:text-foreground">
               Docs
+            </a>
+            <a href="/blog" className="hover:text-foreground">
+              Blog
             </a>
             <a href="/changelog" className="hover:text-foreground">
               Changelog

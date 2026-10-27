@@ -51,3 +51,54 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* A blog post's body: the HTML made from its Markdown, which can't carry classes of its own. */
+.post {
+  @apply text-[1.0625rem] leading-relaxed;
+  & > * + * {
+    @apply mt-5;
+  }
+  & h2 {
+    @apply mt-10 text-2xl font-semibold tracking-tight;
+  }
+  & h3 {
+    @apply mt-8 text-lg font-semibold;
+  }
+  & a {
+    @apply font-medium text-primary underline underline-offset-2;
+  }
+  & ul {
+    @apply list-disc space-y-1.5 pl-6;
+  }
+  & ol {
+    @apply list-decimal space-y-1.5 pl-6;
+  }
+  & blockquote {
+    @apply border-l-2 border-primary pl-4 text-muted-foreground italic;
+  }
+  & code {
+    @apply rounded bg-muted px-1 py-0.5 font-mono text-[0.9em];
+  }
+  & pre {
+    @apply overflow-x-auto rounded-lg border bg-muted p-4 text-sm;
+    & code {
+      @apply bg-transparent p-0;
+    }
+  }
+  & img {
+    @apply h-auto max-w-full rounded-lg border;
+  }
+  & hr {
+    @apply my-10;
+  }
+  & table {
+    @apply block w-full overflow-x-auto text-sm;
+  }
+  & th,
+  & td {
+    @apply border-b px-3 py-2 text-left;
+  }
+  & th {
+    @apply font-semibold;
+  }
+}

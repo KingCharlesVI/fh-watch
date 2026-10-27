@@ -26,6 +26,23 @@ export const FORMAT_PRESETS: { key: string; label: string; format: FixtureFormat
   { key: "2x25", label: "2 × 25 min", format: { periods: 2, periodMinutes: 25, breakMinutes: 5, halfTimeMinutes: 5, shootoutIfDrawn: false } },
 ];
 
+/** Team colours: the watch's palette (TEAM_COLOURS in watch-wear/.../ui/Common.kt), with their names. */
+export const TEAM_COLOURS: readonly { hex: string; name: string }[] = [
+  { hex: "#DC2626", name: "Red" },
+  { hex: "#1D4ED8", name: "Blue" },
+  { hex: "#FACC15", name: "Yellow" },
+  { hex: "#16A34A", name: "Green" },
+  { hex: "#EA580C", name: "Orange" },
+  { hex: "#7C3AED", name: "Purple" },
+  { hex: "#38BDF8", name: "Sky blue" },
+  { hex: "#EC4899", name: "Pink" },
+  { hex: "#111111", name: "Black" },
+  { hex: "#FFFFFF", name: "White" },
+];
+
+/** The colours a new match starts with, as on the watch. */
+export const DEFAULT_COLOURS = { home: "#1D4ED8", away: "#DC2626" } as const;
+
 /** The preset a format is, if it's one. */
 export function formatPreset(format: FixtureFormat | null | undefined) {
   if (!format) return undefined;

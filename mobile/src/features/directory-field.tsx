@@ -1,8 +1,8 @@
-import { type ComponentProps, useEffect, useState } from "react";
+import { type ComponentProps, useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { ONLINE } from "@/config";
 import { errorMessage } from "@/core/api";
-import { Field, Ionicons, Text } from "@/ui/kit";
+import { Field, Ionicons, Text, useReveal } from "@/ui/kit";
 import { radius, space, useColors } from "@/ui/theme";
 
 export interface Suggestion {
@@ -44,6 +44,8 @@ export function DirectoryField({
   placeholder?: string;
 }) {
   const c = useColors();
+  const reveal = useReveal();
+  const box = useRef<View>(null);
   const [focused, setFocused] = useState(false);
   // What was searched for, and what came back: the add row waits until the list has answered.
   const [found, setFound] = useState<{ q: string; items: Suggestion[] } | null>(null);
@@ -72,6 +74,12 @@ export function DirectoryField({
   // Once added, it's among the results, so this goes by itself.
   const canAdd = !!add && found?.q === q && !results.some((r) => same(r.value));
 
+  // The list opens under the field, so bring it up above the keyboard too.
+  const listed = shown.length + (canAdd ? 1 : 0);
+  useEffect(() => {
+    if (focused && listed > 0) requestAnimationFrame(() => reveal(box.current));
+  }, [focused, listed, reveal]);
+
   async function addTyped() {
     setAdding("busy");
     try {
@@ -84,7 +92,7 @@ export function DirectoryField({
   }
 
   return (
-    <View style={{ gap: space.xs }}>
+    <View ref={box} style={{ gap: space.xs }}>
       <Field
         label={label}
         value={value}

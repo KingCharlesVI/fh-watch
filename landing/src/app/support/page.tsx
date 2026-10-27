@@ -210,6 +210,9 @@ export default function Support() {
             <a href="/" className="hover:text-foreground">
               Home
             </a>
+            <a href="/blog" className="hover:text-foreground">
+              Blog
+            </a>
             <a href={SITE.docsUrl} className="hover:text-foreground">
               Docs
             </a>

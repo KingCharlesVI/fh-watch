@@ -31,7 +31,7 @@ export default async function ManageClubPage({ params }: { params: Promise<{ id:
     <div className="space-y-6">
       <PageHeader
         title={club.name}
-        back={isAdmin ? { href: "/admin/clubs", label: "Clubs" } : { href: "/dashboard", label: "Dashboard" }}
+        back={isAdmin ? { href: "/admin/clubs", label: "Clubs" } : undefined}
         actions={
           <Button variant="outline" asChild>
             <Link href={`/clubs/${club.slug}`}>

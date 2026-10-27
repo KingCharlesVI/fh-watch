@@ -5,12 +5,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 /** The phone's share sheet where there is one; otherwise copies the link. */
-export function ShareButton({ url, title }: { url: string; title: string }) {
+export function ShareButton({ url, title, variant = "outline" }: { url: string; title: string; variant?: "default" | "outline" }) {
   const [copied, setCopied] = useState(false);
   return (
     <Button
       type="button"
-      variant="outline"
+      variant={variant}
       onClick={async () => {
         if (navigator.share) {
           await navigator.share({ url, title }).catch(() => {});

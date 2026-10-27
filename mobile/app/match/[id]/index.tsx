@@ -7,7 +7,7 @@ import { ONLINE, WEB_URL } from "@/config";
 import { errorMessage } from "@/core/api";
 import { offenceSummary, redCards } from "@/core/red-card";
 import type { LocalMatch } from "@/core/store";
-import { FitnessCard, PeriodTable, ScoreCard, StatsCard, StatusBadges, Timeline, formatDateTime } from "@/features/match-view";
+import { FitnessCard, ScoreCard, StatsCard, StatusBadges, Timeline, formatDateTime } from "@/features/match-view";
 import { sync } from "@/services";
 import { type ExportKind, saveMatch, shareMatch, shareReport } from "@/services/export";
 import { saveToHealthConnect, useHealthConnect } from "@/services/health";
@@ -103,7 +103,6 @@ export default function MatchScreen() {
 
       <ScoreCard doc={doc} summary={summary} />
       <Timeline doc={doc} summary={summary} />
-      <PeriodTable doc={doc} summary={summary} />
       <StatsCard summary={summary} />
       {m.fitness && <FitnessCard fitness={m.fitness} footer={<HealthConnectSave match={m} act={act} busy={busy} />} />}
       <Card title="Umpires">

@@ -6,6 +6,8 @@ Also serves the app's privacy policy at `/privacy`, the public address Google Pl
 
 `/changelog` is the repository's own `CHANGELOG.md`, read and parsed when the site is built (`src/changelog.ts`), so a release that updates it updates the page on the next deploy. Nothing to edit, and if the file can't be read the page points at the GitHub releases instead.
 
+`/blog` isn't built into the site: admins upload each post as a Markdown file on the website (Admin → Blog), the API keeps it, and the blog's pages load the published posts from the API when they're opened (`src/blog.ts`), so a post is out without a commit or a redeploy. The three newest also show on the front page. A post's address, `/blog/<slug>`, is rewritten to the one page that shows any post (`src/app/blog/post`, see `vercel.json`); under `next dev`, which has no rewrites, the links go to `/blog/post?slug=<slug>` instead. The API only lets the landing page's own domain (its `LANDING_URL`) read the posts from a browser, so a local copy of this site shows the blog only when that API's `LANDING_URL` is `http://localhost:3002`. Admin → Blog explains the file's format.
+
 ## Editing
 
 Almost everything that changes lives in [`src/content.ts`](src/content.ts):

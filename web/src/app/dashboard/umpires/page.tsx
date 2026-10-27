@@ -1,10 +1,9 @@
-import { UMPIRE_LEVELS, hasRole } from "@fh/shared";
+import { UMPIRE_LEVELS } from "@fh/shared";
 import { removeClubUmpire, updateClubUmpire } from "@/app/actions/umpiring";
 import { ActionForm } from "@/components/ActionForm";
 import { AddClubUmpire } from "@/components/AddClubUmpire";
 import { FilterSelect } from "@/components/FilterSelect";
 import { PageHeader } from "@/components/PageHeader";
-import { UmpiringNav } from "@/components/UmpiringNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api";
@@ -26,8 +25,7 @@ export default async function ClubUmpiresPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Club umpires" description={`Who ${club.name} can appoint to its fixtures.`} back={{ href: "/dashboard", label: "Dashboard" }} />
-      <UmpiringNav umpire={hasRole(user, "umpire")} clubAdmin />
+      <PageHeader title="Club umpires" description={`Who ${club.name} can appoint to its fixtures.`} />
 
       <Card>
         <CardContent>

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // FH Match Centre server commands. The same file runs on Linux and Windows.
 //
-//   fh deploy <tag or branch>       build a release, migrate, switch to it; switches back if it isn't healthy
-//   fh rollback [release]           switch to the release before this one (or a named one)
+//   fh deploy [--beta] <tag/branch> build a release, migrate, switch to it; switches back if it isn't healthy
+//   fh rollback [--beta] [release]  switch to the release before this one (or a named one)
 //   fh status                       what's running and whether it answers
-//   fh logs [api|web|tunnel] [-f] [-n LINES]
+//   fh logs [api|web|web-beta|tunnel] [-f] [-n LINES]
 //   fh backup                       back up the database now
 //   fh restore <file.dump> [--yes]  replace the live database with a backup
 //   fh restore-test                 check the newest backup restores (run weekly by the provision script's timer)
@@ -52,16 +52,46 @@ const PATHS = {
   /** Windows only: WinSW writes each service's output here. Linux uses the journal. */
   logs: join(ROOT, "logs"),
 };
-const SERVICES = { api: "fh-api", web: "fh-web", tunnel: "fh-tunnel" };
+const SERVICES = { api: "fh-api", web: "fh-web", "web-beta": "fh-web-beta", tunnel: "fh-tunnel" };
 const NO_SERVICES = process.env.FH_SERVICES === "none";
 const API_HEALTH = "http://127.0.0.1:3001/v1/health";
 const WEB_HEALTH = "http://127.0.0.1:3000/";
+const WEB_BETA_HEALTH = "http://127.0.0.1:3002/";
 /** cloudflared's metrics server; the service definitions start it here. */
 const TUNNEL_READY = "http://127.0.0.1:20241/ready";
 /** Tables the restore test counts. */
 const TABLES = ["users", "clubs", "teams", "matches", "match_revisions"];
 /** The server needs the API and website (and what they depend on), not the phone app. */
 const SERVER_PACKAGES = ["--filter", "@fh/api...", "--filter", "@fh/web..."];
+
+/**
+ * What `fh deploy` builds and switches. The beta site (`--beta`) is a second website, at the address in
+ * web-beta.env, deployed from a branch. It uses the live API and database, so a beta deploy builds only
+ * the website and never migrates: API and database changes reach beta by being deployed live first.
+ */
+const TARGETS = {
+  live: {
+    releases: PATHS.releases,
+    current: PATHS.current,
+    env: "web.env",
+    services: [SERVICES.api, SERVICES.web],
+    health: [API_HEALTH, WEB_HEALTH],
+    packages: SERVER_PACKAGES,
+    builds: ["api/dist/server.js", "web/serve.mjs", "deploy/fh.mjs"],
+  },
+  beta: {
+    releases: join(ROOT, "beta", "releases"),
+    current: join(ROOT, "beta", "current"),
+    env: "web-beta.env",
+    services: [SERVICES["web-beta"]],
+    health: [WEB_BETA_HEALTH],
+    packages: ["--filter", "@fh/web..."],
+    builds: ["web/serve.mjs"],
+  },
+};
+/** Beta releases kept for rollback: each is a full build, and beta needs less history than live. */
+const KEEP_BETA_RELEASES = 2;
+const betaSetUp = () => existsSync(join(PATHS.config, TARGETS.beta.env));
 
 class Fail extends Error {}
 const fail = (message) => {
@@ -187,6 +217,12 @@ const services = {
     if (WIN) powershell(`Start-Service -Name ${names.join(",")}`);
     else run("systemctl", ["start", ...names]);
   },
+  /** Starts it at boot from now on. The provision scripts leave the beta site off until its first deploy. */
+  enable(name) {
+    if (NO_SERVICES) return;
+    if (WIN) run("sc.exe", ["config", name, "start=", "delayed-auto"], { capture: true });
+    else run("systemctl", ["enable", "--quiet", name]);
+  },
   /** "running", "stopped", "failed", "not installed", ... */
   state(name) {
     if (NO_SERVICES) return "not managed";
@@ -211,10 +247,12 @@ async function answers(url) {
   }
 }
 
-async function healthy(seconds = 60) {
+async function healthy(target, seconds = 60) {
   const until = Date.now() + seconds * 1000;
   while (Date.now() < until) {
-    if ((await answers(API_HEALTH)) && (await answers(WEB_HEALTH))) return true;
+    let all = true;
+    for (const url of target.health) all &&= await answers(url);
+    if (all) return true;
     await sleep(2000);
   }
   return false;
@@ -225,17 +263,17 @@ async function healthy(seconds = 60) {
 const stamp = () => new Date().toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
 const samePath = (a, b) => (WIN ? resolve(a).toLowerCase() === resolve(b).toLowerCase() : resolve(a) === resolve(b));
 
-function listReleases() {
-  if (!existsSync(PATHS.releases)) return [];
-  return readdirSync(PATHS.releases, { withFileTypes: true })
+function listReleases(target = TARGETS.live) {
+  if (!existsSync(target.releases)) return [];
+  return readdirSync(target.releases, { withFileTypes: true })
     .filter((d) => d.isDirectory() && !d.name.includes("~"))
     .map((d) => d.name)
     .sort();
 }
 
-function currentRelease() {
+function currentRelease(target = TARGETS.live) {
   try {
-    return realpathSync(PATHS.current);
+    return realpathSync(target.current);
   } catch {
     return null;
   }
@@ -251,18 +289,18 @@ function removeLink(path) {
 }
 
 /** Points `current` at a release: a symlink on Linux (swapped atomically), a junction on Windows. */
-function pointCurrentAt(dir) {
-  const next = `${PATHS.current}.new`;
+function pointCurrentAt(target, dir) {
+  const next = `${target.current}.new`;
   removeLink(next);
   symlinkSync(dir, next, WIN ? "junction" : "dir");
   // Windows can't rename over an existing junction. Removing it leaves the running services alone.
-  if (WIN) removeLink(PATHS.current);
-  renameSync(next, PATHS.current);
+  if (WIN) removeLink(target.current);
+  renameSync(next, target.current);
 }
 
-function switchTo(dir) {
-  pointCurrentAt(dir);
-  services.restart([SERVICES.api, SERVICES.web]);
+function switchTo(target, dir) {
+  pointCurrentAt(target, dir);
+  services.restart(target.services);
 }
 
 /**
@@ -276,11 +314,12 @@ function removeRelease(dir) {
 }
 
 /** Next.js writes to .next/cache in the release; the website's account may write there and nowhere else. */
-function allowWebCache(dir) {
+function allowWebCache(dir, service) {
   const cache = join(dir, "web", ".next", "cache");
   mkdirSync(cache, { recursive: true });
   if (NO_SERVICES) return;
-  if (WIN) run("icacls", [cache, "/grant", `NT SERVICE\\${SERVICES.web}:(OI)(CI)M`, "/T", "/Q"], { capture: true });
+  // On Linux both websites run as fh-web.
+  if (WIN) run("icacls", [cache, "/grant", `NT SERVICE\\${service}:(OI)(CI)M`, "/T", "/Q"], { capture: true });
   else run("chown", ["-R", "fh-web:fh-web", cache]);
 }
 
@@ -292,15 +331,26 @@ function showRecentLogs(names, lines = 30) {
   }
 }
 
-async function deploy([ref]) {
-  if (!ref) fail("Usage: fh deploy <tag or branch>");
+/** Splits off `--beta`, which picks the beta site instead of the live one. */
+function pickTarget(args) {
+  const beta = args.includes("--beta");
+  if (beta && !betaSetUp()) {
+    fail(`The beta site isn't set up: there's no ${join(PATHS.config, TARGETS.beta.env)}. Run the provision script again.`);
+  }
+  return { beta, target: beta ? TARGETS.beta : TARGETS.live, rest: args.filter((a) => a !== "--beta") };
+}
+
+async function deploy(args) {
+  const { beta, target, rest: [ref] } = pickTarget(args);
+  if (!ref) fail("Usage: fh deploy [--beta] <tag or branch>");
   if (!/^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(ref)) fail(`That isn't a tag or branch name: ${ref}`);
   const s = settings();
   if (!s.REPO_URL) fail(`REPO_URL isn't set in ${join(PATHS.config, "fh.env")}.`);
-  const keep = Math.max(2, Number(s.KEEP_RELEASES ?? 5));
+  const keep = beta ? KEEP_BETA_RELEASES : Math.max(2, Number(s.KEEP_RELEASES ?? 5));
   const name = `${stamp()}-${ref.replace(/[^A-Za-z0-9._-]/g, "_")}`;
-  const dir = join(PATHS.releases, name);
-  const previous = currentRelease();
+  const dir = join(target.releases, name);
+  const previous = currentRelease(target);
+  const site = beta ? "the beta site" : "the site";
 
   try {
     say(`Fetching ${ref}`);
@@ -311,28 +361,30 @@ async function deploy([ref]) {
     console.log(`Commit ${commit}`);
 
     say("Installing dependencies");
-    asDeployUser("pnpm", ["install", "--frozen-lockfile", ...SERVER_PACKAGES], { cwd: dir });
+    asDeployUser("pnpm", ["install", "--frozen-lockfile", ...target.packages], { cwd: dir });
 
     say("Building");
     // The website build reads its production settings (site and API addresses).
-    asDeployUser("pnpm", [...SERVER_PACKAGES, "run", "build"], { cwd: dir, env: readEnvFile("web.env") });
-    for (const file of ["api/dist/server.js", "web/serve.mjs", "deploy/fh.mjs"]) {
+    asDeployUser("pnpm", [...target.packages, "run", "build"], { cwd: dir, env: readEnvFile(target.env) });
+    for (const file of target.builds) {
       if (!existsSync(join(dir, file))) fail(`The build has no ${file}.`);
     }
 
-    say("Chromium for PDF reports");
-    asDeployUser("pnpm", ["--filter", "@fh/api", "exec", "playwright-core", "install", "--only-shell", "chromium"], {
-      cwd: dir,
-    });
+    if (!beta) {
+      say("Chromium for PDF reports");
+      asDeployUser("pnpm", ["--filter", "@fh/api", "exec", "playwright-core", "install", "--only-shell", "chromium"], {
+        cwd: dir,
+      });
 
-    say("Database migrations");
-    asApi(join(dir, "api"), ["dist/db/migrate.js"]);
+      say("Database migrations");
+      asApi(join(dir, "api"), ["dist/db/migrate.js"]);
+    }
 
     writeFileSync(join(dir, "release.json"), `${JSON.stringify({ ref, commit, builtAt: new Date().toISOString() }, null, 2)}\n`);
-    allowWebCache(dir);
+    allowWebCache(dir, beta ? SERVICES["web-beta"] : SERVICES.web);
   } catch (err) {
     if (existsSync(dir)) {
-      console.error(`\nDeploy failed before switching, so the site is unchanged. Removing ${dir}.`);
+      console.error(`\nDeploy failed before switching, so ${site} is unchanged. Removing ${dir}.`);
       try {
         removeRelease(dir);
       } catch {
@@ -345,34 +397,39 @@ async function deploy([ref]) {
   say(`Switching to ${name}`);
   let ok = false;
   try {
-    switchTo(dir);
-    ok = await healthy();
+    switchTo(target, dir);
+    ok = await healthy(target);
   } catch (err) {
     // E.g. Windows reports a service that crashes straight away as failing to start.
     console.error(err.message);
   }
   if (!ok) {
     console.error("\nThe new release didn't come up healthy. Recent logs:");
-    showRecentLogs([SERVICES.api, SERVICES.web]);
+    showRecentLogs(target.services);
     if (previous && !samePath(previous, dir)) {
-      switchTo(previous);
-      fail(`Switched back to ${basename(previous)}. Database migrations from the failed release stay applied.`);
+      switchTo(target, previous);
+      fail(`Switched back to ${basename(previous)}.${beta ? "" : " Database migrations from the failed release stay applied."}`);
     }
     fail("There's no earlier release to switch back to.");
   }
 
-  // The fh command itself comes from the release, so fixes to it arrive with deploys.
-  copyFileSync(join(dir, "deploy", "fh.mjs"), join(PATHS.bin, "fh.mjs"));
+  if (beta) {
+    // Off until its first deploy, so servers without a beta site don't try to start it at every boot.
+    services.enable(SERVICES["web-beta"]);
+  } else {
+    // The fh command itself comes from the live release, so fixes to it arrive with deploys.
+    copyFileSync(join(dir, "deploy", "fh.mjs"), join(PATHS.bin, "fh.mjs"));
+  }
 
   say(`Pruning old releases (keeping ${keep})`);
-  for (const leftover of readdirSync(PATHS.releases).filter((n) => n.endsWith("~old"))) {
+  for (const leftover of readdirSync(target.releases).filter((n) => n.endsWith("~old"))) {
     try {
-      rmSync(join(PATHS.releases, leftover), { recursive: true, force: true, maxRetries: 5 });
+      rmSync(join(target.releases, leftover), { recursive: true, force: true, maxRetries: 5 });
     } catch {}
   }
-  const current = currentRelease();
-  for (const old of listReleases().reverse().slice(keep)) {
-    const path = join(PATHS.releases, old);
+  const current = currentRelease(target);
+  for (const old of listReleases(target).reverse().slice(keep)) {
+    const path = join(target.releases, old);
     if (current && samePath(path, current)) continue;
     try {
       removeRelease(path);
@@ -383,25 +440,26 @@ async function deploy([ref]) {
     }
   }
 
-  say(`Deployed ${ref} (${name})`);
+  say(`Deployed ${ref} (${name})${beta ? ` to the beta site, ${readEnvFile(target.env).SITE_URL}` : ""}`);
 }
 
-async function rollback([name]) {
-  const all = listReleases();
-  const current = currentRelease();
-  let target;
+async function rollback(args) {
+  const { beta, target, rest: [name] } = pickTarget(args);
+  const all = listReleases(target);
+  const current = currentRelease(target);
+  let to;
   if (name) {
-    target = all.includes(name) ? join(PATHS.releases, name) : undefined;
+    to = all.includes(name) ? join(target.releases, name) : undefined;
   } else {
-    const i = all.findIndex((r) => current && samePath(join(PATHS.releases, r), current));
-    if (i > 0) target = join(PATHS.releases, all[i - 1]);
+    const i = all.findIndex((r) => current && samePath(join(target.releases, r), current));
+    if (i > 0) to = join(target.releases, all[i - 1]);
   }
-  if (!target) fail(`No release to switch to. Available:\n${all.map((r) => `  ${r}`).join("\n")}`);
+  if (!to) fail(`No release to switch to. Available:\n${all.map((r) => `  ${r}`).join("\n")}`);
 
-  console.log(`Switching from ${current ? basename(current) : "nothing"} to ${basename(target)}`);
-  switchTo(target);
-  if (!(await healthy())) fail("Switched, but the site isn't answering. See: fh logs");
-  say(`Rolled back to ${basename(target)}. Database migrations aren't undone.`);
+  console.log(`Switching from ${current ? basename(current) : "nothing"} to ${basename(to)}`);
+  switchTo(target, to);
+  if (!(await healthy(target))) fail(`Switched, but ${beta ? "the beta site" : "the site"} isn't answering. See: fh logs`);
+  say(`Rolled back to ${basename(to)}.${beta ? "" : " Database migrations aren't undone."}`);
 }
 
 // ---------------------------------------------------------------- status and logs
@@ -421,18 +479,22 @@ function backups() {
     .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
 }
 
+function describeRelease(target) {
+  const current = currentRelease(target);
+  if (!current) return "none (nothing deployed yet)";
+  let release = basename(current);
+  try {
+    const info = JSON.parse(readFileSync(join(current, "release.json"), "utf8"));
+    release += `  (commit ${info.commit}, built ${ago(new Date(info.builtAt))})`;
+  } catch {}
+  return release;
+}
+
 async function status() {
-  const current = currentRelease();
-  let release = "none (nothing deployed yet)";
-  if (current) {
-    release = basename(current);
-    try {
-      const info = JSON.parse(readFileSync(join(current, "release.json"), "utf8"));
-      release += `  (commit ${info.commit}, built ${ago(new Date(info.builtAt))})`;
-    } catch {}
-  }
-  const row = (label, value) => console.log(`${label.padEnd(11)}${value}`);
-  row("Release", release);
+  const beta = betaSetUp();
+  const row = (label, value) => console.log(`${label.padEnd(13)}${value}`);
+  row("Release", describeRelease(TARGETS.live));
+  if (beta) row("Beta release", describeRelease(TARGETS.beta));
 
   let tunnel = "not answering";
   try {
@@ -443,9 +505,13 @@ async function status() {
   const checks = {
     api: (await answers(API_HEALTH)) ? "answering" : "not answering",
     web: (await answers(WEB_HEALTH)) ? "answering" : "not answering",
+    "web-beta": (await answers(WEB_BETA_HEALTH)) ? "answering" : "not answering",
     tunnel,
   };
-  for (const [key, service] of Object.entries(SERVICES)) row(service, `${services.state(service).padEnd(14)}${checks[key]}`);
+  for (const [key, service] of Object.entries(SERVICES)) {
+    if (key === "web-beta" && !beta) continue;
+    row(service, `${services.state(service).padEnd(14)}${checks[key]}`);
+  }
 
   const list = backups();
   const offsite = existsSync(join(PATHS.config, "fh.env")) ? (settings().RCLONE_REMOTE ?? "not set up") : "?";
@@ -677,7 +743,7 @@ function protect(file, service) {
   }
 }
 
-function tunnelConfig(tunnelId, credentialsFile, host) {
+function tunnelConfig(tunnelId, credentialsFile, host, betaHost) {
   // Quoted, since Windows paths have backslashes.
   const q = (s) => `'${s.replaceAll("'", "''")}'`;
   const rule = (hostname, service, path) =>
@@ -696,7 +762,7 @@ ingress:
 ${rule(host, "http://127.0.0.1:3001", "^/v1/")}
 ${rule(host, "http://127.0.0.1:3000")}
 ${rule(`www.${host}`, "http://127.0.0.1:3000")}
-  - service: http_status:404
+${betaHost ? `${rule(betaHost, "http://127.0.0.1:3001", "^/v1/")}\n${rule(betaHost, "http://127.0.0.1:3002")}\n` : ""}  - service: http_status:404
 `;
 }
 
@@ -706,6 +772,7 @@ async function tunnel(args) {
   if (!name) fail("Usage: fh tunnel [--name NAME]");
   const cf = settings().CLOUDFLARED ?? "cloudflared";
   const host = new URL(readEnvFile("web.env").SITE_URL).hostname;
+  const betaHost = betaSetUp() ? new URL(readEnvFile(TARGETS.beta.env).SITE_URL).hostname : undefined;
 
   if (!existsSync(join(homedir(), ".cloudflared", "cert.pem"))) {
     say("Sign in to Cloudflare");
@@ -727,11 +794,12 @@ async function tunnel(args) {
   protect(creds, SERVICES.tunnel);
   const { TunnelID } = JSON.parse(readFileSync(creds, "utf8"));
 
-  say(`Pointing ${host} and www.${host} at the tunnel`);
-  for (const h of [host, `www.${host}`]) run(cf, ["tunnel", "route", "dns", "--overwrite-dns", TunnelID, h]);
+  const hosts = [host, `www.${host}`, ...(betaHost ? [betaHost] : [])];
+  say(`Pointing ${hosts.join(", ")} at the tunnel`);
+  for (const h of hosts) run(cf, ["tunnel", "route", "dns", "--overwrite-dns", TunnelID, h]);
 
   const config = join(PATHS.config, "tunnel.yml");
-  writeFileSync(config, tunnelConfig(TunnelID, creds, host));
+  writeFileSync(config, tunnelConfig(TunnelID, creds, host, betaHost));
   protect(config, SERVICES.tunnel);
   run(cf, ["tunnel", "--config", config, "ingress", "validate"], { capture: true });
 

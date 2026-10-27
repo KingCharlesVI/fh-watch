@@ -2,7 +2,7 @@ import Storage from "expo-sqlite/kv-store";
 import { useEffect, useSyncExternalStore } from "react";
 import { type UpcomingMatch, upcomingStore } from "@/core/upcoming";
 
-/** Upcoming matches, kept on this phone only: one small JSON list. */
+/** Upcoming matches, kept on the phone as one small JSON list, and on the website (state/planned.ts). */
 const store = upcomingStore(Storage);
 
 /** For appointments (state/appointments.ts), which add and update their own matches. */
@@ -17,7 +17,8 @@ export function useUpcoming(): UpcomingMatch[] | null {
 }
 
 export const upcoming = {
-  save: store.save,
+  /** Saved on the phone; it goes to the website when Upcoming is next synced. */
+  save: (match: UpcomingMatch) => store.save({ ...match, unsynced: true }),
   remove: store.remove,
   removeAll: store.removeAll,
 };

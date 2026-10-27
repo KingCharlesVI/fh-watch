@@ -258,6 +258,36 @@ export const umpireUnavailableWeekdays = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.weekday] }), check("umpire_unavailable_weekdays_weekday", sql`${t.weekday} between 0 and 6`)],
 );
 
+/**
+ * A match an umpire has set up ahead of time on the website, for their phone to pick up
+ * into Upcoming. The phone keeps its own copy from then on; these are for the days to come.
+ */
+export const plannedMatches = pgTable(
+  "planned_matches",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    date: date({ mode: "string" }).notNull(),
+    /** "14:00", or null if not known yet. */
+    time: text(),
+    homeName: text().notNull(),
+    homeColor: text().notNull(),
+    homeCaptain: integer(),
+    awayName: text().notNull(),
+    awayColor: text().notNull(),
+    awayCaptain: integer(),
+    venue: text(),
+    competition: text(),
+    /** Null to use the phone's last setup's. */
+    format: jsonb().$type<FixtureFormat>(),
+    createdAt: createdAt(),
+    updatedAt: createdAt(),
+  },
+  (t) => [index().on(t.userId, t.date), check("planned_matches_time", sql`${t.time} ~ ${sql.raw(TIME_CHECK)}`)],
+);
+
 export const clubRequests = pgTable(
   "club_requests",
   {
@@ -310,6 +340,32 @@ export const accessRequests = pgTable(
     // One pending request per address and test, so asking twice doesn't make two.
     uniqueIndex("access_requests_pending").on(t.email, t.kind).where(sql`${t.status} = 'pending'`),
   ],
+);
+
+/**
+ * A post on the landing page's blog, uploaded as a Markdown file from the website's admin
+ * pages. The landing page reads them from the API as it's visited, so a post is out as
+ * soon as it's uploaded.
+ */
+export const blogPosts = pgTable(
+  "blog_posts",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    /** Its address: "first-match" is /blog/first-match on the landing page. */
+    slug: text().notNull().unique(),
+    title: text().notNull(),
+    /** The date it's shown with, not when it was uploaded. */
+    date: date({ mode: "string" }).notNull(),
+    summary: text(),
+    author: text(),
+    /** Kept off the blog until it's uploaded again without `draft: true`. */
+    draft: boolean().notNull().default(false),
+    /** The post itself, in Markdown, without its front matter. */
+    body: text().notNull(),
+    createdAt: createdAt(),
+    updatedAt: createdAt(),
+  },
+  (t) => [index().on(t.draft, t.date)],
 );
 
 export const matches = pgTable(

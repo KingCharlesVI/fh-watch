@@ -6,8 +6,8 @@ import { ONLINE } from "@/config";
 import { type Fitness, fitnessStats } from "@/core/fitness";
 import type { LocalMatch } from "@/core/store";
 import type { SyncState } from "@/core/sync";
-import { Badge, Card, Swatch, T, Text } from "@/ui/kit";
-import { CARD_COLOURS, space, useColors } from "@/ui/theme";
+import { Badge, Card, HeaderPanel, Score, Swatch, T, Text } from "@/ui/kit";
+import { CARD_COLOURS, FONT_MONO, FONT_SECTION, space, useColors } from "@/ui/theme";
 
 // UK time, where the matches are played.
 const dateFmt = safeFormat({ weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "Europe/London" });
@@ -25,18 +25,36 @@ function safeFormat(options: Intl.DateTimeFormatOptions) {
 export const formatDate = (iso: string) => dateFmt.format(new Date(iso));
 export const formatDateTime = (iso: string) => dateTimeFmt.format(new Date(iso));
 
+/**
+ * The scoreboard, like the website's match page: the competition and where, the teams either
+ * side of a big condensed score with the loser's number dimmed, "Full time" stamped under it,
+ * and the score by period in small boxes along the bottom.
+ */
 export function ScoreCard({ doc, summary }: { doc: MatchDocument; summary: MatchSummary }) {
   const c = useColors();
+  const winner = summary.result.winner;
+  const dim = (side: "home" | "away") => (winner && winner !== side ? c.muted : c.text);
   return (
-    <Card style={{ gap: space.sm }}>
-      <T variant="small">
-        {[formatDateTime(doc.startedAt), doc.competition, doc.venue].filter(Boolean).join(" · ")}
-      </T>
+    <HeaderPanel style={{ alignItems: "stretch", gap: space.lg, paddingTop: space.xl }}>
+      <View style={{ alignItems: "center", gap: 6 }}>
+        {doc.competition && (
+          <Text style={{ fontFamily: FONT_SECTION, fontSize: 14, textTransform: "uppercase", letterSpacing: 0.2, color: c.primary, textAlign: "center" }}>{doc.competition}</Text>
+        )}
+        <T variant="small" style={{ textAlign: "center" }}>
+          {[formatDateTime(doc.startedAt), doc.venue].filter(Boolean).join(" · ")}
+        </T>
+      </View>
       <View style={styles.score}>
         <TeamName name={doc.teams.home.name} color={doc.teams.home.color} />
-        <Text style={[styles.scoreText, { color: c.text }]} accessibilityLabel={`${summary.score.home} to ${summary.score.away}`}>
-          {summary.score.home}–{summary.score.away}
-        </Text>
+        <View style={{ alignItems: "center", gap: space.sm }}>
+          <View style={styles.scoreDigits} accessible accessibilityLabel={`${summary.score.home} to ${summary.score.away}`}>
+            <Score size={64} color={dim("home")}>{summary.score.home}</Score>
+            <Score size={34} color={c.border}>–</Score>
+            <Score size={64} color={dim("away")}>{summary.score.away}</Score>
+          </View>
+          {/* Stamped on, like the umpire's card. */}
+          <Text style={[styles.stamp, { backgroundColor: c.text, color: c.card }]}>Full time</Text>
+        </View>
         <TeamName name={doc.teams.away.name} color={doc.teams.away.color} right />
       </View>
       {summary.shootout && (
@@ -45,7 +63,19 @@ export function ScoreCard({ doc, summary }: { doc: MatchDocument; summary: Match
           {summary.result.decidedBy === "shootout" && summary.result.winner ? ` · ${doc.teams[summary.result.winner].name} win` : ""}
         </T>
       )}
-    </Card>
+      {summary.periodScores.length > 1 && (
+        <View style={styles.periods} accessibilityLabel="Score by period">
+          {summary.periodScores.map((p) => (
+            <View key={p.period} style={[styles.period, { borderColor: c.border, backgroundColor: c.background }]}>
+              <Text style={{ fontSize: 11, fontWeight: "600", color: c.muted }}>{periodLabel(doc.settings.periods, p.period)}</Text>
+              <Score size={20}>
+                {p.home}–{p.away}
+              </Score>
+            </View>
+          ))}
+        </View>
+      )}
+    </HeaderPanel>
   );
 }
 
@@ -57,37 +87,6 @@ function TeamName({ name, color, right }: { name: string; color: string; right?:
         {name}
       </T>
     </View>
-  );
-}
-
-export function PeriodTable({ doc, summary }: { doc: MatchDocument; summary: MatchSummary }) {
-  const c = useColors();
-  const cell = (text: string | number, bold = false, key?: string) => (
-    <Text key={key} style={[styles.cell, { color: c.text, fontWeight: bold ? "700" : "400" }]}>
-      {text}
-    </Text>
-  );
-  return (
-    <Card title="Score by period">
-      <View style={styles.tableRow}>
-        <Text style={[styles.teamCell, { color: c.muted }]}>Team</Text>
-        {summary.periodScores.map((p) => (
-          <Text key={p.period} style={[styles.cell, { color: c.muted }]}>
-            {periodLabel(doc.settings.periods, p.period)}
-          </Text>
-        ))}
-        <Text style={[styles.cell, { color: c.muted }]}>Tot</Text>
-      </View>
-      {(["home", "away"] as const).map((side) => (
-        <View key={side} style={[styles.tableRow, { borderTopColor: c.border, borderTopWidth: StyleSheet.hairlineWidth }]}>
-          <Text style={[styles.teamCell, { color: c.text }]} numberOfLines={1}>
-            {doc.teams[side].name}
-          </Text>
-          {summary.periodScores.map((p) => cell(p[side], false, String(p.period)))}
-          {cell(summary.score[side], true)}
-        </View>
-      ))}
-    </Card>
   );
 }
 
@@ -203,13 +202,13 @@ export function StatusBadges({ match, state }: { match: LocalMatch; state: SyncS
 
 const styles = StyleSheet.create({
   score: { flexDirection: "row", alignItems: "center", gap: space.md },
-  scoreText: { fontSize: 40, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  scoreDigits: { flexDirection: "row", alignItems: "center", gap: space.sm },
+  stamp: { fontFamily: FONT_SECTION, fontSize: 13, textTransform: "uppercase", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 3, overflow: "hidden", transform: [{ rotate: "-2deg" }] },
   team: { flex: 1, gap: 6 },
-  tableRow: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
-  teamCell: { flex: 1, fontWeight: "500" },
-  cell: { width: 36, textAlign: "center", fontVariant: ["tabular-nums"] },
+  periods: { flexDirection: "row", gap: space.sm },
+  period: { flex: 1, alignItems: "center", gap: 2, paddingVertical: 8, borderRadius: 5, borderWidth: StyleSheet.hairlineWidth },
   statRow: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
   statValue: { width: 56, fontVariant: ["tabular-nums"] },
   event: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingVertical: 8 },
-  eventTime: { width: 64, fontVariant: ["tabular-nums"], fontSize: 13 },
+  eventTime: { width: 64, fontFamily: FONT_MONO, fontWeight: "500", fontSize: 12 },
 });

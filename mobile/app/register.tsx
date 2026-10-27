@@ -1,7 +1,7 @@
 import type { Club } from "@fh/shared";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Switch, View } from "react-native";
+import { Pressable, StyleSheet, Switch, View } from "react-native";
 import { errorMessage } from "@/core/api";
 import { api } from "@/services";
 import { Banner, Button, Card, Choice, Field, Row, Screen, T, Text } from "@/ui/kit";
@@ -87,74 +87,72 @@ export default function RegisterScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <Screen>
-        <T variant="muted">An account is free, and lets you upload matches, correct them and publish them. The same one works on the website.</T>
-        <Card>
-          <Field label="Your name" hint="Shown on matches you umpire." value={displayName} onChangeText={setDisplayName} maxLength={80} autoComplete="name" textContentType="name" />
-          <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />
-          <Field
-            label="Password"
-            hint="At least 10 characters."
-            error={tooShort ? "At least 10 characters." : undefined}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="new-password"
-            textContentType="newPassword"
-          />
-          <Field
-            label="Password again"
-            error={mismatch ? "The passwords don't match." : undefined}
-            value={again}
-            onChangeText={setAgain}
-            secureTextEntry
-            autoComplete="new-password"
-            textContentType="newPassword"
-            onSubmitEditing={() => {
-              if (ready) void submit();
-            }}
-          />
-        </Card>
+    <Screen>
+      <T variant="muted">An account is free, and lets you upload matches, correct them and publish them. The same one works on the website.</T>
+      <Card>
+        <Field label="Your name" hint="Shown on matches you umpire." value={displayName} onChangeText={setDisplayName} maxLength={80} autoComplete="name" textContentType="name" />
+        <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />
+        <Field
+          label="Password"
+          hint="At least 10 characters."
+          error={tooShort ? "At least 10 characters." : undefined}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoComplete="new-password"
+          textContentType="newPassword"
+        />
+        <Field
+          label="Password again"
+          error={mismatch ? "The passwords don't match." : undefined}
+          value={again}
+          onChangeText={setAgain}
+          secureTextEntry
+          autoComplete="new-password"
+          textContentType="newPassword"
+          onSubmitEditing={() => {
+            if (ready) void submit();
+          }}
+        />
+      </Card>
 
-        <Card title="Club (optional)">
-          <Choice
-            value={choice}
-            options={[
-              { value: "none", label: "Not now" },
-              { value: "existing", label: "A club that's listed" },
-              { value: "new", label: "My club isn't listed" },
-            ]}
-            onChange={(v) => {
-              setChoice(v);
-              setClub(null);
-            }}
-          />
-          {choice === "existing" &&
-            (club ? (
-              <Row style={{ justifyContent: "space-between" }}>
-                <T>{club.name}</T>
-                <Button title="Change" variant="ghost" small onPress={() => setClub(null)} />
-              </Row>
-            ) : (
-              <ClubSearch onPick={setClub} />
-            ))}
-          {choice === "new" && (
-            <>
-              <Field label="Club name" value={clubName} onChangeText={setClubName} maxLength={100} />
-              <Row style={{ justifyContent: "space-between" }}>
-                <T>Make me its club admin</T>
-                <AdminSwitch value={wantsAdmin} onChange={setWantsAdmin} />
-              </Row>
-            </>
-          )}
-          {choice !== "none" && <T variant="small">An admin reviews club requests before they take effect.</T>}
-        </Card>
+      <Card title="Club (optional)">
+        <Choice
+          value={choice}
+          options={[
+            { value: "none", label: "Not now" },
+            { value: "existing", label: "A club that's listed" },
+            { value: "new", label: "My club isn't listed" },
+          ]}
+          onChange={(v) => {
+            setChoice(v);
+            setClub(null);
+          }}
+        />
+        {choice === "existing" &&
+          (club ? (
+            <Row style={{ justifyContent: "space-between" }}>
+              <T>{club.name}</T>
+              <Button title="Change" variant="ghost" small onPress={() => setClub(null)} />
+            </Row>
+          ) : (
+            <ClubSearch onPick={setClub} />
+          ))}
+        {choice === "new" && (
+          <>
+            <Field label="Club name" value={clubName} onChangeText={setClubName} maxLength={100} />
+            <Row style={{ justifyContent: "space-between" }}>
+              <T>Make me its club admin</T>
+              <AdminSwitch value={wantsAdmin} onChange={setWantsAdmin} />
+            </Row>
+          </>
+        )}
+        {choice !== "none" && <T variant="small">An admin reviews club requests before they take effect.</T>}
+      </Card>
 
-        {error && <Banner tone="danger" icon="alert-circle-outline" title={error} />}
-        <Button title="Create account" onPress={submit} loading={busy} disabled={!ready} />
-      </Screen>
-    </KeyboardAvoidingView>
+      {error && <Banner tone="danger" icon="alert-circle-outline" title={error} />}
+      <Button title="Create account" onPress={submit} loading={busy} disabled={!ready} />
+    </Screen>
   );
 }
 

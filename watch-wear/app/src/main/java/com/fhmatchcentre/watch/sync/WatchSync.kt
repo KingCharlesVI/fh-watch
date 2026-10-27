@@ -128,8 +128,7 @@ class PhoneListenerService : WearableListenerService() {
                     return
                 }
                 Log.i(WatchSync.TAG, "Match setup from the phone: ${setup.homeName} v ${setup.awayName}")
-                services.prefs.lastSetup = setup
-                services.phoneSetup.value = setup
+                services.receivedFromPhone(setup)
             }
         }
     }

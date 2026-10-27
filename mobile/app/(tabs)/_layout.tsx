@@ -1,20 +1,20 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Tabs } from "expo-router/js-tabs";
-import { Pressable } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
+import { useHeaderOptions } from "@/ui/header";
 import { FONT, useColors } from "@/ui/theme";
 
 export default function TabsLayout() {
   const c = useColors();
+  const header = useHeaderOptions();
   return (
     <Tabs
       screenOptions={{
+        ...header,
         tabBarActiveTintColor: c.primary,
         tabBarInactiveTintColor: c.muted,
-        tabBarLabelStyle: { fontFamily: FONT, fontWeight: "500" },
-        tabBarStyle: { backgroundColor: c.card, borderTopColor: c.border },
-        headerTitleStyle: { color: c.text, fontFamily: FONT, fontWeight: "600" },
-        headerStyle: { backgroundColor: c.card, borderBottomColor: c.border, borderBottomWidth: 1 },
-        headerShadowVisible: false,
+        tabBarLabelStyle: { fontFamily: FONT, fontWeight: "600" },
+        tabBarStyle: { backgroundColor: c.card, borderTopColor: c.border, borderTopWidth: StyleSheet.hairlineWidth },
         // A plain button: no ripple (Android) when a tab is tapped.
         tabBarButton: ({ ref: _ref, href: _href, android_ripple: _ripple, pressColor: _color, pressOpacity: _opacity, hoverEffect: _hover, ...props }) => <Pressable {...props} />,
       }}

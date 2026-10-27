@@ -7,6 +7,7 @@ import { applyAppointments } from "@/core/appointments";
 import { isoDay } from "@/core/upcoming";
 import { api } from "@/services";
 import { syncAppointmentReminders } from "@/services/appointment-reminders";
+import { syncPlanned } from "./planned";
 import { upcomingStore } from "./upcoming";
 
 /** Appointment ids already put in Upcoming once, so one deleted from there stays deleted. */
@@ -28,10 +29,11 @@ let refreshing: Promise<void> | null = null;
 
 /**
  * Fetches your appointments, then brings Upcoming and the day-before reminders up to date.
- * Offline, the last ones fetched stay.
+ * Upcoming is synced with the website at the same time. Offline, the last ones fetched stay.
  */
 export function refreshAppointments(): Promise<void> {
   return (refreshing ??= (async () => {
+    const planned = syncPlanned().catch((err) => console.warn("Couldn't fetch planned matches", err));
     try {
       const { items } = await api.myAppointments();
       set({ items, error: null });
@@ -48,6 +50,7 @@ export function refreshAppointments(): Promise<void> {
     } catch (err) {
       set({ error: errorMessage(err) });
     } finally {
+      await planned;
       refreshing = null;
     }
   })());

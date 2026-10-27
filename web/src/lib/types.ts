@@ -2,6 +2,8 @@
 export type {
   Club,
   AccessRequest,
+  BlogPost,
+  BlogPostSummary,
   AuditEntry,
   Appointment,
   Availability,
@@ -21,6 +23,7 @@ export type {
   MatchHistoryEntry,
   MatchSide,
   Page,
+  PlannedMatch,
   Problem,
   Revision,
   ClubTeam as Team,

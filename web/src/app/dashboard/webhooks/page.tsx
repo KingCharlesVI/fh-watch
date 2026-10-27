@@ -19,7 +19,6 @@ export default async function ClubWebhooksPage() {
     <div className="space-y-6">
       <PageHeader
         title="Webhooks"
-        back={{ href: "/dashboard", label: "Dashboard" }}
         description={`Send ${club.name}'s results to your own website or another system as soon as they're published.`}
       />
       {hooks.items.map((w, i) => (

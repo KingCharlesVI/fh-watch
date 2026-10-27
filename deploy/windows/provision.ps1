@@ -32,7 +32,7 @@ Set-StrictMode -Version 3
 $Here = $PSScriptRoot
 $Deploy = Split-Path $Here -Parent
 $Root = Join-Path $env:ProgramData 'fh'
-$ServiceNames = 'fh-api', 'fh-web', 'fh-tunnel'
+$ServiceNames = 'fh-api', 'fh-web', 'fh-web-beta', 'fh-tunnel'
 $WinswUrl = 'https://github.com/winsw/winsw/releases/download/v2.12.0/WinSW.NET461.exe'
 $WinswSha256 = 'B5066B7BBDFBA1293E5D15CDA3CAAEA88FBEAB35BD5B38C41C913D492AADFC4F'
 $PnpmVersion = '9.15.0'   # packageManager in package.json
@@ -134,8 +134,8 @@ Say 'Windows long paths'
 Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name LongPathsEnabled -Value 1 -Type DWord
 
 Say "Folders in $Root"
-$folders = 'releases', 'bin', 'config', 'backups', 'services', 'ms-playwright', 'logs\api', 'logs\web', 'logs\tunnel',
-  'logs\tasks', 'data\api\tmp', 'data\api\pdf', 'data\web\tmp', 'data\tunnel'
+$folders = 'releases', 'beta\releases', 'bin', 'config', 'backups', 'services', 'ms-playwright', 'logs\api', 'logs\web',
+  'logs\web-beta', 'logs\tunnel', 'logs\tasks', 'data\api\tmp', 'data\api\pdf', 'data\web\tmp', 'data\web-beta\tmp', 'data\tunnel'
 foreach ($f in $folders) { New-Item -ItemType Directory -Force -Path (Join-Path $Root $f) | Out-Null }
 # Administrators and SYSTEM control everything; other accounts, the services among them, may only read.
 Invoke-Native icacls.exe @($Root, '/inheritance:r', '/grant:r', "${Admins}:(OI)(CI)F", "${System}:(OI)(CI)F", "${Users}:(OI)(CI)RX", '/Q')
@@ -148,6 +148,7 @@ Say 'Database'
 $config = Join-Path $Root 'config'
 $apiEnv = Join-Path $config 'api.env'
 $webEnv = Join-Path $config 'web.env'
+$webBetaEnv = Join-Path $config 'web-beta.env'
 $fhEnv = Join-Path $config 'fh.env'
 
 # With settings already in place, the app's own role can say whether anything is missing.
@@ -197,6 +198,7 @@ Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
 
 Say 'Settings'
 if (-not (Test-Path $webEnv)) { Copy-Item (Join-Path $Deploy 'env\web.env') $webEnv }
+if (-not (Test-Path $webBetaEnv)) { Copy-Item (Join-Path $Deploy 'env\web-beta.env') $webBetaEnv }
 if (-not (Test-Path (Join-Path $config 'rclone.conf'))) { New-Item -ItemType File (Join-Path $config 'rclone.conf') | Out-Null }
 if (-not (Test-Path $fhEnv)) {
   $text = [IO.File]::ReadAllText((Join-Path $Deploy 'env\fh.env'))
@@ -238,7 +240,9 @@ foreach ($svc in $ServiceNames) {
   }
   if (-not $existing) { Invoke-Native $exe @('install') }
   # Its own virtual account (NT SERVICE\fh-api and so on), started once Windows has settled after boot.
-  Invoke-Native sc.exe @('config', $svc, 'obj=', "NT SERVICE\$svc", 'start=', 'delayed-auto') | Out-Null
+  # The beta website stays off until its first deploy (`fh deploy --beta`), which turns it on.
+  $start = if ($svc -eq 'fh-web-beta' -and -not (Test-Path (Join-Path $Root 'beta\current'))) { 'demand' } else { 'delayed-auto' }
+  Invoke-Native sc.exe @('config', $svc, 'obj=', "NT SERVICE\$svc", 'start=', $start) | Out-Null
   Invoke-Native sc.exe @('failure', $svc, 'reset=', '3600', 'actions=', 'restart/5000/restart/5000/restart/30000') | Out-Null
 }
 Invoke-Native sc.exe @('config', 'fh-api', 'depend=', $pgService.Name) | Out-Null
@@ -253,10 +257,11 @@ foreach ($svc in $ServiceNames) {
 }
 Protect-File $apiEnv 'fh-api'
 Protect-File $webEnv 'fh-web'
+Protect-File $webBetaEnv 'fh-web-beta'
 foreach ($f in 'tunnel.json', 'tunnel.yml') {
   if (Test-Path (Join-Path $config $f)) { Protect-File (Join-Path $config $f) 'fh-tunnel' }
 }
-Write-Host 'fh-api, fh-web and fh-tunnel are installed.'
+Write-Host 'fh-api, fh-web, fh-web-beta and fh-tunnel are installed.'
 
 Say 'Backup schedule'
 $fhm = Join-Path $Root 'bin\fh.mjs'
@@ -283,6 +288,7 @@ if (Test-Path (Join-Path $Root 'current')) {
   Say 'Restarting the API and website'
   Restart-Service -Name 'fh-api', 'fh-web' -Force
 }
+if (Test-Path (Join-Path $Root 'beta\current')) { Restart-Service -Name 'fh-web-beta' -Force }
 
 if (Test-Path (Join-Path $config 'tunnel.yml')) {
   Say 'Cloudflare Tunnel'

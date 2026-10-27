@@ -1,3 +1,102 @@
+## [2.2.0-beta.28] - 2026-10-27
+
+### ⚙️ Miscellaneous Tasks
+
+- *(feat)* Blog posts on api
+- *(blog)* Public Release blog post
+
+### 💼 Other
+
+- Create public-release.md
+## [unreleased]
+
+### ⚙️ Miscellaneous Tasks
+
+- *(fix)* Make fields and lists visible
+
+### 💼 Other
+
+- Update version.json
+## [2.2.0-beta.26] - 2026-10-23
+
+### 🚀 Features
+
+- *(deploy)* A beta website at beta.fhmatchcentre.com, deployed from a branch
+- *(web)* Clubhouse redesign, first pass
+- *(web)* Clubhouse redesign for the dashboard, clubs, search and sign-in
+- *(web)* Clubhouse redesign for upcoming, appointments and availability
+- *(web)* Clubhouse redesign for the admin overview
+- *(web)* A pitchside identity instead of the stock look
+- *(mobile)* The website's pitchside look
+- *(web)* Club logos on the match scoreboard
+- *(landing)* A blog, written as Markdown in the repo
+
+### 🐛 Bug Fixes
+
+- *(wear)* A match sent from Upcoming opens on the watch
+
+### 💼 Other
+
+- Mobile optimisations
+- Update version.json
+- Update CHANGELOG.md
+- Merge pull request #48 from KingCharlesVI/website-overhaul
+
+Website overhaul
+- Merge pull request #49 from KingCharlesVI/v2.0.0
+
+V2.0.0
+## [2.2.0-beta.26] - 2026-10-23
+
+### 🚀 Features
+
+- *(deploy)* A beta website at beta.fhmatchcentre.com, deployed from a branch
+- *(web)* Clubhouse redesign, first pass
+- *(web)* Clubhouse redesign for the dashboard, clubs, search and sign-in
+- *(web)* Clubhouse redesign for upcoming, appointments and availability
+- *(web)* Clubhouse redesign for the admin overview
+- *(web)* A pitchside identity instead of the stock look
+- *(mobile)* The website's pitchside look
+
+### 🐛 Bug Fixes
+
+- *(wear)* A match sent from Upcoming opens on the watch
+
+### 💼 Other
+
+- Mobile optimisations
+- Update version.json
+## [1.4.0-beta.25] - 2026-10-17
+
+### 🐛 Bug Fixes
+
+- *(phone)* Matches set up on the phone go to the website's Upcoming
+
+### 📚 Documentation
+
+- Matches set up on the phone are on the website's Upcoming too
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* Build bump to 25
+## [1.4.0-beta.24] - 2026-10-16
+
+### 🚀 Features
+
+- *(api)* Umpires plan matches ahead of time for their phone to pick up
+- *(web)* Umpires plan upcoming matches on the website, as on the phone
+- *(phone)* Matches planned on the website join Upcoming
+- *(web)* One dashboard menu for umpiring, club and admin pages
+- *(web)* The dashboard's pages in a dropdown menu on phones and tablets
+- *(web)* Umpiring, Club and Admin menus in the header, and a menu button on phones
+
+### 📚 Documentation
+
+- Planning matches on the website, and the dashboard's menu
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* Version 1.4.0 build 24
 ## [1.3.0-beta.23] - 2026-10-11
 
 ### 🚀 Features

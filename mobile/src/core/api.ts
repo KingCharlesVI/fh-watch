@@ -9,6 +9,7 @@ import type {
   MatchDocument,
   MyAppointment,
   Page,
+  PlannedMatch,
   Problem,
   TeamWithClub,
   TokenPair,
@@ -16,6 +17,7 @@ import type {
   ValidationIssue,
   Venue,
 } from "@fh/shared";
+import type { PlannedMatchBody } from "./planned";
 
 /** Plain TypeScript: no React Native imports, so it runs under tests too. */
 
@@ -166,6 +168,13 @@ export class ApiClient {
   /** Appointments clubs have asked you to umpire, from today. */
   myAppointments = () => this.request<Items<MyAppointment>>("/v1/me/appointments");
   answerAppointment = (id: string, answer: "accept" | "decline") => this.request(`/v1/me/appointments/${id}/${answer}`, { method: "POST" });
+
+  /** Matches you've planned on the website, from today. */
+  myPlannedMatches = () => this.request<Items<PlannedMatch>>("/v1/me/planned-matches");
+  /** Puts a match set up on the phone on the website. */
+  planMatch = (body: PlannedMatchBody) => this.request<PlannedMatch>("/v1/me/planned-matches", { method: "POST", body });
+  updatePlannedMatch = (id: string, body: PlannedMatchBody) => this.request<PlannedMatch>(`/v1/me/planned-matches/${id}`, { method: "PUT", body });
+  deletePlannedMatch = (id: string) => this.request(`/v1/me/planned-matches/${id}`, { method: "DELETE" });
 
   /** The days you've marked from one day to another, and weekdays you're never free. */
   myAvailability = (from: string, to: string) => this.request<Availability>("/v1/me/availability", { query: { from, to } });

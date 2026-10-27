@@ -4,21 +4,12 @@
  * watch's (Setup in watch-wear/.../data/Prefs.kt); the watch checks them again.
  */
 
-/** Team colours: the same palette as the watch (TEAM_COLOURS in watch-wear/.../ui/Common.kt). */
-export const TEAM_COLOURS = ["#DC2626", "#1D4ED8", "#FACC15", "#16A34A", "#EA580C", "#7C3AED", "#38BDF8", "#EC4899", "#111111", "#FFFFFF"];
+import { TEAM_COLOURS as COLOURS } from "@fh/shared";
 
-export const COLOUR_NAMES: Record<string, string> = {
-  "#DC2626": "Red",
-  "#1D4ED8": "Blue",
-  "#FACC15": "Yellow",
-  "#16A34A": "Green",
-  "#EA580C": "Orange",
-  "#7C3AED": "Purple",
-  "#38BDF8": "Sky blue",
-  "#EC4899": "Pink",
-  "#111111": "Black",
-  "#FFFFFF": "White",
-};
+/** Team colours: the same palette as the watch (TEAM_COLOURS in watch-wear/.../ui/Common.kt). */
+export const TEAM_COLOURS = COLOURS.map((c) => c.hex);
+
+export const COLOUR_NAMES: Record<string, string> = Object.fromEntries(COLOURS.map((c) => [c.hex, c.name]));
 
 export interface WatchSetup {
   periods: number;

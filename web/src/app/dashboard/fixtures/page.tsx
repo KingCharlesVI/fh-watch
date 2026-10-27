@@ -1,9 +1,8 @@
-import { fixtureWhen, hasRole } from "@fh/shared";
+import { fixtureWhen } from "@fh/shared";
 import { FileUp, Plus } from "lucide-react";
 import Link from "next/link";
 import { AppointmentBadge } from "@/components/AppointmentBadge";
 import { PageHeader } from "@/components/PageHeader";
-import { UmpiringNav } from "@/components/UmpiringNav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -30,7 +29,6 @@ export default async function ClubFixturesPage({ searchParams }: { searchParams:
       <PageHeader
         title="Club fixtures"
         description={`${club.name}'s matches from today, and who's umpiring them.`}
-        back={{ href: "/dashboard", label: "Dashboard" }}
         actions={
           <>
             <Button variant="outline" asChild>
@@ -46,7 +44,6 @@ export default async function ClubFixturesPage({ searchParams }: { searchParams:
           </>
         }
       />
-      <UmpiringNav umpire={hasRole(user, "umpire")} clubAdmin />
       {deleted && <p className="text-muted-foreground">The fixture was deleted, and anyone appointed to it was emailed.</p>}
 
       <nav aria-label="Which fixtures" className="inline-flex rounded-lg bg-muted p-1">

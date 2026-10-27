@@ -1,9 +1,8 @@
-import { hasRole, localDay } from "@fh/shared";
+import { localDay } from "@fh/shared";
 import { markHours, setUnavailableWeekdays } from "@/app/actions/umpiring";
 import { ActionForm } from "@/components/ActionForm";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { PageHeader } from "@/components/PageHeader";
-import { UmpiringNav } from "@/components/UmpiringNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -25,19 +24,29 @@ const WEEKDAYS = [
 
 /** When you can umpire, for your clubs' admins to see when they appoint. */
 export default async function AvailabilityPage() {
-  const user = await requireUser("/availability");
+  await requireUser("/availability");
   const availability = await api<Availability>("/v1/me/availability");
   const today = localDay(new Date());
 
   return (
     <div className="space-y-6">
       <PageHeader title="Availability" description="When you can umpire. Your clubs' admins see it when they choose who to ask." />
-      <UmpiringNav umpire clubAdmin={hasRole(user, "club_admin") && !!user.clubId} />
 
       <Card>
         <CardHeader>
           <CardTitle>The next 12 weeks</CardTitle>
           <CardDescription>Tap a day once if you&apos;re free, twice if you&apos;re not, and again to unmark it.</CardDescription>
+          <ul aria-label="Key" className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs text-muted-foreground">
+            <li className="flex items-center gap-1.5">
+              <span aria-hidden className="size-3 rounded-sm border border-primary/50 bg-primary/12" /> Free
+            </li>
+            <li className="flex items-center gap-1.5">
+              <span aria-hidden className="size-3 rounded-sm border border-destructive/40 bg-destructive/10" /> Not free
+            </li>
+            <li className="flex items-center gap-1.5">
+              <span aria-hidden className="size-3 rounded-sm border border-dashed bg-muted/60" /> A weekday you&apos;re never free
+            </li>
+          </ul>
         </CardHeader>
         <CardContent>
           {/* Keyed by what's saved, so it starts again from the server's after any change (e.g. hours set below). */}
