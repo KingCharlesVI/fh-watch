@@ -348,8 +348,9 @@ data class Tick(val record: MatchRecord, val alerts: List<Alert>)
 
 /**
  * Moves the match on to `now`: logs suspensions that have run out and returns
- * the alerts that are due. Called every second or so by the match service; safe
- * to call as often as you like, and after any gap (a crash or a reboot).
+ * the alerts that are due. Called by the match service when [untilNextTick] says
+ * and whenever the match changes; safe to call as often as you like, and after any
+ * gap (a crash or a reboot).
  */
 fun MatchRecord.tick(now: Moment): Tick {
     var record = this
@@ -384,6 +385,29 @@ fun MatchRecord.tick(now: Moment): Tick {
         else -> {}
     }
     return Tick(record, alerts)
+}
+
+/**
+ * Milliseconds from `now` until [tick] next has something to do (an alert, or a
+ * suspension running out), or null if nothing will happen until the umpire acts.
+ * Lets the match service sleep between alerts instead of waking every second.
+ */
+fun MatchRecord.untilNextTick(now: Moment): Long? {
+    val c = clock
+    val waits = mutableListOf<Long>()
+    when (c.phase) {
+        Phase.PLAYING -> if (c.running) {
+            val left = settings.periodLengthMs - periodElapsedMs(now)
+            // The same thresholds as in tick, for the alerts not given yet.
+            if (settings.periodLengthMs > 120_000 && "two:${c.period}" !in fired && left > 60_000) waits += left - 120_000
+            if (settings.periodLengthMs > 60_000 && "minute:${c.period}" !in fired && left > 0) waits += left - 60_000
+            if ("time:${c.period}" !in fired) waits += left
+            suspensions(now).forEach { waits += it.remainingMs }
+        }
+        Phase.BREAK -> if ("break:${c.period}" !in fired) waits += breakRemainingMs(now)
+        else -> {}
+    }
+    return waits.minOrNull()?.coerceAtLeast(0)
 }
 
 /** Period and clock time at which the match clock reached `matchMs`. */

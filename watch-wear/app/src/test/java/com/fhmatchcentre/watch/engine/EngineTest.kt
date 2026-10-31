@@ -279,6 +279,49 @@ class EngineTest {
     }
 
     @Test
+    fun `the service can sleep until each alert is due, and not at all once nothing is timed`() {
+        val start = t.elapsed
+        var m = newMatch().startPeriod(t.now)
+        t.advance(10 * MIN)
+        m = m.card(Side.HOME, 4, CardKind.GREEN, t.now) // 2 minutes
+        val due = mutableListOf<Pair<Long, List<Alert>>>()
+        while (true) {
+            val wait = m.untilNextTick(t.now) ?: break
+            t.advance(wait)
+            val tick = m.tick(t.now)
+            // Woken for something: never early, never for nothing.
+            assertTrue(tick.alerts.isNotEmpty())
+            due += (t.elapsed - start) / 1000 to tick.alerts
+            m = tick.record
+        }
+        assertEquals(
+            listOf(
+                720L to listOf(Alert.SuspensionOver(m.suspensionCardSeq(), Side.HOME, 4)),
+                780L to listOf(Alert.TwoMinutesLeft(1)),
+                840L to listOf(Alert.OneMinuteLeft(1)),
+                900L to listOf(Alert.TimeUp(1)),
+            ),
+            due,
+        )
+
+        m = m.endPeriod(t.now)
+        assertEquals(2 * MIN, m.untilNextTick(t.now))
+        t.advance(2 * MIN)
+        val tick = m.tick(t.now)
+        assertEquals(listOf(Alert.BreakOver(1)), tick.alerts)
+        assertNull(tick.record.untilNextTick(t.now))
+
+        // A stopped clock pauses everything, suspensions too.
+        m = tick.record.toggleClock(t.now).toggleClock(t.now)
+        t.advance(MIN)
+        m = m.card(Side.AWAY, 8, CardKind.GREEN, t.now).stopClock(t.now)
+        assertNull(m.untilNextTick(t.now))
+        assertNull(newMatch().untilNextTick(t.now))
+    }
+
+    private fun MatchRecord.suspensionCardSeq() = document.events.filterIsInstance<Card>().single().seq
+
+    @Test
     fun `after a gap only the alert that still applies fires`() {
         val m = newMatch().startPeriod(t.now)
         t.advance(14 * MIN + 30_000)

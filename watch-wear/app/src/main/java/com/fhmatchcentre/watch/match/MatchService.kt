@@ -27,15 +27,19 @@ import com.fhmatchcentre.watch.engine.Alert
 import com.fhmatchcentre.watch.engine.MatchRecord
 import com.fhmatchcentre.watch.engine.Phase
 import com.fhmatchcentre.watch.engine.score
+import com.fhmatchcentre.watch.engine.untilNextTick
 import com.fhmatchcentre.watch.ui.periodName
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Keeps a match alive while it's played: a foreground service with an ongoing
- * activity (so the match stays on the watch face and in recents), ticking once
- * a second to log suspensions that end and to vibrate alerts, with the screen
- * off too. It stops itself when there's no match in progress.
+ * activity (so the match stays on the watch face and in recents) that logs
+ * suspensions as they end and vibrates alerts, with the screen off too. Between
+ * them it sleeps, waking only when the next one is due or the match changes.
+ * It stops itself when there's no match in progress.
  */
 class MatchService : LifecycleService() {
     private lateinit var wakeLock: PowerManager.WakeLock
@@ -52,22 +56,32 @@ class MatchService : LifecycleService() {
         val health = if (services.fitness.wanted) ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH else 0
         startForeground(NOTIFICATION_ID, notification("Match in progress"), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or health)
 
-        // Alerts must fire on time with the screen off, when the CPU would otherwise sleep.
+        // Alerts must fire on time with the screen off, when the CPU would otherwise sleep. It's
+        // held only while one is to come, so a stopped clock or a forgotten match lets the watch sleep.
         wakeLock = getSystemService(PowerManager::class.java).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "fh:match")
-        wakeLock.acquire(MAX_MATCH_MS)
+        wakeLock.setReferenceCounted(false)
 
         val controller = services.controller
         lifecycleScope.launch {
             while (true) {
-                val record = controller.active.value ?: break
+                if (controller.active.value == null) break
                 haptics.alert(controller.tick())
+                val record = controller.active.value ?: break
                 val status = statusLine(record)
                 if (status != shownStatus) {
                     shownStatus = status
                     manager.notify(NOTIFICATION_ID, notification(status))
                 }
-                // Wake just after each whole second of wall time, so displays and alerts line up.
-                delay(1000 - System.currentTimeMillis() % 1000 + 20)
+                // Asleep until the next alert, or until the umpire changes the match (the clock, a card).
+                val wait = record.untilNextTick(controller.now())
+                val changed = controller.active.filter { it != record }
+                if (wait == null) {
+                    if (wakeLock.isHeld) wakeLock.release()
+                    changed.first()
+                } else {
+                    wakeLock.acquire(wait + WAKE_MARGIN_MS)
+                    withTimeoutOrNull(wait) { changed.first() }
+                }
             }
             stopSelf()
         }
@@ -119,8 +133,8 @@ class MatchService : LifecycleService() {
         private const val CHANNEL = "match"
         private const val NOTIFICATION_ID = 1
 
-        /** Longer than any real match, so a forgotten one can't drain the battery forever. */
-        private const val MAX_MATCH_MS = 4 * 60 * 60 * 1000L
+        /** The wake lock lasts a little past the alert it's held for, in case that's late. */
+        private const val WAKE_MARGIN_MS = 10_000L
 
         fun start(context: Context) {
             ContextCompat.startForegroundService(context, Intent(context, MatchService::class.java))
