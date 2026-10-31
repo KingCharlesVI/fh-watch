@@ -225,7 +225,8 @@ private fun whenText(m: MatchRecord, e: MatchEvent): String = when (e) {
 fun ShootoutScreen(controller: MatchController, onCard: () -> Unit) {
     val m = controller.active.collectAsStateWithLifecycle().value ?: return
     val timerStart by controller.shootoutTimer.collectAsStateWithLifecycle()
-    val now = rememberNow()
+    // The 8 seconds count down from when the timer started.
+    val now = rememberNow(timerStart ?: 0)
     val so = m.shootout()
     val teams = m.document.teams
     val voided = m.voidedSeqs()

@@ -95,15 +95,19 @@ val CARD_GREEN = Color(0xFF2E9E44)
 val CARD_YELLOW = Color(0xFFF2C230)
 val CARD_RED = Color(0xFFD93A2B)
 
-/** The current [Moment], updated several times a second for running clocks. */
+/**
+ * The current [Moment], updated once a second as a running clock's seconds turn over:
+ * just after each instant of the monotonic clock that's a whole number of seconds from
+ * [phaseMs]. A redraw is what costs the battery, so there's none in between.
+ */
 @Composable
-fun rememberNow(intervalMs: Long = 200): Moment {
+fun rememberNow(phaseMs: Long = 0): Moment {
     val context = LocalContext.current
     var now by remember { mutableStateOf(moment(context)) }
-    LaunchedEffect(intervalMs) {
+    LaunchedEffect(phaseMs) {
         while (true) {
-            delay(intervalMs)
             now = moment(context)
+            delay(1000 - Math.floorMod(now.elapsedMs - phaseMs, 1000L) + 1)
         }
     }
     return now

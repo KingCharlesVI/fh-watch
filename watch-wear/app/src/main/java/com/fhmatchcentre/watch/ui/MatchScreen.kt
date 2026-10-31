@@ -49,6 +49,7 @@ import androidx.wear.compose.material3.Text
 import com.fhmatchcentre.watch.Services
 import com.fhmatchcentre.watch.engine.Card
 import com.fhmatchcentre.watch.engine.CardColor
+import com.fhmatchcentre.watch.engine.ClockState
 import com.fhmatchcentre.watch.engine.MatchRecord
 import com.fhmatchcentre.watch.engine.Moment
 import com.fhmatchcentre.watch.engine.Phase
@@ -104,7 +105,7 @@ fun MatchScreen(
         AmbientMatch(m, countDown)
         return
     }
-    val now = rememberNow()
+    val now = rememberNow(m.clock.secondsPhaseMs())
 
     val pager = rememberPagerState(pageCount = { Page.entries.size })
     HorizontalPagerScaffold(pagerState = pager) {
@@ -197,6 +198,13 @@ private fun TimingPage(m: MatchRecord, now: Moment, countDown: Boolean, clockBut
             }
         }
     }
+}
+
+/** When the clock on screen shows a new second, give or take whole seconds: a running period's, or the break's. */
+private fun ClockState.secondsPhaseMs(): Long = when {
+    phase == Phase.BREAK -> breakStartedAt?.elapsedMs ?: 0
+    running -> runningSince?.let { it.elapsedMs - bankedMs } ?: 0
+    else -> 0
 }
 
 /** Period label, clock text and colour: amber while stopped, red at time up. */
