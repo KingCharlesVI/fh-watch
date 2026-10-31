@@ -133,4 +133,4 @@ The match goes to your phone automatically whenever it's in reach, even hours la
 | **Record workout** | Records your heart rate, steps and distance during each match. See [Workouts](guide/workouts.md). |
 | **Resend all unsynced** | Sends every match your phone hasn't confirmed. |
 
-While the app is open the screen stays on at the brightness you've set, so the clock is always in view.
+The screen goes to sleep as usual during a match, to save battery. Asleep, it shows the period, the minute and the score; raise your wrist or tap it for the full clock. The vibrations come on time either way. While the screen's on, it stays at the brightness you've set.

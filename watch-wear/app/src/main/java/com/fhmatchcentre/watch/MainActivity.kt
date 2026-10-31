@@ -10,7 +10,6 @@ import android.provider.Settings
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -66,14 +65,13 @@ class MainActivity : ComponentActivity() {
         // The match service's notification is what keeps the match on the watch face.
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {}.launch(Manifest.permission.POST_NOTIFICATIONS)
         lifecycleScope.launch { services.controller.restore() }
-        // While the app is open the screen doesn't dim or turn off, so the clock is always in
-        // view. The system takes over again as soon as the app leaves the screen.
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // The screen times out as usual, to the low-power ambient match screen: kept on, it
+        // was most of the battery a match used. Raising the wrist or a tap brings it back.
         setContent { WatchTheme { WatchNav(services, ambient.value) } }
     }
 
-    // Adaptive brightness dims the screen in shade and under clouds. The app holds the
-    // brightness the watch is set to instead, following it if the umpire changes it.
+    // Adaptive brightness dims the screen in shade and under clouds. While the screen is on,
+    // the app holds the brightness the watch is set to instead, following it if the umpire changes it.
     private val brightnessSetting = object : ContentObserver(Handler(Looper.getMainLooper())) {
         override fun onChange(selfChange: Boolean) = holdBrightness()
     }
