@@ -430,8 +430,8 @@ struct Tick {
 
 extension MatchRecord {
     /// Moves the match on to `now`: logs suspensions that have run out and returns
-    /// the alerts that are due. Called every second or so while a match is on;
-    /// safe to call as often as you like, and after any gap (a crash or a reboot).
+    /// the alerts that are due. Called when `untilNextTick` says and whenever the match
+    /// changes; safe to call as often as you like, and after any gap (a crash or a reboot).
     func tick(_ now: Moment) -> Tick {
         var record = self
         var alerts: [Alert] = []
@@ -464,6 +464,29 @@ extension MatchRecord {
             break
         }
         return Tick(record: record, alerts: alerts)
+    }
+
+    /// Milliseconds from `now` until `tick` next has something to do (an alert, or a
+    /// suspension running out), or nil if nothing will happen until the umpire acts.
+    /// Lets the app sleep between alerts instead of waking every second.
+    func untilNextTick(_ now: Moment) -> Int64? {
+        let c = clock
+        var waits: [Int64] = []
+        switch c.phase {
+        case .playing where c.running:
+            let length = settings.periodLengthMs
+            let left = length - periodElapsedMs(now)
+            // The same thresholds as in tick, for the alerts not given yet.
+            if length > 120_000 && !fired.contains("two:\(c.period)") && left > 60_000 { waits.append(left - 120_000) }
+            if length > 60_000 && !fired.contains("minute:\(c.period)") && left > 0 { waits.append(left - 60_000) }
+            if !fired.contains("time:\(c.period)") { waits.append(left) }
+            waits += suspensions(now).map(\.remainingMs)
+        case .breakTime:
+            if !fired.contains("break:\(c.period)") { waits.append(breakRemainingMs(now)) }
+        default:
+            break
+        }
+        return waits.min().map { max($0, 0) }
     }
 
     /// Period and clock time at which the match clock reached `matchMs`.

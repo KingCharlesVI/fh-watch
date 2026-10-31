@@ -281,6 +281,44 @@ final class EngineTests: XCTestCase {
         XCTAssertTrue(tick.record.tick(t.now).alerts.isEmpty)
     }
 
+    func testTheAppCanSleepUntilEachAlertIsDueAndNotAtAllOnceNothingIsTimed() throws {
+        let start = t.elapsed
+        var m = try newMatch().startPeriod(t.now)
+        t.advance(10 * MIN)
+        m = try m.card(team: .home, player: 4, kind: .green, now: t.now) // 2 minutes
+        let cardSeq = m.document.events.last!.seq
+        var due: [(Int64, [Alert])] = []
+        while let wait = m.untilNextTick(t.now) {
+            t.advance(wait)
+            let tick = m.tick(t.now)
+            // Woken for something: never early, never for nothing.
+            XCTAssertFalse(tick.alerts.isEmpty)
+            due.append(((t.elapsed - start) / 1000, tick.alerts))
+            m = tick.record
+        }
+        XCTAssertEqual(due.map(\.0), [720, 780, 840, 900])
+        XCTAssertEqual(due.map(\.1), [
+            [.suspensionOver(cardSeq: cardSeq, team: .home, player: 4)],
+            [.twoMinutesLeft(period: 1)],
+            [.oneMinuteLeft(period: 1)],
+            [.timeUp(period: 1)],
+        ])
+
+        m = try m.endPeriod(t.now)
+        XCTAssertEqual(m.untilNextTick(t.now), 2 * MIN)
+        t.advance(2 * MIN)
+        let tick = m.tick(t.now)
+        XCTAssertEqual(tick.alerts, [.breakOver(afterPeriod: 1)])
+        XCTAssertNil(tick.record.untilNextTick(t.now))
+
+        // A stopped clock pauses everything, suspensions too.
+        m = try tick.record.toggleClock(t.now).toggleClock(t.now)
+        t.advance(MIN)
+        m = try m.card(team: .away, player: 8, kind: .green, now: t.now).stopClock(t.now)
+        XCTAssertNil(m.untilNextTick(t.now))
+        XCTAssertNil(try newMatch().untilNextTick(t.now))
+    }
+
     func testAfterAGapOnlyTheAlertThatStillAppliesFires() throws {
         let m = try newMatch().startPeriod(t.now)
         t.advance(14 * MIN + 30_000)

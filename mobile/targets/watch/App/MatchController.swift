@@ -9,9 +9,9 @@ struct UndoOffer: Equatable {
 }
 
 /// The match in progress: applies the umpire's actions through the engine and writes
-/// every change to storage before anything else sees it. A timer ticks once a second
-/// to log suspensions that end and to give alerts, with the wrist down too (the
-/// workout session keeps the app running).
+/// every change to storage before anything else sees it. A timer logs suspensions as
+/// they end and gives alerts, with the wrist down too (the workout session keeps the
+/// app running). It fires only when the next one is due, not every second.
 @MainActor
 @Observable
 final class MatchController {
@@ -58,7 +58,7 @@ final class MatchController {
         guard let row = store.active() else { return }
         createdAt = row.createdAt
         active = row.record
-        startTicking()
+        tick()
         if row.record.clock.phase != .ready { Task { await workout.recover() } }
     }
 
@@ -68,7 +68,6 @@ final class MatchController {
         let record = try Engine.newMatch(settings: settings, teams: teams, venue: venue, now: now, competition: competition)
         save(record)
         active = record
-        startTicking()
     }
 
     /// Throws away a match that never started.
@@ -97,6 +96,8 @@ final class MatchController {
         guard next != current else { return }
         save(next)
         active = next
+        // The clock may have started or stopped, or a suspension begun.
+        scheduleTick()
         if next.document.events.dropFirst(current.document.events.count).contains(where: { if case .shootoutAttempt = $0 { return true } else { return false } }) {
             stopShootoutTimer()
         }
@@ -148,11 +149,15 @@ final class MatchController {
             active = result.record
         }
         Haptics.alert(result.alerts)
+        scheduleTick()
     }
 
-    private func startTicking() {
-        guard timer == nil else { return }
-        let t = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+    /// Sets the timer for when the next alert or suspension end is due. Nothing is
+    /// timed with the clock stopped, so then there's no timer at all.
+    private func scheduleTick() {
+        stopTicking()
+        guard let wait = active?.untilNextTick(currentMoment()) else { return }
+        let t = Timer(timeInterval: Double(wait) / 1000, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.tick() }
         }
         RunLoop.main.add(t, forMode: .common)

@@ -5,15 +5,14 @@ import SwiftUI
 /// page has the Start/Stop button, which double-tap also presses.
 struct MatchView: View {
     @Environment(MatchController.self) private var controller
-    @Environment(\.isLuminanceReduced) private var dimmed
     @Binding var path: [Route]
     @State private var page = 0
     @State private var countDown = true
 
     var body: some View {
         if let m = controller.active {
-            // Several times a second for running clocks; once a second with the wrist down.
-            TimelineView(.periodic(from: .now, by: dimmed ? 1 : 0.2)) { _ in
+            // Once a second, as the clock's seconds turn over: a redraw is what costs the battery.
+            TimelineView(.periodic(from: secondsTurnOver(m), by: 1)) { _ in
                 let now = currentMoment()
                 if m.clock.phase == .shootout {
                     ShootoutView(m: m, now: now, path: $path)
@@ -30,6 +29,19 @@ struct MatchView: View {
             .toolbar(.hidden, for: .navigationBar)
             .onAppear { countDown = controller.prefs.clockCountsDown }
         }
+    }
+
+    /// A moment when the clock on screen shows a new second (a running period's, the break's,
+    /// or the shoot-out timer's), so the view redraws just after each one.
+    private func secondsTurnOver(_ m: MatchRecord) -> Date {
+        let c = m.clock
+        let phaseMs: Int64? = switch c.phase {
+        case .breakTime: c.breakStartedAt?.elapsedMs
+        case .shootout: controller.shootoutTimerStart
+        default: c.running ? c.runningSince.map { $0.elapsedMs - c.bankedMs } : nil
+        }
+        guard let phaseMs else { return .now }
+        return Date(timeIntervalSinceNow: Double(phaseMs - currentMoment().elapsedMs + 1) / 1000)
     }
 }
 
