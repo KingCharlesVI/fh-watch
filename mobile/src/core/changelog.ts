@@ -42,7 +42,11 @@ const AREAS: Record<string, ChangeItem["area"]> = {
 /** Scopes that are nothing an umpire would notice, so their items are left out. */
 const HIDDEN_SCOPES = new Set(["deploy", "docs", "release", "ci", "landing", "status", "docs-site"]);
 
-/** The entries, newest first as the file has them. Entries with nothing to show are left out. */
+/**
+ * The entries, newest first as the file has them. Every build keeps its entry, even one with
+ * nothing to show (its sections are then empty), so What's new lists each build. A version
+ * that's in the file twice keeps its first entry, and "unreleased" is left out.
+ */
 export function parseChangelog(markdown: string): ChangelogEntry[] {
   const entries: ChangelogEntry[] = [];
   let entry: ChangelogEntry | null = null;
@@ -75,8 +79,8 @@ export function parseChangelog(markdown: string): ChangelogEntry[] {
   }
 
   return entries
-    .map((e) => ({ ...e, sections: e.sections.filter((s) => s.items.length > 0) }))
-    .filter((e) => e.sections.length > 0 && e.version !== "unreleased");
+    .filter((e, i) => e.version !== "unreleased" && entries.findIndex((other) => other.version === e.version) === i)
+    .map((e) => ({ ...e, sections: e.sections.filter((s) => s.items.length > 0) }));
 }
 
 /**

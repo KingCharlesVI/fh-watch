@@ -92,6 +92,17 @@ if (capture("git", ["rev-parse", "--verify", "--quiet", `refs/tags/${tag}`], { a
   );
 }
 
+// The phone app's What's new is built from CHANGELOG.md, so a test build needs its own entry on top.
+if (prerelease) {
+  const top = /^## \[([^\]]+)\]/m.exec(readFileSync(join(ROOT, "CHANGELOG.md"), "utf8"))?.[1];
+  if (top !== tag.slice(1)) {
+    fail(
+      `CHANGELOG.md starts with ${top ? `[${top}]` : "no entry"}, not [${tag.slice(1)}], so What's new would be wrong. Add the entry ` +
+        `(git-cliff --unreleased --tag ${tag} --prepend CHANGELOG.md -o -), commit and push, then run this again.`,
+    );
+  }
+}
+
 say(`${prerelease ? "Pre-release" : "Release"} ${tag} from ${branch} (${head.slice(0, 7)})`);
 
 // ---- The notes --------------------------------------------------------------

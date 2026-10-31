@@ -19,6 +19,7 @@ export default function WhatsNewScreen() {
       {entries.map((entry) => (
         <Card key={entry.version} title={`Version ${entry.version}`}>
           {entry.date && <T variant="small">{entry.date}</T>}
+          {entry.sections.length === 0 && <T>Small fixes and improvements behind the scenes.</T>}
           {entry.sections.map((section) => (
             <View key={section.title} style={{ gap: 6 }}>
               <T variant="label">{section.title}</T>

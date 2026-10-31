@@ -63,18 +63,37 @@ describe("parseChangelog", () => {
         { title: "Faster", items: [{ area: "Website", text: "Cache the public lists for a minute" }] },
       ],
     });
-    // 1.1.4-beta.20 was only a release chore, so it's left out.
-    expect(rest.map((e) => e.version)).toEqual(["1.1.3-beta.19"]);
-    expect(rest[0]!.sections).toEqual([{ title: "New", items: [{ area: "Website", text: "Competitions to manage" }] }]);
+    // 1.1.4-beta.20 was only a release chore: still listed, with nothing to show.
+    expect(rest.map((e) => e.version)).toEqual(["1.1.4-beta.20", "1.1.3-beta.19"]);
+    expect(rest[0]!.sections).toEqual([]);
+    expect(rest[1]!.sections).toEqual([{ title: "New", items: [{ area: "Website", text: "Competitions to manage" }] }]);
+  });
+
+  it("keeps a version's first entry when it's in twice, and leaves out unreleased", () => {
+    const twice = `## [unreleased]
+
+### 🐛 Bug Fixes
+
+- Pending
+${SAMPLE}
+## [1.2.0-beta.21] - 2026-10-01
+
+### 🚀 Features
+
+- Older copy
+`;
+    const entries = parseChangelog(twice);
+    expect(entries.map((e) => e.version)).toEqual(["1.2.0-beta.21", "1.1.4-beta.20", "1.1.3-beta.19"]);
+    expect(entries[0]!.date).toBe("2026-10-09");
   });
 
   it("reads the real changelog", () => {
     const entries = parseChangelog(readFileSync(join(__dirname, "..", "..", "CHANGELOG.md"), "utf8"));
     expect(entries.length).toBeGreaterThan(3);
-    for (const e of entries) {
-      expect(e.version).toMatch(/^\d+\.\d+\.\d+/);
-      expect(e.sections.length).toBeGreaterThan(0);
-    }
+    for (const e of entries) expect(e.version).toMatch(/^\d+\.\d+\.\d+/);
+    // The newest entry is this build's, as the release script checks.
+    const release = JSON.parse(readFileSync(join(__dirname, "..", "..", "version.json"), "utf8")) as { version: string; build: number };
+    expect(entries[0]!.version.replace(/-[a-z]+\./, " ")).toBe(`${release.version} ${release.build}`);
   });
 });
 
@@ -87,7 +106,7 @@ describe("newSince", () => {
   });
 
   it("shows every entry newer than the one last shown", () => {
-    expect(newSince(entries, "1.1.3-beta.19").map((e) => e.version)).toEqual(["1.2.0-beta.21"]);
+    expect(newSince(entries, "1.1.3-beta.19").map((e) => e.version)).toEqual(["1.2.0-beta.21", "1.1.4-beta.20"]);
   });
 
   it("shows just the newest when the last one shown is no longer listed", () => {

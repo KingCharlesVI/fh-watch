@@ -1,4 +1,4 @@
-## [2.2.0-beta.28] - 2026-10-27
+## [2.0.0-beta.28] - 2026-10-27
 
 ### ⚙️ Miscellaneous Tasks
 
@@ -8,16 +8,16 @@
 ### 💼 Other
 
 - Create public-release.md
-## [unreleased]
+## [2.0.0-beta.27] - 2026-10-23
 
-### ⚙️ Miscellaneous Tasks
+### 🐛 Bug Fixes
 
-- *(fix)* Make fields and lists visible
+- *(mobile)* Make fields and lists visible
 
 ### 💼 Other
 
 - Update version.json
-## [2.2.0-beta.26] - 2026-10-23
+## [2.0.0-beta.26] - 2026-10-23
 
 ### 🚀 Features
 
@@ -46,26 +46,6 @@ Website overhaul
 - Merge pull request #49 from KingCharlesVI/v2.0.0
 
 V2.0.0
-## [2.2.0-beta.26] - 2026-10-23
-
-### 🚀 Features
-
-- *(deploy)* A beta website at beta.fhmatchcentre.com, deployed from a branch
-- *(web)* Clubhouse redesign, first pass
-- *(web)* Clubhouse redesign for the dashboard, clubs, search and sign-in
-- *(web)* Clubhouse redesign for upcoming, appointments and availability
-- *(web)* Clubhouse redesign for the admin overview
-- *(web)* A pitchside identity instead of the stock look
-- *(mobile)* The website's pitchside look
-
-### 🐛 Bug Fixes
-
-- *(wear)* A match sent from Upcoming opens on the watch
-
-### 💼 Other
-
-- Mobile optimisations
-- Update version.json
 ## [1.4.0-beta.25] - 2026-10-17
 
 ### 🐛 Bug Fixes

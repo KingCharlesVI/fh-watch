@@ -9,7 +9,8 @@ export const changelog: ChangelogEntry[] = parseChangelog((Constants.expoConfig?
 
 /**
  * After an update: how many entries are new since What's new last opened by itself, and
- * remembers the newest as shown. 0 on a fresh install, which has nothing to compare with.
+ * remembers the newest as shown. 0 on a fresh install, which has nothing to compare with,
+ * and when none of the new builds changed anything an umpire would notice.
  */
 export async function takeNewEntries(): Promise<number> {
   const newest = changelog[0]?.version;
@@ -19,5 +20,6 @@ export async function takeNewEntries(): Promise<number> {
     lastShown = await Storage.getItem(LAST_SHOWN_KEY);
   } catch {}
   if (lastShown !== newest) await Storage.setItem(LAST_SHOWN_KEY, newest).catch(() => {});
-  return newSince(changelog, lastShown).length;
+  const fresh = newSince(changelog, lastShown);
+  return fresh.some((e) => e.sections.length > 0) ? fresh.length : 0;
 }
