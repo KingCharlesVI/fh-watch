@@ -1,3 +1,8 @@
+## [2.0.1-beta.29] - 2026-10-31
+
+### 🐛 Bug Fixes
+
+- What's new and changelog stuck
 ## [2.0.0-beta.28] - 2026-10-27
 
 ### ⚙️ Miscellaneous Tasks
