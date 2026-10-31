@@ -1,3 +1,14 @@
+## [2.1.0-beta.30] - 2026-10-31
+
+### 🐛 Bug Fixes
+
+- *(wear)* The screen sleeps to ambient during a match
+
+### ⚡ Performance
+
+- *(wear)* The match screen redraws once a second, not five times
+- *(wear)* The match service sleeps until the next alert
+- *(watch)* Tick and redraw on Apple Watch only when something changes
 ## [2.0.1-beta.29] - 2026-10-31
 
 ### 🐛 Bug Fixes
