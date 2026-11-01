@@ -1,10 +1,10 @@
 "use server";
 
-import type { MatchDocument, ValidationIssue } from "@fh/shared";
+import { DEFAULT_COLOURS, type MatchDocument, TIME_PATTERN, type Team, type ValidationIssue, localInstant, readDay, recordedMatch } from "@fh/shared";
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { ApiError, LISTS_TAG, api } from "@/lib/api";
-import { type FormState, formError, text } from "@/lib/forms";
+import { type FormState, formError, formatFrom, optionalText, text } from "@/lib/forms";
 import type { Items, Match, TeamWithClub, Umpire } from "@/lib/types";
 
 const refresh = (id: string) => {
@@ -66,6 +66,47 @@ export async function saveMatch(id: string, revision: number, document: MatchDoc
     const state = formError(err);
     return { ok: false, error: state?.error ?? "Couldn't save.", details: state?.details };
   }
+}
+
+/** The site's team a name is, "Reading M1", when exactly one is; otherwise it's left for the editor to link. */
+async function teamNamed(name: string): Promise<string | null> {
+  const found = (await api<Items<TeamWithClub>>("/v1/teams", { query: { q: name } })).items;
+  const exact = found.filter((t) => `${t.club.name} ${t.name}`.toLowerCase() === name.toLowerCase());
+  return exact.length === 1 ? exact[0]!.id : null;
+}
+
+/** A match umpired without the watch: saved as a draft, then opened in the editor for its goals and cards. */
+export async function recordMatch(_: FormState, fd: FormData): Promise<FormState> {
+  const day = readDay(text(fd, "date"));
+  const time = text(fd, "time");
+  if (!day || !TIME_PATTERN.test(time)) return { error: "Enter the day and kick-off." };
+  const startedAt = localInstant(day, time);
+  if (startedAt.getTime() > Date.now()) return { error: "That kick-off hasn't happened yet. To set up a match to come, plan it instead." };
+  const format = formatFrom(fd);
+  if (!format) return { error: "Pick the format the match was played in." };
+
+  const id = crypto.randomUUID();
+  try {
+    const side = async (s: "home" | "away"): Promise<Team> => {
+      const name = text(fd, s);
+      const captain = text(fd, `${s}Captain`);
+      return { name, teamId: name ? await teamNamed(name) : null, color: text(fd, `${s}Color`) || DEFAULT_COLOURS[s], captain: captain === "" ? null : Number(captain) };
+    };
+    const document = recordedMatch({
+      id,
+      startedAt,
+      format,
+      home: await side("home"),
+      away: await side("away"),
+      venue: optionalText(fd, "venue") ?? null,
+      competition: optionalText(fd, "competition") ?? null,
+    });
+    await api(`/v1/matches/${id}`, { method: "PUT", body: { source: "web", document } });
+  } catch (err) {
+    return formError(err);
+  }
+  revalidatePath("/dashboard");
+  redirect(`/matches/${id}/edit`);
 }
 
 export async function searchTeams(q: string): Promise<TeamWithClub[]> {

@@ -65,6 +65,23 @@ export function localDay(at: Date): string {
   return dayFormat.format(at);
 }
 
+const offsetFormat = new Intl.DateTimeFormat("en-GB", { timeZone: UMPIRING_TIME_ZONE, timeZoneName: "longOffset" });
+
+/** Minutes the UK is ahead of UTC at an instant: 0 in winter, 60 in summer. */
+function ukOffsetMinutes(at: Date): number {
+  const name = offsetFormat.formatToParts(at).find((p) => p.type === "timeZoneName")?.value ?? "";
+  const m = /([+-])(\d{2}):(\d{2})/.exec(name);
+  return m ? (m[1] === "-" ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3])) : 0;
+}
+
+/** The instant of a local day and kick-off, "2026-10-11" and "14:00", in the UK. */
+export function localInstant(day: string, time: string): Date {
+  const asUtc = Date.parse(`${day}T${time}:00Z`);
+  const guess = new Date(asUtc - ukOffsetMinutes(new Date(asUtc)) * 60_000);
+  // Near a clock change the offset at the guess can differ from the one first assumed.
+  return new Date(asUtc - ukOffsetMinutes(guess) * 60_000);
+}
+
 /** A kick-off time, "14:00" (24-hour). */
 export const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 

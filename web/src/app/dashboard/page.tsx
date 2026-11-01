@@ -1,5 +1,5 @@
-import { hasRole } from "@fh/shared";
-import { CircleCheck, Download, FilePen, Hourglass, Link2Off } from "lucide-react";
+import { canUploadMatch, hasRole } from "@fh/shared";
+import { CircleCheck, Download, FilePen, Hourglass, Link2Off, NotebookPen } from "lucide-react";
 import Link from "next/link";
 import { FilterPanel, PillLinks } from "@/components/FilterPanel";
 import { MatchFilterFields, type MatchFilterParams, loadMatchFilters } from "@/components/MatchFilters";
@@ -73,13 +73,22 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 : `Signed in as ${user.displayName}`
         }
         actions={
-          view && (
-            <Button variant="outline" asChild>
-              <a href={`/dashboard/export?${exportQuery.toString()}`}>
-                <Download /> Download CSV
-              </a>
-            </Button>
-          )
+          <>
+            {canUploadMatch(user) && (
+              <Button variant="outline" asChild>
+                <Link href="/matches/new">
+                  <NotebookPen /> Record a match
+                </Link>
+              </Button>
+            )}
+            {view && (
+              <Button variant="outline" asChild>
+                <a href={`/dashboard/export?${exportQuery.toString()}`}>
+                  <Download /> Download CSV
+                </a>
+              </Button>
+            )}
+          </>
         }
       />
 

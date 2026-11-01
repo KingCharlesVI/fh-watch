@@ -7,15 +7,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
-const OPTIONS = [
-  { value: "phone", label: "As last set up on your phone" },
-  ...FORMAT_PRESETS.map((p) => ({ value: p.key, label: p.label })),
-  { value: "custom", label: "Other" },
-];
+const PHONE = { value: "phone", label: "As last set up on your phone" };
+const OPTIONS = [...FORMAT_PRESETS.map((p) => ({ value: p.key, label: p.label })), { value: "custom", label: "Other" }];
 
-/** How the match is played: one of the watch's presets, other periods and breaks, or the phone's last setup's. */
-export function FormatFields({ format }: { format: FixtureFormat | null }) {
-  const [choice, setChoice] = useState(format ? (formatPreset(format)?.key ?? "custom") : "phone");
+/**
+ * How the match is played: one of the watch's presets, other periods and breaks, or the phone's
+ * last setup's. A match already played has no phone setup to fall back on, so it leaves that out.
+ */
+export function FormatFields({ format, played = false }: { format: FixtureFormat | null; played?: boolean }) {
+  const [choice, setChoice] = useState(format ? (formatPreset(format)?.key ?? "custom") : played ? OPTIONS[0]!.value : PHONE.value);
   const start = format ?? FORMAT_PRESETS[0]!.format;
   const halfTime = (periods: number) => periods % 2 === 0 && periods > 2;
   const [periods, setPeriods] = useState(start.periods);
@@ -23,7 +23,7 @@ export function FormatFields({ format }: { format: FixtureFormat | null }) {
     <div className="grid gap-4">
       <Field>
         <FieldLabel htmlFor="planned-format">Format</FieldLabel>
-        <FilterSelect id="planned-format" name="format" defaultValue={choice} options={OPTIONS} onChange={setChoice} />
+        <FilterSelect id="planned-format" name="format" defaultValue={choice} options={played ? OPTIONS : [PHONE, ...OPTIONS]} onChange={setChoice} />
       </Field>
       {choice === "custom" && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

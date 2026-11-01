@@ -1,4 +1,5 @@
-import type { CardColor, CardReason, MatchDocument, MatchEvent, MatchSettings, TeamSide } from "./schema.js";
+import type { FixtureFormat } from "./api-types.js";
+import { type CardColor, type CardReason, type MatchDocument, type MatchEvent, type MatchSettings, SCHEMA_VERSION, type Team, type TeamSide } from "./schema.js";
 
 /**
  * Edits umpires make after the match, shared by the website and phone app.
@@ -81,6 +82,50 @@ export function parseShirtNumber(value: string, required: boolean): { player: nu
   const player = Number(value);
   if (!Number.isInteger(player) || player < 0 || player > 999) return { error: "Shirt numbers are whole numbers from 0 to 999." };
   return { player };
+}
+
+/** The watch's card suspensions (Engine.DEFAULT_CARDS). */
+export const DEFAULT_CARD_DURATIONS_SEC = { green: 120, yellowShort: 300, yellowLong: 600 } as const;
+
+/** A format's settings, as the watch makes them (Setup.settings in Prefs.kt): with an even number of periods over 2, the middle break is half-time. */
+export function settingsFromFormat(format: FixtureFormat): MatchSettings {
+  const { periods } = format;
+  return {
+    periods,
+    periodLengthSec: format.periodMinutes * 60,
+    breakLengthsSec: Array.from({ length: periods - 1 }, (_, i) =>
+      (periods % 2 === 0 && periods > 2 && i === periods / 2 - 1 ? format.halfTimeMinutes : format.breakMinutes) * 60,
+    ),
+    cardDurationsSec: { ...DEFAULT_CARD_DURATIONS_SEC },
+    shootoutIfDrawn: format.shootoutIfDrawn,
+  };
+}
+
+/**
+ * A match umpired without the watch (on paper, or in another app), entered on the website
+ * afterwards. It starts with no events; the umpire adds the goals and cards in the editor.
+ */
+export function recordedMatch(input: {
+  id: string;
+  startedAt: Date;
+  format: FixtureFormat;
+  home: Team;
+  away: Team;
+  venue: string | null;
+  competition: string | null;
+}): MatchDocument {
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    id: input.id,
+    createdOn: "web",
+    settings: settingsFromFormat(input.format),
+    teams: { home: input.home, away: input.away },
+    venue: input.venue,
+    competition: input.competition,
+    startedAt: input.startedAt.toISOString().replace(/\.\d{3}Z$/, "Z"),
+    endedAt: null,
+    events: [],
+  };
 }
 
 /** "12:30" or "12" (minutes) → milliseconds. Null if unreadable. */

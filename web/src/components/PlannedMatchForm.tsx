@@ -13,17 +13,21 @@ const COLOUR_OPTIONS = TEAM_COLOURS.map((c) => ({ value: c.hex, label: c.name })
 
 /**
  * A match set up ahead of time: the same setup as on the phone, with its day and kick-off.
- * Team, venue and competition names are offered from the site's lists.
+ * Team, venue and competition names are offered from the site's lists. With [played], a match
+ * already umpired without the watch, so its day is past and its kick-off and format are known.
  */
 export async function PlannedMatchForm({
   planned,
   action,
   submitLabel,
+  played = false,
 }: {
   planned?: PlannedMatch;
   action: (state: FormState, fd: FormData) => Promise<FormState>;
   submitLabel: string;
+  played?: boolean;
 }) {
+  const today = localDay(new Date());
   const [venues, competitions, teams] = await Promise.all([
     cachedPublic<Items<Venue>>("/v1/venues"),
     cachedPublic<Items<Competition>>("/v1/competitions"),
@@ -57,11 +61,11 @@ export async function PlannedMatchForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="planned-date">Date</FieldLabel>
-          <Input id="planned-date" name="date" type="date" required min={localDay(new Date())} defaultValue={planned?.date} />
+          <Input id="planned-date" name="date" type="date" required {...(played ? { max: today } : { min: today })} defaultValue={planned?.date} />
         </Field>
         <Field>
           <FieldLabel htmlFor="planned-time">Kick-off</FieldLabel>
-          <Input id="planned-time" name="time" type="time" defaultValue={planned?.time ?? ""} />
+          <Input id="planned-time" name="time" type="time" required={played} defaultValue={planned?.time ?? ""} />
         </Field>
       </div>
       {side("home", "Home")}
@@ -82,7 +86,7 @@ export async function PlannedMatchForm({
           />
         </Field>
       </div>
-      <FormatFields format={planned?.format ?? null} />
+      <FormatFields format={planned?.format ?? null} played={played} />
     </ActionForm>
   );
 }

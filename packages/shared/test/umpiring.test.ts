@@ -1,11 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { addDays, availabilityFor, fixtureWhen, localDay, minutesBetween, readDay, readTime, seasonStart, weekdayOf } from "../src/umpiring.js";
+import { addDays, availabilityFor, fixtureWhen, localDay, localInstant, minutesBetween, readDay, readTime, seasonStart, weekdayOf } from "../src/umpiring.js";
 
 describe("localDay", () => {
   it("is the day in the UK, not UTC", () => {
     // 23:30 UTC in summer is already the next day in London.
     expect(localDay(new Date("2026-07-11T23:30:00Z"))).toBe("2026-07-12");
     expect(localDay(new Date("2026-12-11T23:30:00Z"))).toBe("2026-12-11");
+  });
+});
+
+describe("localInstant", () => {
+  it("is UK time, GMT in winter and BST in summer", () => {
+    expect(localInstant("2026-12-12", "14:00").toISOString()).toBe("2026-12-12T14:00:00.000Z");
+    expect(localInstant("2026-09-26", "14:00").toISOString()).toBe("2026-09-26T13:00:00.000Z");
+  });
+
+  it("is right either side of a clock change", () => {
+    // The clocks go back at 02:00 BST on 25 October 2026.
+    expect(localInstant("2026-10-25", "00:30").toISOString()).toBe("2026-10-24T23:30:00.000Z");
+    expect(localInstant("2026-10-25", "11:00").toISOString()).toBe("2026-10-25T11:00:00.000Z");
+    // And forward at 01:00 GMT on 29 March 2026.
+    expect(localInstant("2026-03-29", "00:30").toISOString()).toBe("2026-03-29T00:30:00.000Z");
+    expect(localInstant("2026-03-29", "10:00").toISOString()).toBe("2026-03-29T09:00:00.000Z");
   });
 });
 

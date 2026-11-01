@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { addEvent, buildEvent, cancelEvent, nextSeq, parseClock, parseShirtNumber, restoreEvent, setCardReason, setEventPlayer, voidedSeqs } from "../src/edit.js";
+import {
+  addEvent,
+  buildEvent,
+  cancelEvent,
+  nextSeq,
+  parseClock,
+  parseShirtNumber,
+  recordedMatch,
+  restoreEvent,
+  setCardReason,
+  setEventPlayer,
+  settingsFromFormat,
+  voidedSeqs,
+} from "../src/edit.js";
 import { summarizeMatch } from "../src/summary.js";
 import { parseMatch } from "../src/validate.js";
 import { leagueMatch } from "./fixtures.js";
@@ -151,5 +164,42 @@ describe("parseShirtNumber", () => {
     expect(parseShirtNumber("", false)).toEqual({ player: undefined });
     expect(parseShirtNumber("", true)).toEqual({ error: "Cards need the player's shirt number." });
     for (const bad of ["1000", "-1", "4.5", "x"]) expect(parseShirtNumber(bad, false)).toHaveProperty("error");
+  });
+});
+
+describe("a match recorded without the watch", () => {
+  const format = { periods: 4, periodMinutes: 15, breakMinutes: 2, halfTimeMinutes: 5, shootoutIfDrawn: false };
+
+  it("has the watch's settings for its format", () => {
+    expect(settingsFromFormat(format)).toEqual({
+      periods: 4,
+      periodLengthSec: 900,
+      breakLengthsSec: [120, 300, 120],
+      cardDurationsSec: { green: 120, yellowShort: 300, yellowLong: 600 },
+      shootoutIfDrawn: false,
+    });
+    expect(settingsFromFormat({ ...format, periods: 2, periodMinutes: 35, breakMinutes: 10, shootoutIfDrawn: true })).toMatchObject({
+      periodLengthSec: 2100,
+      breakLengthsSec: [600],
+      shootoutIfDrawn: true,
+    });
+  });
+
+  it("is a valid document with no events, that goals can be added to", () => {
+    const doc = recordedMatch({
+      id: "0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b",
+      startedAt: new Date("2026-09-26T13:00:00.000Z"),
+      format,
+      home: { name: "Reading M1", teamId: null, color: "#1D4ED8" },
+      away: { name: "Witney M1", teamId: null, color: "#DC2626" },
+      venue: "Palmer Park",
+      competition: null,
+    });
+    expect(doc).toMatchObject({ createdOn: "web", startedAt: "2026-09-26T13:00:00Z", endedAt: null, events: [] });
+    expect(parseMatch(doc)).toMatchObject({ ok: true, warnings: [] });
+
+    const built = buildEvent({ type: "goal", team: "home", period: 2, clock: "7:30", player: "9" }, doc.settings);
+    if ("error" in built) throw new Error(built.error);
+    expect(summarizeMatch(addEvent(doc, built.event)).score).toEqual({ home: 1, away: 0 });
   });
 });
