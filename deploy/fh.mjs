@@ -10,6 +10,7 @@
 //   fh restore-test                 check the newest backup restores (run weekly by the provision script's timer)
 //   fh admin <email> [--verify]     make a registered user an admin
 //   fh tunnel [--name NAME]         create or reconnect the Cloudflare Tunnel and point the domain at it
+//   fh tunnel update [--check]      update cloudflared and restart the tunnel (--check: only compare versions)
 //
 // Run it with sudo on Linux, or from an administrator PowerShell on Windows. It has no dependencies,
 // because it runs before anything is installed. FH_ROOT and FH_SERVICES=none are for trying it out
@@ -59,6 +60,8 @@ const WEB_HEALTH = "http://127.0.0.1:3000/";
 const WEB_BETA_HEALTH = "http://127.0.0.1:3002/";
 /** cloudflared's metrics server; the service definitions start it here. */
 const TUNNEL_READY = "http://127.0.0.1:20241/ready";
+const TUNNEL_METRICS = "http://127.0.0.1:20241/metrics";
+const CLOUDFLARED_LATEST = "https://api.github.com/repos/cloudflare/cloudflared/releases/latest";
 /** Tables the restore test counts. */
 const TABLES = ["users", "clubs", "teams", "matches", "match_revisions"];
 /** The server needs the API and website (and what they depend on), not the phone app. */
@@ -512,6 +515,7 @@ async function status() {
     if (key === "web-beta" && !beta) continue;
     row(service, `${services.state(service).padEnd(14)}${checks[key]}`);
   }
+  row("cloudflared", await describeCloudflared());
 
   const list = backups();
   const offsite = existsSync(join(PATHS.config, "fh.env")) ? (settings().RCLONE_REMOTE ?? "not set up") : "?";
@@ -767,10 +771,11 @@ ${betaHost ? `${rule(betaHost, "http://127.0.0.1:3001", "^/v1/")}\n${rule(betaHo
 }
 
 async function tunnel(args) {
+  if (args[0] === "update") return updateCloudflared(args.slice(1));
   const i = args.indexOf("--name");
   const name = i >= 0 ? args[i + 1] : "fh-match-centre";
   if (!name) fail("Usage: fh tunnel [--name NAME]");
-  const cf = settings().CLOUDFLARED ?? "cloudflared";
+  const cf = cloudflaredPath();
   const host = new URL(readEnvFile("web.env").SITE_URL).hostname;
   const betaHost = betaSetUp() ? new URL(readEnvFile(TARGETS.beta.env).SITE_URL).hostname : undefined;
 
@@ -805,18 +810,139 @@ async function tunnel(args) {
 
   say("Starting the tunnel");
   services.restart([SERVICES.tunnel]);
-  if (!NO_SERVICES) {
-    let ready = false;
-    for (let t = 0; t < 15 && !ready; t++) {
-      await sleep(2000);
-      ready = await answers(TUNNEL_READY);
-    }
-    if (!ready) {
+  if (!(await tunnelConnects())) {
+    showRecentLogs([SERVICES.tunnel], 20);
+    fail("The tunnel didn't connect. See the log above.");
+  }
+  say(`Tunnel connected. https://${host} reaches this machine once DNS updates, usually within a minute.`);
+}
+
+/** Waits for the tunnel service to connect to Cloudflare after a (re)start. */
+async function tunnelConnects(seconds = 30) {
+  if (NO_SERVICES) return true;
+  for (let t = 0; t < seconds / 2; t++) {
+    await sleep(2000);
+    if (await answers(TUNNEL_READY)) return true;
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------- cloudflared updates
+//
+// The tunnel runs with --no-autoupdate, and nothing else updates cloudflared: Ubuntu's automatic
+// updates only take Ubuntu's security fixes, and winget never upgrades by itself. Cloudflare only
+// supports versions from the last year, so `fh tunnel update` updates it through the package
+// manager that installed it, then restarts the tunnel onto it.
+
+const cloudflaredPath = () => (existsSync(join(PATHS.config, "fh.env")) && settings().CLOUDFLARED) || "cloudflared";
+
+/** "2025.8.0", from `cloudflared --version`, or undefined if it doesn't run. */
+function installedCloudflared(cf) {
+  const r = spawnSync(cf, ["--version"], { encoding: "utf8" });
+  return r.status === 0 ? r.stdout.match(/version (\S+)/)?.[1] : undefined;
+}
+
+/** The version the tunnel service runs, which lags the installed one until the service restarts. */
+async function runningCloudflared() {
+  try {
+    const res = await fetch(TUNNEL_METRICS, { signal: AbortSignal.timeout(3000) });
+    // build_info{goversion="go1.24.4",revision="...",type="",version="2025.8.0"} 1
+    return (await res.text()).match(/build_info\{[^}]*\bversion="([^"]+)"/)?.[1];
+  } catch {}
+}
+
+/** Cloudflare's newest release, or undefined if GitHub can't be reached. */
+async function latestCloudflared() {
+  try {
+    const res = await fetch(CLOUDFLARED_LATEST, {
+      headers: { accept: "application/vnd.github+json", "user-agent": "fh-match-centre-server" },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (res.ok) return (await res.json()).tag_name?.replace(/^v/, "");
+  } catch {}
+}
+
+/** Whether version a (2025.10.1) comes after b (2025.8.0). */
+function isNewer(a, b) {
+  const [pa, pb] = [a, b].map((v) => v.split(".").map((n) => Number.parseInt(n, 10) || 0));
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d) return d > 0;
+  }
+  return false;
+}
+
+async function describeCloudflared() {
+  const installed = installedCloudflared(cloudflaredPath());
+  if (!installed) return "not found";
+  const [running, latest] = await Promise.all([runningCloudflared(), latestCloudflared()]);
+  if (running && running !== installed) return `${installed} installed, but the tunnel still runs ${running}: fh tunnel update`;
+  if (latest && isNewer(latest, installed)) return `${installed}, ${latest} is out: fh tunnel update`;
+  return latest ? `${installed}, up to date` : installed;
+}
+
+async function updateCloudflared(args) {
+  const cf = cloudflaredPath();
+  const before = installedCloudflared(cf);
+  if (!before) fail(`Couldn't run ${cf}. Run ${WIN ? "provision.ps1" : "provision.sh"} again to set it up.`);
+  const [running, latest] = await Promise.all([runningCloudflared(), latestCloudflared()]);
+  const row = (label, value) => console.log(`${label.padEnd(11)}${value}`);
+  row("Installed", before);
+  row("Running", running ?? "the tunnel isn't answering");
+  row("Newest", latest ?? "couldn't ask GitHub");
+  if (args.includes("--check")) return;
+
+  if (latest && !isNewer(latest, before)) {
+    if (!running || running === before) return console.log("\ncloudflared is up to date.");
+    say(`Restarting the tunnel onto ${before}`);
+    services.restart([SERVICES.tunnel]);
+    if (!(await tunnelConnects())) {
       showRecentLogs([SERVICES.tunnel], 20);
       fail("The tunnel didn't connect. See the log above.");
     }
+    return say(`Tunnel connected, running cloudflared ${before}.`);
   }
-  say(`Tunnel connected. https://${host} reaches this machine once DNS updates, usually within a minute.`);
+
+  say(`Updating cloudflared ${before} to ${latest ?? "the newest version"}`);
+  if (WIN) {
+    // The installer can't replace cloudflared.exe while it runs.
+    console.log("The site is offline until the tunnel starts again, usually under a minute.");
+    services.stop([SERVICES.tunnel]);
+  }
+  let problem;
+  try {
+    if (WIN) {
+      // winget exits non-zero when there's nothing newer; the version check below says what happened.
+      run("winget", [
+        "upgrade", "--id", "Cloudflare.cloudflared", "--exact", "--silent", "--disable-interactivity",
+        "--accept-source-agreements", "--accept-package-agreements",
+      ], { allowFail: true });
+    } else {
+      const env = { DEBIAN_FRONTEND: "noninteractive" };
+      run("apt-get", ["update", "-q"], { env });
+      run("apt-get", ["install", "-yq", "--only-upgrade", "cloudflared"], { env });
+    }
+  } catch (err) {
+    problem = err; // Start the tunnel again before saying so.
+  }
+
+  const after = installedCloudflared(cf);
+  say("Starting the tunnel");
+  services.restart([SERVICES.tunnel]);
+  if (!(await tunnelConnects())) {
+    showRecentLogs([SERVICES.tunnel], 20);
+    if (!after) fail(`${cf} doesn't run any more; the installer may have moved it. Run provision.ps1 again so the service finds it.`);
+    const back = WIN
+      ? `winget install --id Cloudflare.cloudflared --exact --version ${before} --force; Restart-Service fh-tunnel`
+      : `sudo apt-get install --allow-downgrades cloudflared=${before} && sudo systemctl restart fh-tunnel`;
+    fail(`The tunnel didn't connect on cloudflared ${after}. See the log above. To go back to ${before}:\n  ${back}`);
+  }
+  if (problem) throw problem;
+  if (after === before) {
+    warn(`${WIN ? "winget" : "Cloudflare's apt repository"} has nothing newer than ${before} yet${latest ? `, though ${latest} is out` : ""}. Try again in a day or two.`);
+    if (WIN) console.log("If cloudflared wasn't installed with winget, install it that way once: winget install --id Cloudflare.cloudflared");
+  }
+  say(`Tunnel connected, running cloudflared ${(await runningCloudflared()) ?? after}.`);
 }
 
 // ---------------------------------------------------------------- main
@@ -836,7 +962,7 @@ const COMMANDS = {
 const [command, ...rest] = process.argv.slice(2);
 const handler = COMMANDS[command];
 if (!handler) {
-  console.log(readFileSync(new URL(import.meta.url), "utf8").split("\n").slice(1, 13).map((l) => l.replace(/^\/\/ ?/, "")).join("\n"));
+  console.log(readFileSync(new URL(import.meta.url), "utf8").split("\n").slice(1, 14).map((l) => l.replace(/^\/\/ ?/, "")).join("\n"));
   process.exit(command && command !== "help" ? 2 : 0);
 }
 if (!NO_SERVICES && !isAdmin()) {

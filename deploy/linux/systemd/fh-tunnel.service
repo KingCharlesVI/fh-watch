@@ -9,7 +9,7 @@ ConditionPathExists=/etc/fh/tunnel.yml
 Type=simple
 User=fh-tunnel
 Group=fh-tunnel
-# Updates come from Cloudflare's apt repository, not cloudflared itself.
+# `fh tunnel update` updates it from Cloudflare's apt repository; cloudflared never updates itself.
 ExecStart=/usr/bin/cloudflared tunnel --no-autoupdate --metrics 127.0.0.1:20241 --config /etc/fh/tunnel.yml run
 Restart=always
 RestartSec=5
