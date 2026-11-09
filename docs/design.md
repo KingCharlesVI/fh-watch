@@ -467,7 +467,7 @@ flowchart LR
 | Setup | `deploy/linux/provision.sh`, run once as root. Safe to run again. | `deploy/windows/provision.ps1`, run once as administrator. Safe to run again. |
 | Processes | systemd units `fh-api`, `fh-web`, `fh-tunnel`, each as its own unprivileged user, with sandboxing (read-only system, private /tmp). | Windows services `fh-api`, `fh-web`, `fh-tunnel` via WinSW (a pinned, checksummed download), each under its own virtual account (`NT SERVICEh-api`) with folder permissions to match. |
 | Settings | `/etc/fh/*.env` | `C:ProgramDatahconfig*.env`, read with `node --env-file` |
-| Operations | The `fh` command, one Node script (`deploy/fh.mjs`) for both systems: `deploy`, `rollback`, `status`, `logs`, `backup`, `restore`, `restore-test`, `admin`, `tunnel`. | Same. |
+| Operations | The `fh` command, one Node script (`deploy/fh.mjs`) for both systems: `deploy`, `rollback`, `status`, `logs`, `backup`, `restore`, `restore-test`, `admin`, `tunnel`, `upgrade`. | Same. |
 | Deploys | `fh deploy <tag>`: clone into `releases/<time>-<tag>`, install and build (as `fh-deploy` on Linux), migrate, point `current` at it (a symlink on Linux, a junction on Windows), restart, health-check. An unhealthy release is switched back automatically. The last 5 releases are kept. | Same. |
 | Public access | Cloudflare Tunnel set up by `fh tunnel`: creates the tunnel, adds DNS records for the domain and www, writes the routing rules. Cloudflare handles TLS. The site sends HSTS and the usual security headers itself; `www` redirects to the main address. | Same. |
 | Visitor IPs | Cloudflare puts each visitor's address in `CF-Connecting-IP`. The API uses it for rate limits (`CLIENT_IP_HEADER`), and only from proxies on the same machine. | Same. |

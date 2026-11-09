@@ -72,7 +72,7 @@ Follow **2a** for Windows or **2b** for Linux. Both finish by setting up the tun
 
 3. **Laptops:** in *Control Panel → Power Options → Choose what closing the lid does*, set "When I close the lid" to **Do nothing** for "Plugged in".
 
-Windows Update restarts the machine now and then. The services and tunnel start again by themselves, before anyone signs in. It doesn't update cloudflared, though: run `fh tunnel update` every month or two (`fh status` says when a newer one is out). It stops the tunnel while winget replaces cloudflared, so the site is offline for up to a minute.
+Windows Update restarts the machine now and then. The services and tunnel start again by themselves, before anyone signs in. It doesn't update cloudflared, Node.js or PostgreSQL, though: run `fh upgrade` every month or two (`fh status` says when something is out of date). It updates cloudflared and Node.js with winget, staying on the same major version of Node.js, and the site is offline for a minute or two while they're replaced. PostgreSQL's installer can't be run from a script, so for that it says which installer to download and run.
 
 ### 2b. Linux
 
@@ -121,7 +121,7 @@ An old laptop makes a good small server: it uses little power, and its battery c
 4. **Keep it plugged in,** lid open or closed: the setup turns off sleep and the lid switch. If the BIOS or the manufacturer's tool can cap charging (e.g. at 80%), turn that on: a battery held at 100% for months wears out and can swell.
 5. **Give it a fixed address** on your router (a DHCP reservation), so `ssh` always finds it. The site doesn't need one: the tunnel works from any address.
 
-Ubuntu installs security updates by itself (the setup turns that on) and needs a restart now and then; everything comes back without anyone signing in. 24.04 LTS has security updates until 2029. Those automatic updates leave out cloudflared, which comes from Cloudflare's own repository: run `sudo fh tunnel update` every month or two (`fh status` says when a newer one is out).
+Ubuntu installs security updates by itself (the setup turns that on) and needs a restart now and then; everything comes back without anyone signing in. 24.04 LTS has security updates until 2029. Those automatic updates leave out Node.js and cloudflared, which come from NodeSource's and Cloudflare's own repositories: run `sudo fh upgrade` every month or two (`fh status` says when something is out of date). It also takes PostgreSQL updates as soon as Ubuntu has them, backing up the database first, and restarts whatever was running an old version.
 
 Running either setup script again is safe: it keeps existing secrets and settings. Add `-SkipTunnel` (Windows) or `--skip-tunnel` (Linux) to leave the tunnel for later, then run `fh tunnel` when ready.
 
@@ -235,7 +235,7 @@ Run `fh` commands from an administrator PowerShell on Windows, or with `sudo` on
 | Back up now | `fh backup` |
 | Restore | `fh restore <file>` |
 | Reconnect the tunnel or repair its DNS records | `fh tunnel` |
-| Update cloudflared, or see whether it's out of date | `fh tunnel update`, `fh tunnel update --check` |
+| Update cloudflared, Node.js and PostgreSQL, or see whether they're out of date | `fh upgrade`, `fh upgrade --check`; one of them: `fh upgrade node` |
 | Restart | Linux: `sudo systemctl restart fh-api fh-web`. Windows: `Restart-Service fh-api, fh-web` |
 | Change settings | Edit `api.env`, `web.env` or `web-beta.env`, then restart that service. `SITE_URL` is built into the website, so deploy again after changing it. |
 | Database shell | Linux: `sudo -u postgres psql fh`. Windows: `& "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres fh` (use your PostgreSQL version) |

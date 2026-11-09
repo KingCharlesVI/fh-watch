@@ -10,7 +10,8 @@
 //   fh restore-test                 check the newest backup restores (run weekly by the provision script's timer)
 //   fh admin <email> [--verify]     make a registered user an admin
 //   fh tunnel [--name NAME]         create or reconnect the Cloudflare Tunnel and point the domain at it
-//   fh tunnel update [--check]      update cloudflared and restart the tunnel (--check: only compare versions)
+//   fh upgrade [cloudflared|node|postgres] [--check]
+//                                   update them (all three by default), restarting what runs on them
 //
 // Run it with sudo on Linux, or from an administrator PowerShell on Windows. It has no dependencies,
 // because it runs before anything is installed. FH_ROOT and FH_SERVICES=none are for trying it out
@@ -61,7 +62,6 @@ const WEB_BETA_HEALTH = "http://127.0.0.1:3002/";
 /** cloudflared's metrics server; the service definitions start it here. */
 const TUNNEL_READY = "http://127.0.0.1:20241/ready";
 const TUNNEL_METRICS = "http://127.0.0.1:20241/metrics";
-const CLOUDFLARED_LATEST = "https://api.github.com/repos/cloudflare/cloudflared/releases/latest";
 /** Tables the restore test counts. */
 const TABLES = ["users", "clubs", "teams", "matches", "match_revisions"];
 /** The server needs the API and website (and what they depend on), not the phone app. */
@@ -515,7 +515,9 @@ async function status() {
     if (key === "web-beta" && !beta) continue;
     row(service, `${services.state(service).padEnd(14)}${checks[key]}`);
   }
-  row("cloudflared", await describeCloudflared());
+  const software = await Promise.all(Object.keys(SOFTWARE).map(inspect));
+  Object.values(SOFTWARE).forEach((label, i) => row(label, describe(software[i])));
+  if (software.some((info) => outdated(info) || stale(info))) row("", "fh upgrade updates them");
 
   const list = backups();
   const offsite = existsSync(join(PATHS.config, "fh.env")) ? (settings().RCLONE_REMOTE ?? "not set up") : "?";
@@ -771,7 +773,6 @@ ${betaHost ? `${rule(betaHost, "http://127.0.0.1:3001", "^/v1/")}\n${rule(betaHo
 }
 
 async function tunnel(args) {
-  if (args[0] === "update") return updateCloudflared(args.slice(1));
   const i = args.indexOf("--name");
   const name = i >= 0 ? args[i + 1] : "fh-match-centre";
   if (!name) fail("Usage: fh tunnel [--name NAME]");
@@ -827,40 +828,45 @@ async function tunnelConnects(seconds = 30) {
   return false;
 }
 
-// ---------------------------------------------------------------- cloudflared updates
+// ---------------------------------------------------------------- upgrades
 //
-// The tunnel runs with --no-autoupdate, and nothing else updates cloudflared: Ubuntu's automatic
-// updates only take Ubuntu's security fixes, and winget never upgrades by itself. Cloudflare only
-// supports versions from the last year, so `fh tunnel update` updates it through the package
-// manager that installed it, then restarts the tunnel onto it.
+// Nothing else keeps these three up to date. Ubuntu's automatic updates only take Ubuntu's own
+// fixes, so they cover PostgreSQL but not Node.js (from NodeSource) or cloudflared (from Cloudflare);
+// winget never upgrades anything by itself; and the tunnel runs with --no-autoupdate. `fh upgrade`
+// updates them through the package manager that installed them, keeping the same major version
+// of Node.js and PostgreSQL, then restarts whatever was running the old version.
 
-const cloudflaredPath = () => (existsSync(join(PATHS.config, "fh.env")) && settings().CLOUDFLARED) || "cloudflared";
+const SOFTWARE = { cloudflared: "cloudflared", node: "Node.js", postgres: "PostgreSQL" };
+/** winget packages. Only even-numbered Node.js versions become LTS; odd ones are in OpenJS.NodeJS. */
+const winget = (name, version) =>
+  name === "cloudflared" ? "Cloudflare.cloudflared" : major(version) % 2 ? "OpenJS.NodeJS" : "OpenJS.NodeJS.LTS";
+const SOFTWARE_FEEDS = {
+  cloudflared: "https://api.github.com/repos/cloudflare/cloudflared/releases/latest",
+  nodeReleases: "https://nodejs.org/dist/index.json",
+  nodeSchedule: "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
+  postgres: "https://www.postgresql.org/versions.json",
+};
+const POSTGRES_WINDOWS_DOWNLOAD = "https://www.enterprisedb.com/downloads/postgres-postgresql-downloads";
+/** Warn this long before a major version stops getting fixes. */
+const END_WARNING_DAYS = 183;
 
-/** "2025.8.0", from `cloudflared --version`, or undefined if it doesn't run. */
-function installedCloudflared(cf) {
-  const r = spawnSync(cf, ["--version"], { encoding: "utf8" });
-  return r.status === 0 ? r.stdout.match(/version (\S+)/)?.[1] : undefined;
-}
-
-/** The version the tunnel service runs, which lags the installed one until the service restarts. */
-async function runningCloudflared() {
+async function fetchJson(url) {
   try {
-    const res = await fetch(TUNNEL_METRICS, { signal: AbortSignal.timeout(3000) });
-    // build_info{goversion="go1.24.4",revision="...",type="",version="2025.8.0"} 1
-    return (await res.text()).match(/build_info\{[^}]*\bversion="([^"]+)"/)?.[1];
-  } catch {}
-}
-
-/** Cloudflare's newest release, or undefined if GitHub can't be reached. */
-async function latestCloudflared() {
-  try {
-    const res = await fetch(CLOUDFLARED_LATEST, {
-      headers: { accept: "application/vnd.github+json", "user-agent": "fh-match-centre-server" },
+    const res = await fetch(url, {
+      headers: { accept: "application/json", "user-agent": "fh-match-centre-server" },
       signal: AbortSignal.timeout(5000),
     });
-    if (res.ok) return (await res.json()).tag_name?.replace(/^v/, "");
+    if (res.ok) return await res.json();
   } catch {}
 }
+
+/** The version a program prints, e.g. "2025.8.0" from "cloudflared version 2025.8.0 (built ...)". */
+function versionOf(cmd, args, pattern) {
+  const r = spawnSync(cmd, args, { encoding: "utf8" });
+  return r.status === 0 ? r.stdout.match(pattern)?.[1] : undefined;
+}
+
+const major = (version) => Number.parseInt(version, 10);
 
 /** Whether version a (2025.10.1) comes after b (2025.8.0). */
 function isNewer(a, b) {
@@ -872,77 +878,224 @@ function isNewer(a, b) {
   return false;
 }
 
-async function describeCloudflared() {
-  const installed = installedCloudflared(cloudflaredPath());
-  if (!installed) return "not found";
-  const [running, latest] = await Promise.all([runningCloudflared(), latestCloudflared()]);
-  if (running && running !== installed) return `${installed} installed, but the tunnel still runs ${running}: fh tunnel update`;
-  if (latest && isNewer(latest, installed)) return `${installed}, ${latest} is out: fh tunnel update`;
-  return latest ? `${installed}, up to date` : installed;
+const cloudflaredPath = () => (existsSync(join(PATHS.config, "fh.env")) && settings().CLOUDFLARED) || "cloudflared";
+
+/** The version the tunnel service runs, which lags the installed one until the service restarts. */
+async function runningCloudflared() {
+  try {
+    const res = await fetch(TUNNEL_METRICS, { signal: AbortSignal.timeout(3000) });
+    // build_info{goversion="go1.24.4",revision="...",type="",version="2025.8.0"} 1
+    return (await res.text()).match(/build_info\{[^}]*\bversion="([^"]+)"/)?.[1];
+  } catch {}
 }
 
-async function updateCloudflared(args) {
-  const cf = cloudflaredPath();
-  const before = installedCloudflared(cf);
-  if (!before) fail(`Couldn't run ${cf}. Run ${WIN ? "provision.ps1" : "provision.sh"} again to set it up.`);
-  const [running, latest] = await Promise.all([runningCloudflared(), latestCloudflared()]);
-  const row = (label, value) => console.log(`${label.padEnd(11)}${value}`);
-  row("Installed", before);
-  row("Running", running ?? "the tunnel isn't answering");
-  row("Newest", latest ?? "couldn't ask GitHub");
-  if (args.includes("--check")) return;
+/**
+ * The Node.js the services run. On Windows, fh.cmd runs `fh upgrade` from a copy of it (Node can't
+ * be replaced while it runs this) and says in FH_NODE where the real one is.
+ */
+const systemNode = () => process.env.FH_NODE || "node";
+const runningOnCopyOfNode = () => Boolean(process.env.FH_NODE) && !samePath(process.execPath, process.env.FH_NODE);
 
-  if (latest && !isNewer(latest, before)) {
-    if (!running || running === before) return console.log("\ncloudflared is up to date.");
-    say(`Restarting the tunnel onto ${before}`);
-    services.restart([SERVICES.tunnel]);
-    if (!(await tunnelConnects())) {
-      showRecentLogs([SERVICES.tunnel], 20);
-      fail("The tunnel didn't connect. See the log above.");
-    }
-    return say(`Tunnel connected, running cloudflared ${before}.`);
-  }
-
-  say(`Updating cloudflared ${before} to ${latest ?? "the newest version"}`);
-  if (WIN) {
-    // The installer can't replace cloudflared.exe while it runs.
-    console.log("The site is offline until the tunnel starts again, usually under a minute.");
-    services.stop([SERVICES.tunnel]);
-  }
-  let problem;
+/** The database server's own version, e.g. "17.6". */
+function postgresVersion() {
   try {
-    if (WIN) {
-      // winget exits non-zero when there's nothing newer; the version check below says what happened.
-      run("winget", [
-        "upgrade", "--id", "Cloudflare.cloudflared", "--exact", "--silent", "--disable-interactivity",
-        "--accept-source-agreements", "--accept-package-agreements",
-      ], { allowFail: true });
-    } else {
-      const env = { DEBIAN_FRONTEND: "noninteractive" };
-      run("apt-get", ["update", "-q"], { env });
-      run("apt-get", ["install", "-yq", "--only-upgrade", "cloudflared"], { env });
+    const r = run(pgTool("psql"), ["-XAtc", "SHOW server_version"], { env: pgEnv(), capture: true, allowFail: true });
+    return r.status === 0 ? r.stdout.match(/^\d+\.\d+/)?.[0] : undefined;
+  } catch {}
+}
+
+/** What's installed and the newest release in the same major version (if the internet answers). */
+async function inspect(name) {
+  if (name === "cloudflared") {
+    const installed = versionOf(cloudflaredPath(), ["--version"], /version (\S+)/);
+    const [running, release] = await Promise.all([runningCloudflared(), fetchJson(SOFTWARE_FEEDS.cloudflared)]);
+    return { installed, running, latest: release?.tag_name?.replace(/^v/, "") };
+  }
+  if (name === "node") {
+    const installed = versionOf(systemNode(), ["--version"], /v(\d+\.\d+\.\d+)/);
+    if (!installed) return {};
+    const [releases, schedule] = await Promise.all([fetchJson(SOFTWARE_FEEDS.nodeReleases), fetchJson(SOFTWARE_FEEDS.nodeSchedule)]);
+    const latest = releases?.find((r) => /^v\d+\.\d+\.\d+$/.test(r.version) && major(r.version.slice(1)) === major(installed));
+    return { installed, latest: latest?.version.slice(1), end: schedule?.[`v${major(installed)}`]?.end };
+  }
+  const installed = postgresVersion();
+  if (!installed) return {};
+  const line = (await fetchJson(SOFTWARE_FEEDS.postgres))?.find((v) => v.major === String(major(installed)));
+  return { installed, latest: line && `${line.major}.${line.latestMinor}`, end: line?.eolDate };
+}
+
+const outdated = ({ installed, latest }) => Boolean(installed && latest && isNewer(latest, installed));
+const stale = ({ installed, running }) => Boolean(installed && running && running !== installed);
+
+function describe({ installed, running, latest, end }) {
+  if (!installed) return "not found";
+  const notes = [];
+  if (running && running !== installed) notes.push(`the tunnel still runs ${running}`);
+  if (latest && isNewer(latest, installed)) notes.push(`${latest} is out`);
+  if (end && Date.parse(end) - Date.now() < END_WARNING_DAYS * 86_400_000) {
+    const ended = Date.parse(end) < Date.now();
+    notes.push(`version ${major(installed)} ${ended ? "stopped getting fixes" : "gets fixes until"} ${ended ? `on ${end}` : end}`);
+  }
+  if (!notes.length) return latest ? `${installed}, up to date` : installed;
+  return `${installed}: ${notes.join("; ")}`;
+}
+
+/** Runs a package manager, unless this is a trial run away from a real server. */
+function packageManager(cmd, args, opts = {}) {
+  if (NO_SERVICES) return console.log(`(FH_SERVICES=none: not running ${cmd} ${args.join(" ")})`);
+  return run(cmd, args, opts);
+}
+
+/** apt's own version strings (e.g. 24.11.0-1nodesource1), to go back to. */
+function aptVersions(packages) {
+  const r = run("dpkg-query", ["-W", "-f", "${Package}=${Version}\\n", ...packages], { capture: true, allowFail: true });
+  return r.stdout.split("\n").filter((l) => /=\S/.test(l));
+}
+
+async function upgrade(args) {
+  const check = args.includes("--check");
+  const asked = args.filter((a) => !a.startsWith("--"));
+  const unknown = asked.find((a) => !(a in SOFTWARE));
+  if (unknown) fail(`Usage: fh upgrade [${Object.keys(SOFTWARE).join("|")} ...] [--check]`);
+  const names = asked.length ? asked : Object.keys(SOFTWARE);
+
+  const before = Object.fromEntries(await Promise.all(names.map(async (n) => [n, await inspect(n)])));
+  for (const n of names) console.log(`${SOFTWARE[n].padEnd(13)}${describe(before[n])}`);
+  if (check) return;
+
+  const due = names.filter((n) => {
+    const info = before[n];
+    if (!info.installed) {
+      warn(`Skipping ${SOFTWARE[n]}: couldn't find it or ask it its version.`);
+      return false;
     }
-  } catch (err) {
-    problem = err; // Start the tunnel again before saying so.
+    if (outdated(info) || stale(info)) return true;
+    // Linux asks apt whatever the websites say: Ubuntu releases PostgreSQL updates on its own timetable.
+    // Windows only goes ahead without their answer if asked by name, as it stops services.
+    return !WIN || (!info.latest && asked.includes(n));
+  });
+  if (!due.length) return console.log("\nEverything is up to date.");
+
+  if (WIN && due.includes("postgres")) {
+    due.splice(due.indexOf("postgres"), 1);
+    const want = before.postgres.latest ?? `the newest PostgreSQL ${major(before.postgres.installed)}`;
+    say(`PostgreSQL ${want} needs installing by hand`);
+    console.log(
+      [
+        "Its Windows installer can't be updated from here. It updates in place and keeps the data:",
+        "  1. fh backup",
+        `  2. Download the PostgreSQL ${major(before.postgres.installed)} installer for ${want} from ${POSTGRES_WINDOWS_DOWNLOAD}`,
+        "  3. Run it with the same folders it shows you. It restarts the database: the site errors for a moment.",
+        "  4. fh status",
+      ].join("\n"),
+    );
+  }
+  if (WIN && due.includes("node") && !runningOnCopyOfNode() && !NO_SERVICES) {
+    due.splice(due.indexOf("node"), 1);
+    warn("Node.js can't be updated by the copy of it running this. Run provision.ps1 once (it updates fh.cmd), then fh upgrade again.");
+  }
+  if (WIN && due.includes("node") && !before.node.latest) {
+    due.splice(due.indexOf("node"), 1);
+    warn("Skipping Node.js: couldn't ask nodejs.org for the newest version to install.");
+  }
+  if (!due.length) return;
+
+  const webServices = [SERVICES.api, SERVICES.web, SERVICES["web-beta"]].filter((s) => services.state(s) === "running");
+  const goBack = WIN
+    ? due.map((n) => `winget install --id ${winget(n, before[n].installed)} --exact --version ${before[n].installed} --force`)
+    : [`sudo apt-get install --allow-downgrades ${aptVersions(due.flatMap(aptPackages)).join(" ")}`];
+
+  let problem;
+  let pending = [];
+  if (WIN) {
+    // The installers can't replace a program while it runs, so the site is offline meanwhile.
+    const stop = [...(due.includes("node") ? webServices : []), ...(due.includes("cloudflared") ? [SERVICES.tunnel] : [])];
+    say(`Updating ${due.map((n) => SOFTWARE[n]).join(" and ")}`);
+    console.log("The site is offline until they start again, usually a minute or two.");
+    if (stop.length) services.stop(stop);
+    for (const n of due) {
+      try {
+        // winget exits non-zero when it has nothing newer; the version check afterwards says what happened.
+        const version = n === "node" ? ["--version", before.node.latest] : [];
+        packageManager("winget", [
+          "upgrade", "--id", winget(n, before[n].installed), "--exact", ...version, "--silent", "--disable-interactivity",
+          "--accept-source-agreements", "--accept-package-agreements",
+        ], { allowFail: true });
+      } catch (err) {
+        problem ??= err; // Start everything again before saying so.
+      }
+    }
+  } else {
+    try {
+      const env = { DEBIAN_FRONTEND: "noninteractive" };
+      const install = ["install", "-yq", "--only-upgrade", ...due.flatMap(aptPackages)];
+      say("Asking apt what's new");
+      packageManager("apt-get", ["update", "-q"], { env });
+      const plan = NO_SERVICES ? "" : run("apt-get", ["-s", ...install], { env, capture: true, allowFail: true }).stdout;
+      pending = [...plan.matchAll(/^Inst (\S+)/gm)].map((m) => m[1]);
+      if (pending.some((p) => /^(postgresql|libpq)/.test(p))) {
+        say("Backing up the database first");
+        await backup({ offsite: false });
+      }
+      if (pending.length) {
+        say(`Updating ${pending.join(", ")}`);
+        packageManager("apt-get", [...install, "-o", "Dpkg::Options::=--force-confdef", "-o", "Dpkg::Options::=--force-confold"], { env });
+      }
+    } catch (err) {
+      problem = err;
+    }
   }
 
-  const after = installedCloudflared(cf);
-  say("Starting the tunnel");
-  services.restart([SERVICES.tunnel]);
-  if (!(await tunnelConnects())) {
-    showRecentLogs([SERVICES.tunnel], 20);
-    if (!after) fail(`${cf} doesn't run any more; the installer may have moved it. Run provision.ps1 again so the service finds it.`);
-    const back = WIN
-      ? `winget install --id Cloudflare.cloudflared --exact --version ${before} --force; Restart-Service fh-tunnel`
-      : `sudo apt-get install --allow-downgrades cloudflared=${before} && sudo systemctl restart fh-tunnel`;
-    fail(`The tunnel didn't connect on cloudflared ${after}. See the log above. To go back to ${before}:\n  ${back}`);
+  // pnpm is a corepack shim in Node's own folder, which a Node.js installer may have replaced.
+  if (due.includes("node") && !NO_SERVICES && run("pnpm", ["--version"], { capture: true, allowFail: true }).status !== 0) {
+    run("corepack", ["enable"], { allowFail: true });
+  }
+
+  const after = Object.fromEntries(await Promise.all(due.map(async (n) => [n, await inspect(n)])));
+  const changed = (n) => due.includes(n) && Boolean(after[n].installed) && after[n].installed !== before[n].installed;
+  // apt restarts PostgreSQL when it updates it, so the API reconnects and is checked.
+  const databaseRestarted = pending.some((p) => /^postgresql-\d/.test(p));
+  const restartWeb = WIN ? due.includes("node") : changed("node");
+  const restartTunnel = WIN ? due.includes("cloudflared") : changed("cloudflared") || stale(before.cloudflared ?? {});
+
+  if (restartWeb && webServices.length) {
+    say(`Starting ${webServices.join(", ")}`);
+    services.restart(webServices);
+  }
+  if (restartTunnel) {
+    say("Starting the tunnel");
+    services.restart([SERVICES.tunnel]);
+  }
+  const web = !(restartWeb || databaseRestarted) || NO_SERVICES || (await healthy(TARGETS.live));
+  const beta = !restartWeb || !webServices.includes(SERVICES["web-beta"]) || NO_SERVICES || (await healthy(TARGETS.beta));
+  const tunnel = !restartTunnel || (await tunnelConnects());
+  if (!(web && beta && tunnel)) {
+    showRecentLogs([...(web && beta ? [] : webServices), ...(tunnel ? [] : [SERVICES.tunnel])], 20);
+    fail(`Not everything came back after the update. See the log above. To go back:\n  ${goBack.join("\n  ")}`);
   }
   if (problem) throw problem;
-  if (after === before) {
-    warn(`${WIN ? "winget" : "Cloudflare's apt repository"} has nothing newer than ${before} yet${latest ? `, though ${latest} is out` : ""}. Try again in a day or two.`);
-    if (WIN) console.log("If cloudflared wasn't installed with winget, install it that way once: winget install --id Cloudflare.cloudflared");
+
+  // Asked while the database was still starting up again.
+  if (databaseRestarted && !after.postgres?.installed) after.postgres = await inspect("postgres");
+  for (const n of due) {
+    const label = SOFTWARE[n].padEnd(13);
+    const source = WIN ? "winget" : n === "postgres" ? "Ubuntu" : "apt";
+    if (changed(n)) console.log(`${label}${before[n].installed} -> ${after[n].installed}`);
+    else if (stale(before[n])) console.log(`${label}restarted onto ${after[n].installed}`);
+    else if (outdated(before[n])) warn(`${SOFTWARE[n]}: ${source} has nothing newer than ${before[n].installed} yet, though ${before[n].latest} is out. Try again in a few days.`);
+    else console.log(`${label}${before[n].installed}, up to date`);
   }
-  say(`Tunnel connected, running cloudflared ${(await runningCloudflared()) ?? after}.`);
+  if (!WIN && existsSync("/var/run/reboot-required")) warn("Ubuntu needs a restart to finish its own updates: sudo reboot");
+  say("Upgrade done.");
+}
+
+/** The apt packages behind each one. */
+function aptPackages(name) {
+  if (name === "cloudflared") return ["cloudflared"];
+  if (name === "node") return ["nodejs"];
+  // Upgrades only skip what isn't installed, so naming the server, client and library is safe.
+  const m = major(postgresVersion() ?? "0");
+  return m ? [`postgresql-${m}`, `postgresql-client-${m}`, "libpq5"] : ["postgresql"];
 }
 
 // ---------------------------------------------------------------- main
@@ -957,12 +1110,13 @@ const COMMANDS = {
   "restore-test": restoreTest,
   admin,
   tunnel,
+  upgrade,
 };
 
 const [command, ...rest] = process.argv.slice(2);
 const handler = COMMANDS[command];
 if (!handler) {
-  console.log(readFileSync(new URL(import.meta.url), "utf8").split("\n").slice(1, 14).map((l) => l.replace(/^\/\/ ?/, "")).join("\n"));
+  console.log(readFileSync(new URL(import.meta.url), "utf8").split("\n").slice(1, 15).map((l) => l.replace(/^\/\/ ?/, "")).join("\n"));
   process.exit(command && command !== "help" ? 2 : 0);
 }
 if (!NO_SERVICES && !isAdmin()) {
