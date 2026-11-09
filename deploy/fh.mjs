@@ -1112,7 +1112,8 @@ async function upgrade(args) {
     if (changed(n)) console.log(`${label}${before[n].installed} -> ${after[n].installed}`);
     else if (stale(before[n])) console.log(`${label}restarted onto ${after[n].installed}`);
     else if (outdated(before[n])) warn(`${SOFTWARE[n]}: ${source} has nothing newer than ${before[n].installed} yet, though ${before[n].latest} is out. Try again in a few days.`);
-    else console.log(`${label}${before[n].installed}, up to date`);
+    // Still says if its major version is losing support.
+    else console.log(`${label}${describe(after[n].installed ? after[n] : before[n])}`);
   }
   if (!WIN && existsSync("/var/run/reboot-required")) warn("Ubuntu needs a restart to finish its own updates: sudo reboot");
   say("Upgrade done.");
