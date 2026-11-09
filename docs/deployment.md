@@ -278,6 +278,7 @@ Stop the old tunnel before starting the new one: two machines running the same t
 | Symptom | Likely cause |
 | --- | --- |
 | Cloudflare error page **1033** | The tunnel isn't connected: the machine is off or asleep, or `fh-tunnel` has stopped. Check `fh status` and `fh logs tunnel`. |
+| `fh deploy` fails with "It ran out of memory" | The build needs about 2.5 GB, and deploys on Linux get at most `BUILD_MEMORY` (3 GB unless `fh.env` says otherwise). Stop other programs on the machine (a media server, say) while deploying, or raise `BUILD_MEMORY` if there's room. Earlier versions of `fh` had no limit, so the build could take all the memory and the site went down with a **1033** until it finished. |
 | Cloudflare error page **502** | The tunnel is up but the API or website isn't. Check `fh status` and `fh logs api` / `fh logs web`. |
 | `fh deploy` fails at "Fetching" on Windows | Git can't sign in to GitHub. Run `git clone` on the repository once in the same administrator PowerShell to sign in. |
 | `fh deploy` fails at "Fetching" on Linux | The deploy key isn't added to GitHub (step 2b). |

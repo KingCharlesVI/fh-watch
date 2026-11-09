@@ -94,6 +94,9 @@ const TARGETS = {
 };
 /** Beta releases kept for rollback: each is a full build, and beta needs less history than live. */
 const KEEP_BETA_RELEASES = 2;
+/** Memory a deploy's install and build may use on Linux (fh.env's BUILD_MEMORY), and swap on top. */
+const BUILD_MEMORY = "3G";
+const BUILD_SWAP = "1G";
 const betaSetUp = () => existsSync(join(PATHS.config, TARGETS.beta.env));
 
 class Fail extends Error {}
@@ -159,12 +162,20 @@ function run(cmd, args, { cwd, env = {}, capture = false, allowFail = false } = 
   if (r.status !== 0 && !allowFail) {
     const detail = capture ? `\n${(r.stderr || r.stdout).trim()}` : "";
     const what = args[0] && !args[0].startsWith("-") ? `${basename(cmd)} ${args[0]}` : basename(cmd);
-    fail(`${what} failed (exit ${r.status}).${detail}`);
+    fail(`${what} failed (exit ${r.status ?? r.signal}).${detail}`);
   }
   return r;
 }
 
-/** Builds run as the unprivileged fh-deploy account on Linux, so package install scripts never run as root. */
+/**
+ * Builds run as the unprivileged fh-deploy account on Linux, so package install scripts never run as root.
+ *
+ * They also run in a memory limit, at low priority, and first in line for the out-of-memory killer.
+ * The website build alone peaks at about 2.3 GB, and on a machine that hasn't got that to spare it
+ * would push everything else into swap until the tunnel lost Cloudflare and the site went down. In
+ * the limit, a build that needs more than there is fails by itself, before switching, and the site
+ * stays up.
+ */
 function asDeployUser(cmd, args, { env = {}, ...opts } = {}) {
   const all = {
     COREPACK_ENABLE_DOWNLOAD_PROMPT: "0",
@@ -174,7 +185,25 @@ function asDeployUser(cmd, args, { env = {}, ...opts } = {}) {
   };
   if (WIN || process.getuid?.() !== 0) return run(cmd, args, { ...opts, env: all });
   const vars = Object.entries({ HOME: "/home/fh-deploy", ...all }).map(([k, v]) => `${k}=${v}`);
-  return run("runuser", ["-u", "fh-deploy", "--", "env", ...vars, cmd, ...args], opts);
+  const memory = settings().BUILD_MEMORY ?? BUILD_MEMORY;
+  const since = Math.floor(Date.now() / 1000);
+  const r = run("systemd-run", [
+    "--scope", "--quiet", "--collect", `--description=fh deploy: ${[basename(cmd), args[0]].join(" ")}`,
+    `--property=MemoryMax=${memory}`, `--property=MemorySwapMax=${BUILD_SWAP}`,
+    "--property=CPUWeight=20", "--property=IOWeight=20",
+    "--", "choom", "-n", "1000", "--", "nice", "-n", "10",
+    "runuser", "-u", "fh-deploy", "--", "env", ...vars, cmd, ...args,
+  ], { ...opts, allowFail: true });
+  if (r.status === 0 || opts.allowFail) return r;
+
+  const what = args[0] && !args[0].startsWith("-") ? `${basename(cmd)} ${args[0]}` : basename(cmd);
+  const detail = opts.capture ? `\n${(r.stderr || r.stdout).trim()}` : "";
+  const kernel = run("journalctl", ["-k", "-q", "--no-pager", `--since=@${since}`], { capture: true, allowFail: true }).stdout;
+  const oom = /out of memory/i.test(kernel ?? "")
+    ? `\nIt ran out of memory: deploys may use ${memory} (BUILD_MEMORY in ${join(PATHS.config, "fh.env")}).` +
+      " Stop other programs on this machine while deploying, or raise BUILD_MEMORY if there's room for it."
+    : "";
+  fail(`${what} failed (exit ${r.status ?? r.signal}).${detail}${oom}`);
 }
 
 /** Runs one of the API's scripts with its settings (the database password among them). */
